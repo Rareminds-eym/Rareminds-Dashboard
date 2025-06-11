@@ -7,9 +7,8 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Separator } from './ui/separator';
 import { Badge } from './ui/badge';
-import { Save, Upload, Image, Link2, Bold, Italic, Type, List } from 'lucide-react';
+import { Save, Upload, Bold, Italic, List, Link2 } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 
 interface NewPostSectionProps {
@@ -146,11 +145,6 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setCategory('');
       setSeo({ metaTitle: '', metaDescription: '', slug: '' });
     }
-
-    toast({
-      title: editingPost ? "Post Updated!" : "Post Created!",
-      description: editingPost ? "Your post has been successfully updated." : "Your new post has been saved successfully.",
-    });
   };
 
   const renderPreview = (text: string) => {

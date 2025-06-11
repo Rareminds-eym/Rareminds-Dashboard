@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { BlogPost } from '../types/blog';
 import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent } from './ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
@@ -34,10 +34,6 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
   const handleDeletePost = (postId: string, postTitle: string) => {
     if (window.confirm(`Are you sure you want to delete "${postTitle}"? This action cannot be undone.`)) {
       onDeletePost(postId);
-      toast({
-        title: "Post Deleted",
-        description: "The post has been successfully deleted.",
-      });
     }
   };
 
