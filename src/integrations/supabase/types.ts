@@ -20,6 +20,7 @@ export type Database = {
           meta_description: string
           meta_title: string
           slug: string
+          subcategory: string
           title: string
           updated_at: string
           user_id: string
@@ -34,6 +35,7 @@ export type Database = {
           meta_description: string
           meta_title: string
           slug: string
+          subcategory?: string
           title: string
           updated_at?: string
           user_id: string
@@ -48,6 +50,7 @@ export type Database = {
           meta_description?: string
           meta_title?: string
           slug?: string
+          subcategory?: string
           title?: string
           updated_at?: string
           user_id?: string

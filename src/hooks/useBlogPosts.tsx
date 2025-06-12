@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { BlogPost } from '../types/blog';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
+import type { Json } from '@/integrations/supabase/types';
 
 export const useBlogPosts = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -11,7 +12,7 @@ export const useBlogPosts = () => {
   const { toast } = useToast();
 
   // Fetch posts from database
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     if (!user) {
       setPosts([]);
       setLoading(false);
@@ -56,7 +57,7 @@ export const useBlogPosts = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, toast]);
 
   // Set up realtime subscription
   useEffect(() => {
@@ -87,7 +88,7 @@ export const useBlogPosts = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, fetchPosts]);
 
   const createPost = async (postData: Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!user) return null;

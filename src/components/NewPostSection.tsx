@@ -1,4 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
 import { BlogPost, SEOSettings } from '../types/blog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -7,7 +12,7 @@ import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { Save, Upload, Bold, Italic, List, Link2 } from 'lucide-react';
+import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 
 interface NewPostSectionProps {
@@ -17,7 +22,6 @@ interface NewPostSectionProps {
 
 const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
   const [featuredImage, setFeaturedImage] = useState('');
   const [category, setCategory] = useState('');
   const [subcategory, setSubcategory] = useState('');
@@ -27,29 +31,55 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
     slug: ''
   });
   const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const contentRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+      }),
+      Link.configure({
+        openOnClick: false,
+      }),
+      Placeholder.configure({
+        placeholder: 'Write your post content here...',
+      }),
+    ],
+    content: '',
+    onUpdate: ({ editor }) => {
+      // Content is automatically stored as HTML
+    },
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[300px] p-4',
+      },
+    },
+  });
 
   const categories = ['Government', 'School', 'Corporate', 'Institution'];
   
   const subcategories: Record<string, string[]> = {
-    'Government': ['Federal', 'State', 'Local'],
-    'School': ['Teachers', 'Students', 'Administration'],
+    'Government': ['Optional'] ,
+    'School': ['Teachers', 'Students'],
     'Corporate': ['Management', 'Employees', 'HR'],
-    'Institution': ['Research', 'Education', 'Administration']
+    'Institution': ['SDP', 'FDP', 'Administration']
   };
 
   useEffect(() => {
-    if (editingPost) {
+    if (editingPost && editor) {
       setTitle(editingPost.title);
-      setContent(editingPost.content);
       setFeaturedImage(editingPost.featuredImage || '');
       setCategory(editingPost.category);
       setSubcategory(editingPost.subcategory);
       setSeo(editingPost.seo);
+      
+      // Load content into editor
+      editor.commands.setContent(editingPost.content);
     }
-  }, [editingPost]);
+  }, [editingPost, editor]);
 
   useEffect(() => {
     if (title && !seo.metaTitle) {
@@ -76,48 +106,11 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
     }
   };
 
-  const insertFormatting = (format: string) => {
-    const textarea = contentRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = content.substring(start, end);
-    
-    let formattedText = '';
-    switch (format) {
-      case 'bold':
-        formattedText = `**${selectedText || 'bold text'}**`;
-        break;
-      case 'italic':
-        formattedText = `*${selectedText || 'italic text'}*`;
-        break;
-      case 'h1':
-        formattedText = `# ${selectedText || 'Heading 1'}`;
-        break;
-      case 'h2':
-        formattedText = `## ${selectedText || 'Heading 2'}`;
-        break;
-      case 'h3':
-        formattedText = `### ${selectedText || 'Heading 3'}`;
-        break;
-      case 'list':
-        formattedText = `- ${selectedText || 'List item'}`;
-        break;
-      case 'link':
-        formattedText = `[${selectedText || 'link text'}](url)`;
-        break;
-      default:
-        formattedText = selectedText;
+  const insertImage = () => {
+    const url = window.prompt('Enter image URL:');
+    if (url) {
+      editor?.chain().focus().setImage({ src: url }).run();
     }
-
-    const newContent = content.substring(0, start) + formattedText + content.substring(end);
-    setContent(newContent);
-    
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
-    }, 0);
   };
 
   const generateExcerpt = (text: string): string => {
@@ -128,7 +121,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title || !content || !category) {
+    if (!title || !editor?.getHTML() || !category) {
       toast({
         title: "Missing Required Fields",
         description: "Please fill in title, content, and category.",
@@ -140,8 +133,8 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
     const post: BlogPost = {
       id: editingPost?.id || `post-${Date.now()}`,
       title,
-      content,
-      excerpt: generateExcerpt(content),
+      content: editor?.getHTML() || '', // HTML for display
+      excerpt: generateExcerpt(editor?.getText() || ''),
       featuredImage: featuredImage || undefined,
       category,
       subcategory,
@@ -153,25 +146,13 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
     onPostSaved(post);
     
     if (!editingPost) {
+      editor?.commands.clearContent();
       setTitle('');
-      setContent('');
       setFeaturedImage('');
       setCategory('');
       setSubcategory('');
       setSeo({ metaTitle: '', metaDescription: '', slug: '' });
     }
-  };
-
-  const renderPreview = (text: string) => {
-    return text
-      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-semibold mt-4 mb-2">$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mt-4 mb-2">$1</h1>')
-      .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/gim, '<em>$1</em>')
-      .replace(/^- (.*$)/gim, '<li class="ml-4">$1</li>')
-      .replace(/\[([^\]]*)\]\(([^)]*)\)/gim, '<a href="$2" class="text-primary underline">$1</a>')
-      .replace(/\n/gim, '<br>');
   };
 
   return (
@@ -265,7 +246,8 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => insertFormatting('bold')}
+                      onClick={() => editor?.chain().focus().toggleBold().run()}
+                      className={editor?.isActive('bold') ? 'bg-primary text-primary-foreground' : ''}
                       title="Bold"
                     >
                       <Bold className="w-3 h-3" />
@@ -274,7 +256,8 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => insertFormatting('italic')}
+                      onClick={() => editor?.chain().focus().toggleItalic().run()}
+                      className={editor?.isActive('italic') ? 'bg-primary text-primary-foreground' : ''}
                       title="Italic"
                     >
                       <Italic className="w-3 h-3" />
@@ -283,25 +266,28 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => insertFormatting('h1')}
+                      onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
+                      className={editor?.isActive('heading', { level: 1 }) ? 'bg-primary text-primary-foreground' : ''}
                       title="Heading 1"
                     >
-                      H1
+                      <Heading1 className="w-3 h-3" />
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => insertFormatting('h2')}
+                      onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+                      className={editor?.isActive('heading', { level: 2 }) ? 'bg-primary text-primary-foreground' : ''}
                       title="Heading 2"
                     >
-                      H2
+                      <Heading2 className="w-3 h-3" />
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => insertFormatting('list')}
+                      onClick={() => editor?.chain().focus().toggleBulletList().run()}
+                      className={editor?.isActive('bulletList') ? 'bg-primary text-primary-foreground' : ''}
                       title="List"
                     >
                       <List className="w-3 h-3" />
@@ -310,31 +296,32 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => insertFormatting('link')}
+                      onClick={() => {
+                        const url = window.prompt('Enter URL:');
+                        if (url) {
+                          editor?.chain().focus().setLink({ href: url }).run();
+                        }
+                      }}
+                      className={editor?.isActive('link') ? 'bg-primary text-primary-foreground' : ''}
                       title="Link"
                     >
                       <Link2 className="w-3 h-3" />
                     </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={insertImage}
+                      title="Insert Image"
+                    >
+                      <ImageIcon className="w-3 h-3" />
+                    </Button>
                   </div>
                 </div>
                 
-                {isPreviewMode ? (
-                  <div 
-                    className="min-h-[300px] p-4 border rounded-lg prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: renderPreview(content) }}
-                  />
-                ) : (
-                  <Textarea
-                    ref={contentRef}
-                    id="content"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="Write your post content here... Use markdown for formatting:
-**bold**, *italic*, # Heading 1, ## Heading 2, - List item, [link text](url)"
-                    className="min-h-[300px] font-mono"
-                    required
-                  />
-                )}
+                <div className="border rounded-lg min-h-[300px] prose prose-sm max-w-none p-4">
+                  <EditorContent editor={editor} />
+                </div>
               </div>
             </CardContent>
           </Card>

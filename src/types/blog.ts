@@ -1,7 +1,7 @@
 export interface BlogPost {
   id: string;
   title: string;
-  content: string;
+  content: string; // HTML for display
   excerpt: string;
   featuredImage?: string;
   category: string;

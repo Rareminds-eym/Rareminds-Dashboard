@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { useToast } from '../hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { saveStoredAuth } from '@/lib/auth-utils';
 
 const AuthPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -55,9 +56,14 @@ const AuthPage = () => {
         const signinTrigger = document.querySelector('[value="signin"]') as HTMLButtonElement;
         signinTrigger?.click();
       } else {
+        // If user is auto-confirmed and session exists, save to localStorage
+        if (data.session && data.user) {
+          saveStoredAuth(data.session, data.user);
+        }
+        
         toast({
           title: "Success!",
-          description: "Please check your email to confirm your account."
+          description: data.session ? "Account created and signed in successfully!" : "Please check your email to confirm your account."
         });
       }
     } catch (error) {
@@ -76,7 +82,7 @@ const AuthPage = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
@@ -87,7 +93,10 @@ const AuthPage = () => {
           description: error.message,
           variant: "destructive"
         });
-      } else {
+      } else if (data.session && data.user) {
+        // Save authentication data to localStorage
+        saveStoredAuth(data.session, data.user);
+        
         toast({
           title: "Welcome back!",
           description: "You have successfully signed in."
