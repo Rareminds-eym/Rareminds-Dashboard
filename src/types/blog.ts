@@ -1,4 +1,3 @@
-
 export interface BlogPost {
   id: string;
   title: string;
@@ -6,6 +5,7 @@ export interface BlogPost {
   excerpt: string;
   featuredImage?: string;
   category: string;
+  subcategory: string;
   seo: {
     metaTitle: string;
     metaDescription: string;

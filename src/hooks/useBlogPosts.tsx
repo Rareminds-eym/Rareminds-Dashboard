@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { BlogPost } from '../types/blog';
@@ -41,6 +40,7 @@ export const useBlogPosts = () => {
           excerpt: post.excerpt,
           featuredImage: post.featured_image,
           category: post.category,
+          subcategory: post.subcategory || '',
           seo: {
             metaTitle: post.meta_title,
             metaDescription: post.meta_description,
@@ -102,6 +102,7 @@ export const useBlogPosts = () => {
           excerpt: postData.excerpt,
           featured_image: postData.featuredImage,
           category: postData.category,
+          subcategory: postData.subcategory,
           meta_title: postData.seo.metaTitle,
           meta_description: postData.seo.metaDescription,
           slug: postData.seo.slug
@@ -143,6 +144,7 @@ export const useBlogPosts = () => {
           excerpt: postData.excerpt,
           featured_image: postData.featuredImage,
           category: postData.category,
+          subcategory: postData.subcategory,
           meta_title: postData.seo?.metaTitle,
           meta_description: postData.seo?.metaDescription,
           slug: postData.seo?.slug

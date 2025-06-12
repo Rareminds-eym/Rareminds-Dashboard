@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { BlogPost, SEOSettings } from '../types/blog';
 import { Button } from './ui/button';
@@ -21,6 +20,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   const [content, setContent] = useState('');
   const [featuredImage, setFeaturedImage] = useState('');
   const [category, setCategory] = useState('');
+  const [subcategory, setSubcategory] = useState('');
   const [seo, setSeo] = useState<SEOSettings>({
     metaTitle: '',
     metaDescription: '',
@@ -31,7 +31,14 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const categories = ['Tech', 'Travel', 'Lifestyle', 'Business', 'Health', 'Education', 'Food', 'Sports'];
+  const categories = ['Government', 'School', 'Corporate', 'Institution'];
+  
+  const subcategories: Record<string, string[]> = {
+    'Government': ['Federal', 'State', 'Local'],
+    'School': ['Teachers', 'Students', 'Administration'],
+    'Corporate': ['Management', 'Employees', 'HR'],
+    'Institution': ['Research', 'Education', 'Administration']
+  };
 
   useEffect(() => {
     if (editingPost) {
@@ -39,6 +46,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setContent(editingPost.content);
       setFeaturedImage(editingPost.featuredImage || '');
       setCategory(editingPost.category);
+      setSubcategory(editingPost.subcategory);
       setSeo(editingPost.seo);
     }
   }, [editingPost]);
@@ -51,6 +59,11 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setSeo(prev => ({ ...prev, slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') }));
     }
   }, [title, seo.metaTitle, seo.slug]);
+
+  useEffect(() => {
+    // Reset subcategory when category changes
+    setSubcategory('');
+  }, [category]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -108,7 +121,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   };
 
   const generateExcerpt = (text: string): string => {
-    const cleanText = text.replace(/[#*\[\]()]/g, '').replace(/\n+/g, ' ').trim();
+    const cleanText = text.replace(/[#*[]()]/g, '').replace(/\n+/g, ' ').trim();
     return cleanText.length > 150 ? cleanText.substring(0, 150) + '...' : cleanText;
   };
 
@@ -131,6 +144,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       excerpt: generateExcerpt(content),
       featuredImage: featuredImage || undefined,
       category,
+      subcategory,
       seo,
       createdAt: editingPost?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -143,6 +157,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setContent('');
       setFeaturedImage('');
       setCategory('');
+      setSubcategory('');
       setSeo({ metaTitle: '', metaDescription: '', slug: '' });
     }
   };
@@ -154,7 +169,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mt-4 mb-2">$1</h1>')
       .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/gim, '<em>$1</em>')
-      .replace(/^\- (.*$)/gim, '<li class="ml-4">$1</li>')
+      .replace(/^- (.*$)/gim, '<li class="ml-4">$1</li>')
       .replace(/\[([^\]]*)\]\(([^)]*)\)/gim, '<a href="$2" class="text-primary underline">$1</a>')
       .replace(/\n/gim, '<br>');
   };
@@ -342,6 +357,22 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                     {categories.map((cat) => (
                       <SelectItem key={cat} value={cat}>
                         {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="subcategory">Subcategory</Label>
+                <Select value={subcategory} onValueChange={setSubcategory}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select subcategory" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(subcategories[category] || []).map((subcat) => (
+                      <SelectItem key={subcat} value={subcat}>
+                        {subcat}
                       </SelectItem>
                     ))}
                   </SelectContent>

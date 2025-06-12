@@ -62,7 +62,7 @@ const Index = () => {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <h1 className="text-2xl font-bold text-foreground">Blog Dashboard</h1>
+            <img src="https://rareminds.in/RareMinds.webp" alt="Logo" className="h-14 w-auto" />
             <div className="flex items-center gap-2">
               <nav className="flex flex-wrap gap-2">
                 <button

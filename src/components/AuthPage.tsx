@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from './ui/button';
@@ -20,7 +19,8 @@ const AuthPage = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // Attempt to sign up
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -29,11 +29,31 @@ const AuthPage = () => {
       });
 
       if (error) {
+        if (error.message.includes('User already registered')) {
+          toast({
+            title: "Account Already Exists",
+            description: "This email is already registered. Please sign in instead.",
+            variant: "default"
+          });
+          // Automatically switch to sign in tab
+          const signinTrigger = document.querySelector('[value="signin"]') as HTMLButtonElement;
+          signinTrigger?.click();
+        } else {
+          toast({
+            title: "Sign Up Error",
+            description: error.message,
+            variant: "destructive"
+          });
+        }
+      } else if (data?.user?.identities?.length === 0) {
         toast({
-          title: "Sign Up Error",
-          description: error.message,
-          variant: "destructive"
+          title: "Account Already Exists",
+          description: "This email is already registered. Please sign in instead.",
+          variant: "default"
         });
+        // Automatically switch to sign in tab
+        const signinTrigger = document.querySelector('[value="signin"]') as HTMLButtonElement;
+        signinTrigger?.click();
       } else {
         toast({
           title: "Success!",

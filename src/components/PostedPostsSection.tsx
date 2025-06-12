@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { BlogPost } from '../types/blog';
 import { Button } from './ui/button';
@@ -44,7 +43,7 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
       .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mt-4 mb-2 text-foreground">$1</h1>')
       .replace(/\*\*(.*?)\*\*/gim, '<strong class="font-semibold">$1</strong>')
       .replace(/\*(.*?)\*/gim, '<em class="italic">$1</em>')
-      .replace(/^\- (.*$)/gim, '<li class="ml-4 list-disc">$1</li>')
+      .replace(/^- (.*$)/gim, '<li class="ml-4 list-disc">$1</li>')
       .replace(/\[([^\]]*)\]\(([^)]*)\)/gim, '<a href="$2" class="text-primary underline hover:text-primary/80">$1</a>')
       .replace(/\n/gim, '<br>');
   };
@@ -128,6 +127,7 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                   <Badge variant="secondary">
                     <Tag className="w-3 h-3 mr-1" />
                     {post.category}
+                    {post.subcategory && ` > ${post.subcategory}`}
                   </Badge>
                   <span className="text-xs text-muted-foreground flex items-center">
                     <Calendar className="w-3 h-3 mr-1" />
