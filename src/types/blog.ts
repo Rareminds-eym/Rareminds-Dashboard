@@ -6,6 +6,7 @@ export interface BlogPost {
   featuredImage?: string;
   category: string;
   subcategory: string;
+  tags: string[];
   seo: {
     metaTitle: string;
     metaDescription: string;

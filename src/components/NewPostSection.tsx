@@ -12,7 +12,7 @@ import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon } from 'lucide-react';
+import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 
 interface NewPostSectionProps {
@@ -25,6 +25,8 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   const [featuredImage, setFeaturedImage] = useState('');
   const [category, setCategory] = useState('');
   const [subcategory, setSubcategory] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
   const [seo, setSeo] = useState<SEOSettings>({
     metaTitle: '',
     metaDescription: '',
@@ -74,6 +76,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setFeaturedImage(editingPost.featuredImage || '');
       setCategory(editingPost.category);
       setSubcategory(editingPost.subcategory);
+      setTags(editingPost.tags || []);
       setSeo(editingPost.seo);
       
       // Load content into editor
@@ -118,6 +121,25 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
     return cleanText.length > 150 ? cleanText.substring(0, 150) + '...' : cleanText;
   };
 
+  const addTag = () => {
+    const trimmedTag = tagInput.trim();
+    if (trimmedTag && !tags.includes(trimmedTag)) {
+      setTags([...tags, trimmedTag]);
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag();
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -138,6 +160,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       featuredImage: featuredImage || undefined,
       category,
       subcategory,
+      tags,
       seo,
       createdAt: editingPost?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -151,6 +174,8 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setFeaturedImage('');
       setCategory('');
       setSubcategory('');
+      setTags([]);
+      setTagInput('');
       setSeo({ metaTitle: '', metaDescription: '', slug: '' });
     }
   };
@@ -352,7 +377,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
 
               <div>
                 <Label htmlFor="subcategory">Subcategory</Label>
-                <Select value={subcategory} onValueChange={setSubcategory}>
+                <Select value={subcategory} onValueChange={setSubcategory} required>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Select subcategory" />
                   </SelectTrigger>
@@ -364,6 +389,57 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="tags">Tags</Label>
+                <div className="mt-1 space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      id="tags"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={handleTagKeyDown}
+                      placeholder="Add tags (press Enter or comma to add)"
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addTag}
+                      disabled={!tagInput.trim()}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  
+                  {tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="secondary"
+                          className="flex items-center gap-1"
+                        >
+                          {tag}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-auto p-0 text-muted-foreground hover:text-foreground"
+                            onClick={() => removeTag(tag)}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <p className="text-xs text-muted-foreground">
+                    Tags help categorize and make your posts discoverable
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -382,6 +458,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                   onChange={(e) => setSeo(prev => ({ ...prev, metaTitle: e.target.value }))}
                   placeholder="SEO title for search engines"
                   className="mt-1"
+                  required
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   {seo.metaTitle.length}/60 characters
@@ -397,6 +474,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                   placeholder="Brief description for search results"
                   className="mt-1"
                   rows={3}
+                  required
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   {seo.metaDescription.length}/160 characters

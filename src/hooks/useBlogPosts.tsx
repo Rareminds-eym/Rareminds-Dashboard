@@ -42,6 +42,7 @@ export const useBlogPosts = () => {
           featuredImage: post.featured_image,
           category: post.category,
           subcategory: post.subcategory || '',
+          tags: post.tags || [],
           seo: {
             metaTitle: post.meta_title,
             metaDescription: post.meta_description,
@@ -104,6 +105,7 @@ export const useBlogPosts = () => {
           featured_image: postData.featuredImage,
           category: postData.category,
           subcategory: postData.subcategory,
+          tags: postData.tags,
           meta_title: postData.seo.metaTitle,
           meta_description: postData.seo.metaDescription,
           slug: postData.seo.slug
@@ -146,6 +148,7 @@ export const useBlogPosts = () => {
           featured_image: postData.featuredImage,
           category: postData.category,
           subcategory: postData.subcategory,
+          tags: postData.tags,
           meta_title: postData.seo?.metaTitle,
           meta_description: postData.seo?.metaDescription,
           slug: postData.seo?.slug
