@@ -114,7 +114,9 @@ const DashboardOverview = ({ posts, onNewPost, onViewPosts }: DashboardOverviewP
                     <h4 className="font-semibold text-foreground truncate">{post.title}</h4>
                     <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{post.excerpt}</p>
                     <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
-                      <span className="bg-secondary px-2 py-1 rounded">{post.category} / {post.subcategory}</span>
+                      <span className="bg-secondary px-2 py-1 rounded">
+                        {post.category}
+                    {post.subcategory && post.subcategory !== "None" && ` / ${post.subcategory}`}</span>
                       <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>

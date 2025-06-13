@@ -127,7 +127,7 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                   <Badge variant="secondary">
                     <Tag className="w-3 h-3 mr-1" />
                     {post.category}
-                    {post.subcategory && ` / ${post.subcategory}`}
+                    {post.subcategory && post.subcategory !== "None" && ` / ${post.subcategory}`}
                   </Badge>
                   <span className="text-xs text-muted-foreground flex items-center">
                     <Calendar className="w-3 h-3 mr-1" />

@@ -62,10 +62,10 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   const categories = ['Government', 'School', 'Corporate', 'Institution'];
   
   const subcategories: Record<string, string[]> = {
-    'Government': ['Optional'] ,
+    'Government': ['None'] ,
     'School': ['Teachers', 'Students'],
-    'Corporate': ['Management', 'Employees', 'HR'],
-    'Institution': ['SDP', 'FDP', 'Administration']
+    'Corporate': ['Corporate', 'Training', ],
+    'Institution': ['SDP', 'FDP']
   };
 
   useEffect(() => {
