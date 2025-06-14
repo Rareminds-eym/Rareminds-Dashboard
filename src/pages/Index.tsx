@@ -2,10 +2,10 @@
 import { useState } from 'react';
 import { Plus, FileText, Eye, LogOut } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import DashboardOverview from '../components/DashboardOverview';
-import NewPostSection from '../components/NewPostSection';
-import PostedPostsSection from '../components/PostedPostsSection';
-import AuthPage from '../components/AuthPage';
+import DashboardOverview from '../components/Webite_Blog/Dashboard/DashboardOverview';
+import NewPostSection from '../components/Webite_Blog/NewPost/NewPostSection';
+import PostedPostsSection from '../components/Webite_Blog/PostedPosts/PostedPostsSection';
+import AuthPage from '../components/Webite_Blog/Auth/AuthPage';
 import { BlogPost } from '../types/blog';
 import { useAuth } from '../hooks/useAuth';
 import { useBlogPosts } from '../hooks/useBlogPosts';
@@ -19,10 +19,16 @@ const Index = () => {
   // Show loading state while checking auth
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 flex items-center justify-center">
+        <div className="text-center space-y-6">
+          <div className="relative">
+            <div className="w-20 h-20 border-4 border-slate-200 dark:border-slate-700 rounded-full animate-spin border-t-slate-900 dark:border-t-white mx-auto"></div>
+            <div className="absolute inset-0 w-20 h-20 border-4 border-transparent rounded-full animate-ping border-t-slate-400 dark:border-t-slate-500 mx-auto"></div>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Welcome back</h2>
+            <p className="text-slate-500 dark:text-slate-400">Preparing your dashboard...</p>
+          </div>
         </div>
       </div>
     );
@@ -57,20 +63,29 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <img src="https://rareminds.in/RareMinds.webp" alt="Logo" className="h-14 w-auto" />
-            <div className="flex items-center gap-2">
-              <nav className="flex flex-wrap gap-2">
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/50 dark:border-slate-700/50">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center">
+              <img 
+                src="https://rareminds.in/RareMinds.webp" 
+                alt="RareMinds" 
+                className="h-10 w-auto object-contain" 
+              />
+            </div>
+
+            {/* Navigation */}
+            <div className="flex items-center gap-8">
+              <nav className="hidden md:flex items-center gap-1 bg-slate-100/60 dark:bg-slate-800/60 rounded-full p-1">
                 <button
                   onClick={() => setActiveSection('overview')}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
+                  className={`relative px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${
                     activeSection === 'overview'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
                   }`}
                 >
                   <Eye className="w-4 h-4 inline mr-2" />
@@ -81,10 +96,10 @@ const Index = () => {
                     setEditingPost(null);
                     setActiveSection('new-post');
                   }}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
+                  className={`relative px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${
                     activeSection === 'new-post'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
                   }`}
                 >
                   <Plus className="w-4 h-4 inline mr-2" />
@@ -92,19 +107,70 @@ const Index = () => {
                 </button>
                 <button
                   onClick={() => setActiveSection('posts')}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
+                  className={`relative px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${
                     activeSection === 'posts'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
                   }`}
                 >
                   <FileText className="w-4 h-4 inline mr-2" />
-                  Posts ({posts.length})
+                  Posts
+                  <span className="ml-1 px-2 py-0.5 text-xs bg-slate-200 dark:bg-slate-600 rounded-full">
+                    {posts.length}
+                  </span>
                 </button>
               </nav>
-              <Button variant="outline" onClick={handleSignOut}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
+
+              {/* Mobile Navigation */}
+              <nav className="md:hidden flex gap-2">
+                <button
+                  onClick={() => setActiveSection('overview')}
+                  className={`p-3 rounded-xl transition-all duration-300 ${
+                    activeSection === 'overview'
+                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <Eye className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingPost(null);
+                    setActiveSection('new-post');
+                  }}
+                  className={`p-3 rounded-xl transition-all duration-300 ${
+                    activeSection === 'new-post'
+                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setActiveSection('posts')}
+                  className={`relative p-3 rounded-xl transition-all duration-300 ${
+                    activeSection === 'posts'
+                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <FileText className="w-5 h-5" />
+                  {posts.length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                      {posts.length > 9 ? '9+' : posts.length}
+                    </span>
+                  )}
+                </button>
+              </nav>
+
+              {/* Sign Out Button */}
+              <Button 
+                variant="ghost" 
+                onClick={handleSignOut}
+                className="gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl px-4 py-2.5 transition-all duration-300"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Sign Out</span>
               </Button>
             </div>
           </div>
@@ -112,38 +178,52 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-6 py-8">
         {postsLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading posts...</p>
+          <div className="flex items-center justify-center py-24">
+            <div className="text-center space-y-4">
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-slate-200 dark:border-slate-700 rounded-full animate-spin border-t-slate-900 dark:border-t-white mx-auto"></div>
+                <div className="absolute inset-0 w-16 h-16 border-4 border-transparent rounded-full animate-ping border-t-slate-400 dark:border-t-slate-500 mx-auto"></div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-slate-900 dark:text-white font-medium">Loading your content</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Please wait while we fetch your posts...</p>
+              </div>
+            </div>
           </div>
         ) : (
-          <>
+          <div className="space-y-8">
             {activeSection === 'overview' && (
-              <DashboardOverview 
-                posts={posts} 
-                onNewPost={() => {
-                  setEditingPost(null);
-                  setActiveSection('new-post');
-                }}
-                onViewPosts={() => setActiveSection('posts')}
-              />
+              <div className="animate-in fade-in duration-500">
+                <DashboardOverview 
+                  posts={posts} 
+                  onNewPost={() => {
+                    setEditingPost(null);
+                    setActiveSection('new-post');
+                  }}
+                  onViewPosts={() => setActiveSection('posts')}
+                />
+              </div>
             )}
             {activeSection === 'new-post' && (
-              <NewPostSection 
-                onPostSaved={handlePostSaved}
-                editingPost={editingPost}
-              />
+              <div className="animate-in fade-in duration-500">
+                <NewPostSection 
+                  onPostSaved={handlePostSaved}
+                  editingPost={editingPost}
+                />
+              </div>
             )}
             {activeSection === 'posts' && (
-              <PostedPostsSection 
-                posts={posts}
-                onEditPost={handleEditPost}
-                onDeletePost={handleDeletePost}
-              />
+              <div className="animate-in fade-in duration-500">
+                <PostedPostsSection 
+                  posts={posts}
+                  onEditPost={handleEditPost}
+                  onDeletePost={handleDeletePost}
+                />
+              </div>
             )}
-          </>
+          </div>
         )}
       </main>
     </div>
