@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import DashboardOverview from '../components/Webite_Blog/Dashboard/DashboardOverview';
 import NewPostSection from '../components/Webite_Blog/NewPost/NewPostSection';
 import PostedPostsSection from '../components/Webite_Blog/PostedPosts/PostedPostsSection';
-import AuthPage from '../components/Webite_Blog/Auth/AuthPage';
+import AuthPage from '../components/Auth/AuthPage';
 import { BlogPost } from '../types/blog';
 import { useAuth } from '../hooks/useAuth';
 import { useBlogPosts } from '../hooks/useBlogPosts';

@@ -60,6 +60,54 @@ export type Database = {
         }
         Relationships: []
       }
+      project_posts: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          featured_image: string | null
+          meta_title: string
+          meta_description: string
+          slug: string
+          videos_url: string[] | null
+          project_tags: string | null
+          content_json: Json | null
+          conclusion: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          featured_image?: string | null
+          meta_title: string
+          meta_description: string
+          slug: string
+          videos_url?: string[] | null
+          project_tags?: string | null
+          content_json?: Json | null
+          conclusion?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          featured_image?: string | null
+          meta_title?: string
+          meta_description?: string
+          slug?: string
+          videos_url?: string[] | null
+          project_tags?: string | null
+          content_json?: Json | null
+          conclusion?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
