@@ -3,12 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { BlogPost } from '../types/blog';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
+import { useUserRole } from './useUserRole';
 import type { Json } from '@/integrations/supabase/types';
 
 export const useBlogPosts = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { userRole } = useUserRole();
   const { toast } = useToast();
 
   // Fetch posts from database
@@ -40,6 +42,7 @@ export const useBlogPosts = () => {
           content: post.content,
           excerpt: post.excerpt,
           featuredImage: post.featured_image,
+          altImage: post.alt_image || '',
           category: post.category,
           subcategory: post.subcategory || '',
           tags: post.tags || [],
@@ -103,6 +106,7 @@ export const useBlogPosts = () => {
           content: postData.content,
           excerpt: postData.excerpt,
           featured_image: postData.featuredImage,
+          alt_image: postData.altImage || '',
           category: postData.category,
           subcategory: postData.subcategory,
           tags: postData.tags,
@@ -146,6 +150,7 @@ export const useBlogPosts = () => {
           content: postData.content,
           excerpt: postData.excerpt,
           featured_image: postData.featuredImage,
+          alt_image: postData.altImage || '',
           category: postData.category,
           subcategory: postData.subcategory,
           tags: postData.tags,
@@ -180,23 +185,84 @@ export const useBlogPosts = () => {
   };
 
   const deletePost = async (id: string) => {
-    if (!user) return false;
+    if (!user) {
+      console.error('No user found for deletion');
+      toast({
+        title: "Error",
+        description: "You must be logged in to delete posts",
+        variant: "destructive"
+      });
+      return false;
+    }
 
     try {
-      const { error } = await supabase
+      console.log('Attempting to delete post with ID:', id);
+      console.log('Current user:', user.id);
+
+      // First, check if the post exists and belongs to the user
+      const { data: existingPost, error: fetchError } = await supabase
+        .from('blog_posts')
+        .select('id, user_id, title')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching post before deletion:', fetchError);
+        toast({
+          title: "Error",
+          description: `Failed to find post: ${fetchError.message}`,
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      if (!existingPost) {
+        console.error('Post not found with ID:', id);
+        toast({
+          title: "Error",
+          description: "Post not found",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      console.log('Found post:', existingPost);
+
+      // Check if user owns the post or is an owner (can delete any post)
+      if (existingPost.user_id !== user.id && userRole !== 'owner') {
+        console.error('User does not own this post and is not an owner');
+        toast({
+          title: "Error",
+          description: "You can only delete your own posts",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Now attempt the deletion
+      let deleteQuery = supabase
         .from('blog_posts')
         .delete()
         .eq('id', id);
+
+      // If user is not an owner, add additional security check
+      if (userRole !== 'owner') {
+        deleteQuery = deleteQuery.eq('user_id', user.id);
+      }
+
+      const { data, error } = await deleteQuery;
 
       if (error) {
         console.error('Error deleting post:', error);
         toast({
           title: "Error",
-          description: "Failed to delete post",
+          description: `Failed to delete post: ${error.message}`,
           variant: "destructive"
         });
         return false;
       }
+
+      console.log('Delete operation response:', data);
 
       toast({
         title: "Success!",
@@ -205,7 +271,12 @@ export const useBlogPosts = () => {
 
       return true;
     } catch (error) {
-      console.error('Error deleting post:', error);
+      console.error('Exception during post deletion:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while deleting the post",
+        variant: "destructive"
+      });
       return false;
     }
   };

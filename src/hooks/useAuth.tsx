@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   saveStoredAuth, 
   getStoredAuth, 
-  clearStoredAuth 
+  clearStoredAuth,
+  isSessionValid
 } from '@/lib/auth-utils';
 
 interface AuthContextType {
@@ -26,7 +27,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // First, try to get auth data from localStorage
     const { session: storedSession, user: storedUser } = getStoredAuth();
     
-    if (storedSession && storedUser) {
+    if (storedSession && storedUser && isSessionValid(storedSession)) {
       setSession(storedSession);
       setUser(storedUser);
       setLoading(false);
@@ -45,7 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('Auth state changed:', event);
+        console.log('Auth state changed:', event, 'Session:', !!session);
         
         setSession(session);
         setUser(session?.user ?? null);
@@ -56,7 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           saveStoredAuth(session, session.user);
         }
         
-        // Clear localStorage when signed out or token refreshed
+        // Clear localStorage when signed out
         if (event === 'SIGNED_OUT') {
           clearStoredAuth();
         }
@@ -86,8 +87,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signOut = async () => {
-    clearStoredAuth();
-    await supabase.auth.signOut();
+    try {
+      // Clear local storage first
+      clearStoredAuth();
+      
+      // Force update local state first
+      setSession(null);
+      setUser(null);
+      
+      // Check if there's a valid session before attempting sign out
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (currentSession) {
+        // Only attempt sign out if there's an active session
+        const { error } = await supabase.auth.signOut();
+        
+        if (error) {
+          console.error('Error signing out from Supabase:', error);
+          // Don't throw error here as local state is already cleared
+        }
+      } else {
+        console.log('No active session found, local sign out completed');
+      }
+    } catch (error) {
+      console.error('Error during sign out:', error);
+      // Even if there's an error, ensure local state and storage are cleared
+      clearStoredAuth();
+      setSession(null);
+      setUser(null);
+      // Don't re-throw the error as sign out should always succeed locally
+    }
   };
 
   return (

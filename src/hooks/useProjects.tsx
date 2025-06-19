@@ -2,12 +2,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { ProjectPost, ProjectFormData, TipTapDocument } from '../types/project';
 import { useToast } from './use-toast';
+import { useAuth } from './useAuth';
+import { useUserRole } from './useUserRole';
 import type { Json } from '../integrations/supabase/types';
 
 export const useProjects = () => {
   const [projects, setProjects] = useState<ProjectPost[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { userRole } = useUserRole();
   const { toast } = useToast();
 
   // Helper function to convert database row to ProjectPost
@@ -190,14 +194,67 @@ export const useProjects = () => {
 
   // Delete a project
   const deleteProject = async (id: string): Promise<boolean> => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to delete projects",
+        variant: "destructive"
+      });
+      return false;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
-      const { error } = await supabase
+      // First, check if the project exists and get its owner
+      const { data: existingProject, error: fetchError } = await supabase
+        .from('project_posts')
+        .select('id, user_id, title')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching project before deletion:', fetchError);
+        toast({
+          title: "Error",
+          description: `Failed to find project: ${fetchError.message}`,
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      if (!existingProject) {
+        toast({
+          title: "Error",
+          description: "Project not found",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Check if user owns the project or is an owner (can delete any project)
+      if (existingProject.user_id !== user.id && userRole !== 'owner') {
+        toast({
+          title: "Error",
+          description: "You can only delete your own projects",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Now attempt the deletion
+      let deleteQuery = supabase
         .from('project_posts')
         .delete()
         .eq('id', id);
+
+      // If user is not an owner, add additional security check
+      if (userRole !== 'owner') {
+        deleteQuery = deleteQuery.eq('user_id', user.id);
+      }
+
+      const { error } = await deleteQuery;
 
       if (error) throw error;
 

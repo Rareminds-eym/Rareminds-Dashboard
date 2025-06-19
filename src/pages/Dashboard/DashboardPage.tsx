@@ -3,10 +3,16 @@ import { FileText, FolderOpen, TrendingUp, Users, Calendar, BarChart3 } from 'lu
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { useBlogPosts } from '../../hooks/useBlogPosts';
+import { useProjects } from '../../hooks/useProjects';
+import { TrendCalculator } from '../../components/Dashboard/TrendCalculator';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { posts, loading } = useBlogPosts();
+  const { projects } = useProjects();
+
+  const postsTrend = TrendCalculator.calculatePostsTrend(posts);
+  const projectsTrend = TrendCalculator.calculateProjectsTrend(projects);
 
   const stats = [
     {
@@ -14,16 +20,16 @@ const DashboardPage = () => {
       value: posts.length,
       description: 'Published blog posts',
       icon: FileText,
-      trend: '+12%',
-      color: 'text-blue-600'
+      trend: postsTrend,
+      color: TrendCalculator.getTrendColor(postsTrend, 'text-blue-600', 'text-red-600', 'text-gray-600')
     },
     {
       title: 'Projects',
-      value: 3,
+      value: projects.length,
       description: 'Active projects',
       icon: FolderOpen,
-      trend: '+5%',
-      color: 'text-green-600'
+      trend: projectsTrend,
+      color: TrendCalculator.getTrendColor(projectsTrend, 'text-green-600', 'text-red-600', 'text-gray-600')
     },
     {
       title: 'Views',

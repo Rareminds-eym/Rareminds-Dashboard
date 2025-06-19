@@ -12,6 +12,7 @@ const AUTH_KEYS = {
  */
 export const clearStoredAuth = (): void => {
   try {
+    console.log('Clearing stored auth data');
     localStorage.removeItem(AUTH_KEYS.SESSION);
     localStorage.removeItem(AUTH_KEYS.USER);
     localStorage.removeItem(AUTH_KEYS.EXPIRES_AT);
@@ -74,4 +75,24 @@ export const getStoredAuth = (): { session: Session | null; user: User | null } 
 export const hasValidStoredAuth = (): boolean => {
   const { session, user } = getStoredAuth();
   return !!(session && user);
+};
+
+/**
+ * Safely check if a session is still valid
+ */
+export const isSessionValid = (session: Session | null): boolean => {
+  if (!session) return false;
+  
+  try {
+    const expiryTime = session.expires_at;
+    if (!expiryTime) return false;
+    
+    const currentTime = Date.now() / 1000;
+    const bufferTime = 60; // 1 minute buffer
+    
+    return currentTime < (expiryTime - bufferTime);
+  } catch (error) {
+    console.error('Error validating session:', error);
+    return false;
+  }
 };

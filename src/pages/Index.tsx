@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, FileText, Eye, LogOut } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import DashboardOverview from '../components/Webite_Blog/Dashboard/DashboardOverview';
@@ -11,6 +12,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useBlogPosts } from '../hooks/useBlogPosts';
 
 const Index = () => {
+  const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const { posts, loading: postsLoading, createPost, updatePost, deletePost } = useBlogPosts();
   const [activeSection, setActiveSection] = useState('overview');
@@ -59,7 +61,15 @@ const Index = () => {
   };
 
   const handleSignOut = async () => {
-    await signOut();
+    try {
+      await signOut();
+      // Navigate to auth page after successful signout
+      navigate('/auth', { replace: true });
+    } catch (error) {
+      console.error('Error signing out:', error);
+      // Even if there's an error, navigate to auth page
+      navigate('/auth', { replace: true });
+    }
   };
 
   return (

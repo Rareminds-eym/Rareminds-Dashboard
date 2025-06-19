@@ -15,13 +15,14 @@ export type Database = {
           content: string
           created_at: string
           excerpt: string
-          featured_image: string | null
+          featured_image: string
+          alt_image: string
           id: string
           meta_description: string
           meta_title: string
           slug: string
           subcategory: string
-          tags: string[] | null
+          tags: string[]
           title: string
           updated_at: string
           user_id: string
@@ -31,13 +32,14 @@ export type Database = {
           content: string
           created_at?: string
           excerpt: string
-          featured_image?: string | null
+          featured_image: string
+          alt_image: string
           id?: string
           meta_description: string
           meta_title: string
           slug: string
-          subcategory?: string
-          tags?: string[] | null
+          subcategory: string
+          tags: string[]
           title: string
           updated_at?: string
           user_id: string
@@ -47,13 +49,71 @@ export type Database = {
           content?: string
           created_at?: string
           excerpt?: string
-          featured_image?: string | null
+          featured_image?: string
+          alt_image?: string
           id?: string
           meta_description?: string
           meta_title?: string
           slug?: string
           subcategory?: string
-          tags?: string[] | null
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      blogs_draft: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          excerpt: string
+          featured_image: string
+          alt_image: string
+          id: number
+          meta_description: string
+          meta_title: string
+          publish_date: string | null
+          slug: string
+          subcategory: string
+          tags: string[]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string
+          excerpt: string
+          featured_image: string
+          alt_image: string
+          id?: number
+          meta_description: string
+          meta_title: string
+          publish_date?: string | null
+          slug: string
+          subcategory: string
+          tags: string[]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          excerpt?: string
+          featured_image?: string
+          alt_image?: string
+          id?: number
+          meta_description?: string
+          meta_title?: string
+          publish_date?: string | null
+          slug?: string
+          subcategory?: string
+          tags?: string[]
           title?: string
           updated_at?: string
           user_id?: string
@@ -108,6 +168,38 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          id: string
+          user_id: string
+          role: 'editor' | 'owner'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          role: 'editor' | 'owner'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          role?: 'editor' | 'owner'
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -135,7 +227,7 @@ export type Tables<
   }
     ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never,
 > = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
   ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {

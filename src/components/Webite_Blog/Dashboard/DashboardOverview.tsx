@@ -1,6 +1,6 @@
 
 import { BlogPost } from '../../../types/blog';
-import { Plus, FileText, Calendar, TrendingUp } from 'lucide-react';
+import { Plus, FileText, Calendar, TrendingUp, Eye } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/button';
 
@@ -11,7 +11,7 @@ interface DashboardOverviewProps {
 }
 
 const DashboardOverview = ({ posts, onNewPost, onViewPosts }: DashboardOverviewProps) => {
-  const recentPosts = posts.slice(0, 3);
+  const recentPosts = posts.slice(0, 10);
   const totalPosts = posts.length;
   const thisMonthPosts = posts.filter(post => {
     const postDate = new Date(post.createdAt);
@@ -108,7 +108,11 @@ const DashboardOverview = ({ posts, onNewPost, onViewPosts }: DashboardOverviewP
           {recentPosts.length > 0 ? (
             <div className="space-y-6">
               {recentPosts.map((post) => (
-                <div key={post.id} className="group flex items-start space-x-4 p-4 rounded-xl hover:bg-secondary/30 transition-all duration-200 border border-transparent hover:border-border/50">
+                <div 
+                  key={post.id} 
+                  className="group relative flex items-start space-x-4 p-4 rounded-xl hover:bg-secondary/30 transition-all duration-200 border border-transparent hover:border-border/50 cursor-pointer"
+                  onClick={onViewPosts}
+                >
                   {post.featuredImage && (
                     <div className="relative overflow-hidden rounded-lg flex-shrink-0">
                       <img
@@ -134,6 +138,22 @@ const DashboardOverview = ({ posts, onNewPost, onViewPosts }: DashboardOverviewP
                         {new Date(post.createdAt).toLocaleDateString()}
                       </span>
                     </div>
+                  </div>
+                  
+                  {/* View Project Button - appears on hover */}
+                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2 o">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="bg-white/90 rounded-3xl backdrop-blur-sm border-border/50 hover:bg-primary hover:text-white shadow-lg"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onViewPosts();
+                      }}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Project
+                    </Button>
                   </div>
                 </div>
               ))}

@@ -20,8 +20,15 @@ const MainLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
+    try {
+      await signOut();
+      // Navigate to auth page after successful signout
+      navigate('/auth', { replace: true });
+    } catch (error) {
+      console.error('Error signing out:', error);
+      // Even if there's an error, navigate to auth page
+      navigate('/auth', { replace: true });
+    }
   };
 
   const navigation = [

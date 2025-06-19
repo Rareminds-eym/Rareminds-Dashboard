@@ -7,8 +7,12 @@ import { Skeleton } from './components/ui/skeleton';
 // Lazy load pages for better performance
 const DashboardPage = lazy(() => import('./pages/Dashboard/DashboardPage'));
 const BlogPage = lazy(() => import('./pages/Blog/BlogPage'));
+const BlogOverviewPage = lazy(() => import('./pages/Blog/BlogOverviewPage'));
+const BlogNewPostPage = lazy(() => import('./pages/Blog/BlogNewPostPage'));
+const BlogPostsPage = lazy(() => import('./pages/Blog/BlogPostsPage'));
+const BlogDraftsPage = lazy(() => import('./pages/Blog/BlogDraftsPage'));
 const ProjectsPage = lazy(() => import('./pages/Projects/ProjectsPage'));
-const EventsPage = lazy(() => import('./pages/EventsPage'));
+const EventsPage = lazy(() => import('./pages/Events/EventsPage'));
 const NanmaduvalanPage = lazy(() => import('./pages/NanmaduvalanPage'));
 const AuthPageWrapper = lazy(() => import('./pages/AuthPageWrapper'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -61,6 +65,40 @@ export const router = createBrowserRouter([
             <BlogPage />
           </Suspense>
         ),
+        children: [
+          {
+            index: true,
+            element: (
+              <Suspense fallback={<RouteLoading />}>
+                <BlogOverviewPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'new-post',
+            element: (
+              <Suspense fallback={<RouteLoading />}>
+                <BlogNewPostPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'posts',
+            element: (
+              <Suspense fallback={<RouteLoading />}>
+                <BlogPostsPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'drafts',
+            element: (
+              <Suspense fallback={<RouteLoading />}>
+                <BlogDraftsPage />
+              </Suspense>
+            ),
+          },
+        ],
       },
       {
         path: 'projects',
