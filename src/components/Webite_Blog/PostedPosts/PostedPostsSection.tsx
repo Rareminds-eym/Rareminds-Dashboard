@@ -3,13 +3,14 @@ import { BlogPost } from '../../../types/blog';
 import { Button } from '../../ui/button';
 import { Card, CardContent } from '../../ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../ui/dialog';
+import { ConfirmModal } from '../../ui/modal';
 import { Badge } from '../../ui/badge';
 import { Input } from '../../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Edit, Trash2, Eye, Search, Calendar, Tag, Pin, Filter, TrendingUp } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 import { useUserRole } from '../../../hooks/useUserRole';
-import { canEditAndDelete } from '../../../lib/role-utils';
+import { canEditAndDelete, canEditAndDeletePosts } from '../../../lib/role-utils';
 
 interface PostedPostsSectionProps {
   posts: BlogPost[];
@@ -21,6 +22,13 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean;
+    post: BlogPost | null;
+  }>({
+    open: false,
+    post: null
+  });
   const { toast } = useToast();
   const { userRole, loading: roleLoading } = useUserRole();
 
@@ -44,9 +52,14 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
     return matchesSearch && matchesCategory;
   });
 
-  const handleDeletePost = (postId: string, postTitle: string) => {
-    if (window.confirm(`Are you sure you want to delete "${postTitle}"? This action cannot be undone.`)) {
-      onDeletePost(postId);
+  const handleDeletePost = (post: BlogPost) => {
+    setDeleteModal({ open: true, post });
+  };
+
+  const confirmDeletePost = () => {
+    if (deleteModal.post) {
+      onDeletePost(deleteModal.post.id);
+      setDeleteModal({ open: false, post: null });
     }
   };
 
@@ -137,7 +150,7 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
 
                 {/* Floating Action Buttons */}
                 <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                  {canEditAndDelete(userRole) && (
+                  {canEditAndDeletePosts(userRole) && (
                     <>
                       <Button
                         variant="secondary"
@@ -150,7 +163,7 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => handleDeletePost(post.id, post.title)}
+                        onClick={() => handleDeletePost(post)}
                         className="h-9 w-9 p-0 bg-red-500/90 hover:bg-red-600 border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -263,7 +276,7 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                           </div>
 
                           <div className="flex gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
-                            {canEditAndDelete(userRole) && (
+                            {canEditAndDeletePosts(userRole) && (
                               <>
                                 <Button
                                   onClick={() => onEditPost(selectedPost)}
@@ -274,7 +287,7 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                                 </Button>
                                 <Button
                                   variant="destructive"
-                                  onClick={() => handleDeletePost(selectedPost.id, selectedPost.title)}
+                                  onClick={() => handleDeletePost(selectedPost)}
                                   className="h-11 px-6 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
                                 >
                                   <Trash2 className="w-4 h-4 mr-2" />
@@ -288,7 +301,7 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                     </DialogContent>
                   </Dialog>
 
-                  {canEditAndDelete(userRole) && (
+                  {canEditAndDeletePosts(userRole) && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -333,6 +346,18 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
           </CardContent>
         </Card>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        open={deleteModal.open}
+        onOpenChange={(open) => setDeleteModal({ ...deleteModal, open })}
+        title="Delete Post"
+        description={`Are you sure you want to delete "${deleteModal.post?.title}"? This action cannot be undone.`}
+        onConfirm={confirmDeletePost}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </div>
   );
 };

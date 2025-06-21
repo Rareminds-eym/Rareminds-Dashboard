@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Send, Edit3 } from 'lucide-react';
 import { BlogPost } from '../../../types/blog';
 import { BlogFormProps } from '../shared/BlogFormTypes';
 import { useBlogForm } from '../shared/useBlogForm';
 import { BlogFormLayout } from '../shared/BlogFormLayout';
 import { useToast } from '../../../hooks/use-toast';
+import PublishConfirmModal from '../shared/PublishConfirmModal';
 
 interface UpdatePostFormProps extends BlogFormProps {
   editingPost: BlogPost; // Make editingPost required for update form
@@ -14,6 +15,8 @@ const UpdatePostForm: React.FC<UpdatePostFormProps> = ({ onPostSaved, editingPos
   console.log('✏️ UpdatePostForm received editingPost:', editingPost);
   
   const { toast } = useToast();
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const formHook = useBlogForm(editingPost);
   const { 
     title, 
@@ -49,6 +52,13 @@ const UpdatePostForm: React.FC<UpdatePostFormProps> = ({ onPostSaved, editingPos
       return;
     }
 
+    // Show the confirmation modal instead of directly updating
+    setShowPublishModal(true);
+  };
+
+  const handleConfirmPublish = async () => {
+    setIsPublishing(true);
+
     const updatedPost: BlogPost = {
       id: editingPost.id,
       title,
@@ -74,6 +84,8 @@ const UpdatePostForm: React.FC<UpdatePostFormProps> = ({ onPostSaved, editingPos
         description: "Post is submitted successfully.",
       });
       console.log('Success toast called');
+      
+      setShowPublishModal(false);
     } catch (error) {
       console.error('Error updating post:', error);
       toast({
@@ -82,6 +94,8 @@ const UpdatePostForm: React.FC<UpdatePostFormProps> = ({ onPostSaved, editingPos
         variant: "destructive"
       });
       console.log('Error toast called');
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -113,6 +127,15 @@ const UpdatePostForm: React.FC<UpdatePostFormProps> = ({ onPostSaved, editingPos
         submitButtonIcon={<Send className="w-4 h-4 mr-2" />}
         showDraftButton={true}
         isEditing={true}
+      />
+
+      <PublishConfirmModal
+        isOpen={showPublishModal}
+        onClose={() => setShowPublishModal(false)}
+        onConfirm={handleConfirmPublish}
+        isEditing={true}
+        isLoading={isPublishing}
+        postTitle={title}
       />
     </>
   );

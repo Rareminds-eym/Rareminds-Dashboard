@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import NewPostSection from '../../components/Webite_Blog/NewPost/NewPostSection';
-import { BlogPost, BlogDraft } from '../../types/blog';
-import { useBlogPosts } from '../../hooks/useBlogPosts';
+import NewPostSection from '../../../components/Webite_Blog/NewPost/NewPostSection';
+import { BlogPost, BlogDraft } from '../../../types/blog';
+import { useBlogPosts } from '../../../hooks/useBlogPosts';
 
 const BlogNewPostPage = () => {
   const navigate = useNavigate();

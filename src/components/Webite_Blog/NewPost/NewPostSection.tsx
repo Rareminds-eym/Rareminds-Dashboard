@@ -9,7 +9,6 @@ interface NewPostSectionProps {
 }
 
 const NewPostSection: React.FC<NewPostSectionProps> = ({ onPostSaved, editingPost }) => {
-  console.log('🎯 NewPostSection received editingPost:', editingPost);
   
   // If editingPost is provided, render UpdatePostForm, otherwise render NewPostForm
   if (editingPost) {

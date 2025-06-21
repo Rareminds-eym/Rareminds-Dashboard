@@ -46,6 +46,7 @@ export const BlogFormLayout: React.FC<BlogFormLayoutProps> = ({
     addTag,
     removeTag,
     handleTagKeyDown,
+    handleTagInputChange,
     handleSaveAsDraft,
     handleManualSave,
     categories,
@@ -53,8 +54,8 @@ export const BlogFormLayout: React.FC<BlogFormLayoutProps> = ({
   } = formHook;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 ">
+      <div className="max-w-8xl mx-auto space-y-8">
         <form onSubmit={onSubmit} className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Main Content - Takes 3 columns */}
           <div className="xl:col-span-3 space-y-6">
@@ -340,7 +341,7 @@ export const BlogFormLayout: React.FC<BlogFormLayoutProps> = ({
                       <Input
                         id="tags"
                         value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
+                        onChange={(e) => handleTagInputChange(e.target.value)}
                         onKeyDown={handleTagKeyDown}
                         placeholder="Add tags..."
                         className={`flex-1 transition-all duration-200 ${

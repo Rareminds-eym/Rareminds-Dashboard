@@ -72,6 +72,15 @@ export const canEditAndDelete = (userRole: UserRole): boolean => {
 };
 
 /**
+ * Check if user can edit and delete published blog posts
+ * Only owner role can edit and delete published posts
+ * @param userRole - The user's role
+ */
+export const canEditAndDeletePosts = (userRole: UserRole): boolean => {
+  return userRole === 'owner';
+};
+
+/**
  * Check if user can view content
  * @param userRole - The user's role
  */

@@ -6,6 +6,7 @@ export { default as UpdatePostForm } from './UpdatePost/UpdatePostForm';
 // Export shared components and types
 export { BlogFormLayout } from './shared/BlogFormLayout';
 export { useBlogForm } from './shared/useBlogForm';
+export { default as PublishConfirmModal } from './shared/PublishConfirmModal';
 export type { BlogFormData, BlogFormProps, ValidationErrors } from './shared/BlogFormTypes';
 
 // Legacy export - Updated NewPostSection that uses the new components

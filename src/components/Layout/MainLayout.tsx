@@ -12,9 +12,11 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useAuth } from '../../hooks/useAuth';
+import { useUserRole } from '../../hooks/useUserRole';
 
 const MainLayout = () => {
   const { user, signOut } = useAuth();
+  const { userRole, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -134,6 +136,9 @@ const MainLayout = () => {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
                   {user?.email}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 capitalize truncate">
+                  {roleLoading ? 'Loading...' : userRole}
                 </p>
               </div>
             </div>

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PostedPostsSection from '../../components/Webite_Blog/PostedPosts/PostedPostsSection';
-import { BlogPost } from '../../types/blog';
-import { useBlogPosts } from '../../hooks/useBlogPosts';
+import PostedPostsSection from '../../../components/Webite_Blog/PostedPosts/PostedPostsSection';
+import { BlogPost } from '../../../types/blog';
+import { useBlogPosts } from '../../../hooks/useBlogPosts';
 
 const BlogPostsPage = () => {
   const navigate = useNavigate();

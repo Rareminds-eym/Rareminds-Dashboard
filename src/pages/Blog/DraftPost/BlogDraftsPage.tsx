@@ -1,24 +1,36 @@
-import { useNavigate } from 'react-router-dom';
-import { useBlogDrafts } from '../../hooks/useBlogDrafts';
-import { useBlogPosts } from '../../hooks/useBlogPosts';
-import { useToast } from '../../hooks/use-toast';
-import DraftsSection from '../../components/Webite_Blog/Drafts/DraftsSection';
-import { BlogDraft } from '../../types/blog';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useBlogDrafts } from '../../../hooks/useBlogDrafts';
+import { useBlogPosts } from '../../../hooks/useBlogPosts';
+import { useToast } from '../../../hooks/use-toast';
+import DraftsSection from '../../../components/Webite_Blog/DraftPost/DraftsSection';
+import { BlogDraft } from '../../../types/blog';
+import { useEffect } from 'react';
 
 const BlogDraftsPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { 
     drafts, 
     loading: draftsLoading, 
     deleteDraft,
-    saveDraft 
+    saveDraft,
+    fetchDrafts 
   } = useBlogDrafts();
   
   const { 
     createPost,
     loading: postsLoading 
   } = useBlogPosts();
+
+  // Force refresh drafts when navigating back to this page
+  useEffect(() => {
+    console.log('📍 BlogDraftsPage mounted, location:', location.pathname);
+    if (location.pathname === '/blog/drafts') {
+      console.log('🔄 Force refreshing drafts on page mount');
+      fetchDrafts();
+    }
+  }, [location.pathname, fetchDrafts]);
 
   const handleEditDraft = (draft: BlogDraft) => {
     // Navigate to new post page with draft data
@@ -120,8 +132,26 @@ const BlogDraftsPage = () => {
     );
   }
 
+  // Add error boundary for drafts
+  if (!drafts) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="text-center">
+          <p className="text-gray-500 mb-4">Failed to load drafts</p>
+          <button 
+            onClick={() => fetchDrafts()} 
+            className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <DraftsSection
+      key={`drafts-${location.pathname}-${drafts.length}`}
       drafts={drafts}
       onEditDraft={handleEditDraft}
       onDeleteDraft={handleDeleteDraft}

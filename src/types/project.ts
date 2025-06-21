@@ -44,3 +44,32 @@ export interface ProjectFormData {
   conclusion?: string;
   seo: ProjectSEOSettings;
 }
+
+// Project Draft types
+export interface ProjectDraft {
+  id: string;
+  user_id: string;
+  title: string;
+  project_tags: string[];
+  content_json?: TipTapDocument;
+  conclusion?: string;
+  featured_image?: string;
+  meta_title?: string;
+  meta_description?: string;
+  slug?: string;
+  video_url?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectDraftFormData {
+  title: string;
+  project_tags: string[];
+  content_json: TipTapDocument;
+  conclusion?: string;
+  featured_image?: string;
+  meta_title?: string;
+  meta_description?: string;
+  slug?: string;
+  video_url?: string[];
+}

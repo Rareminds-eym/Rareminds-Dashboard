@@ -449,7 +449,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                   <Label htmlFor="tags" className="text-sm font-medium text-slate-700">
                     Project Tags
                   </Label>
-                  <div className="space-y-3">
+                  <div className="space-y-3">X
                     <div className="flex gap-2">
                       <Input
                         id="tags"
@@ -466,7 +466,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                         disabled={!tagInput.trim()}
                         className="border-slate-200 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50 transition-all duration-200"
                       >
-                        Add
+                        Addƒ
                       </Button>
                     </div>
                     

@@ -1,0 +1,1 @@
+export { TrendCalculator } from './TrendCalculator';

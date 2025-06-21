@@ -228,6 +228,13 @@ export const useBlogForm = (initialData?: BlogPost | null) => {
     }
   };
 
+  const addMultipleTags = (input: string) => {
+    const tagList = input.split(',').map(tag => tag.trim()).filter(tag => tag && !tags.includes(tag));
+    if (tagList.length > 0) {
+      setTags([...tags, ...tagList]);
+    }
+  };
+
   const removeTag = (tagToRemove: string) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
@@ -236,6 +243,23 @@ export const useBlogForm = (initialData?: BlogPost | null) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       addTag();
+    }
+  };
+
+  const handleTagInputChange = (value: string) => {
+    if (value.includes(',')) {
+      // Split by comma and process all tags
+      const beforeLastComma = value.substring(0, value.lastIndexOf(','));
+      const afterLastComma = value.substring(value.lastIndexOf(',') + 1);
+      
+      if (beforeLastComma.trim()) {
+        addMultipleTags(beforeLastComma);
+      }
+      
+      // Set the remaining text after the last comma
+      setTagInput(afterLastComma);
+    } else {
+      setTagInput(value);
     }
   };
 
@@ -308,6 +332,7 @@ export const useBlogForm = (initialData?: BlogPost | null) => {
     addTag,
     removeTag,
     handleTagKeyDown,
+    handleTagInputChange,
     handleSaveAsDraft,
     handleManualSave,
     resetForm,

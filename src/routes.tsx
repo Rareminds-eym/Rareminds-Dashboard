@@ -7,11 +7,13 @@ import { Skeleton } from './components/ui/skeleton';
 // Lazy load pages for better performance
 const DashboardPage = lazy(() => import('./pages/Dashboard/DashboardPage'));
 const BlogPage = lazy(() => import('./pages/Blog/BlogPage'));
-const BlogOverviewPage = lazy(() => import('./pages/Blog/BlogOverviewPage'));
-const BlogNewPostPage = lazy(() => import('./pages/Blog/BlogNewPostPage'));
-const BlogPostsPage = lazy(() => import('./pages/Blog/BlogPostsPage'));
-const BlogDraftsPage = lazy(() => import('./pages/Blog/BlogDraftsPage'));
+const BlogOverviewPage = lazy(() => import('./pages/Blog/Dashboard/BlogOverviewPage'));
+const BlogNewPostPage = lazy(() => import('./pages/Blog/NewPost/BlogNewPostPage'));
+const BlogPostsPage = lazy(() => import('./pages/Blog/PostedPosts/BlogPostsPage'));
+const BlogDraftsPage = lazy(() => import('./pages/Blog/DraftPost/BlogDraftsPage'));
 const ProjectsPage = lazy(() => import('./pages/Projects/ProjectsPage'));
+const ProjectsOverviewPage = lazy(() => import('./pages/Projects/Overview/ProjectsOverviewPage'));
+const ProjectDraftsPage = lazy(() => import('./pages/Projects/DraftProject/ProjectDraftsPage'));
 const EventsPage = lazy(() => import('./pages/Events/EventsPage'));
 const NanmaduvalanPage = lazy(() => import('./pages/NanmaduvalanPage'));
 const AuthPageWrapper = lazy(() => import('./pages/AuthPageWrapper'));
@@ -107,6 +109,24 @@ export const router = createBrowserRouter([
             <ProjectsPage />
           </Suspense>
         ),
+        children: [
+          {
+            index: true,
+            element: (
+              <Suspense fallback={<RouteLoading />}>
+                <ProjectsOverviewPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'drafts',
+            element: (
+              <Suspense fallback={<RouteLoading />}>
+                <ProjectDraftsPage />
+              </Suspense>
+            ),
+          },
+        ],
       },
       {
         path: 'events',

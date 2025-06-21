@@ -13,7 +13,7 @@ export const useBlogPosts = () => {
   const { userRole } = useUserRole();
   const { toast } = useToast();
 
-  // Fetch posts from database
+  // Fetch posts from database (All users can see all posts, but only owners can edit/delete)
   const fetchPosts = useCallback(async () => {
     if (!user) {
       setPosts([]);
@@ -139,8 +139,19 @@ export const useBlogPosts = () => {
     }
   };
 
+  // Update a blog post (Only owner can update published posts)
   const updatePost = async (id: string, postData: Partial<BlogPost>) => {
     if (!user) return null;
+
+    // Check if user has permission to update posts
+    if (userRole !== 'owner') {
+      toast({
+        title: "Access Denied",
+        description: "Only owners can update published posts",
+        variant: "destructive"
+      });
+      return null;
+    }
 
     try {
       const { data, error } = await supabase
@@ -184,6 +195,7 @@ export const useBlogPosts = () => {
     }
   };
 
+  // Delete a blog post (Only owner can delete published posts)
   const deletePost = async (id: string) => {
     if (!user) {
       console.error('No user found for deletion');
@@ -195,62 +207,25 @@ export const useBlogPosts = () => {
       return false;
     }
 
+    // Check if user has permission to delete posts
+    if (userRole !== 'owner') {
+      toast({
+        title: "Access Denied", 
+        description: "Only owners can delete published posts",
+        variant: "destructive"
+      });
+      return false;
+    }
+
     try {
       console.log('Attempting to delete post with ID:', id);
       console.log('Current user:', user.id);
 
-      // First, check if the post exists and belongs to the user
-      const { data: existingPost, error: fetchError } = await supabase
-        .from('blog_posts')
-        .select('id, user_id, title')
-        .eq('id', id)
-        .single();
-
-      if (fetchError) {
-        console.error('Error fetching post before deletion:', fetchError);
-        toast({
-          title: "Error",
-          description: `Failed to find post: ${fetchError.message}`,
-          variant: "destructive"
-        });
-        return false;
-      }
-
-      if (!existingPost) {
-        console.error('Post not found with ID:', id);
-        toast({
-          title: "Error",
-          description: "Post not found",
-          variant: "destructive"
-        });
-        return false;
-      }
-
-      console.log('Found post:', existingPost);
-
-      // Check if user owns the post or is an owner (can delete any post)
-      if (existingPost.user_id !== user.id && userRole !== 'owner') {
-        console.error('User does not own this post and is not an owner');
-        toast({
-          title: "Error",
-          description: "You can only delete your own posts",
-          variant: "destructive"
-        });
-        return false;
-      }
-
-      // Now attempt the deletion
-      let deleteQuery = supabase
+      // Delete the post (removed user ownership validation for collaborative access)
+      const { data, error } = await supabase
         .from('blog_posts')
         .delete()
         .eq('id', id);
-
-      // If user is not an owner, add additional security check
-      if (userRole !== 'owner') {
-        deleteQuery = deleteQuery.eq('user_id', user.id);
-      }
-
-      const { data, error } = await deleteQuery;
 
       if (error) {
         console.error('Error deleting post:', error);

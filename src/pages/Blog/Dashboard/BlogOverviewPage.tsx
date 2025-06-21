@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import DashboardOverview from '../../components/Webite_Blog/Dashboard/DashboardOverview';
-import { useBlogPosts } from '../../hooks/useBlogPosts';
+import DashboardOverview from '../../../components/Webite_Blog/Dashboard/DashboardOverview';
+import { useBlogPosts } from '../../../hooks/useBlogPosts';
 
 const BlogOverviewPage = () => {
   const { posts, loading: postsLoading } = useBlogPosts();

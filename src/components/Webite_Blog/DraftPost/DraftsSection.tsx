@@ -3,13 +3,12 @@ import { BlogDraft } from '../../../types/blog';
 import { Button } from '../../ui/button';
 import { Card, CardContent } from '../../ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../ui/dialog';
+import { ConfirmModal } from '../../ui/modal';
 import { Badge } from '../../ui/badge';
 import { Input } from '../../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Edit, Trash2, Eye, Search, Calendar, Tag, Pin, Filter, FileText, Clock, Send } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
-import { useUserRole } from '../../../hooks/useUserRole';
-import { canEditAndDelete } from '../../../lib/role-utils';
 
 interface DraftsSectionProps {
   drafts: BlogDraft[];
@@ -22,22 +21,40 @@ const DraftsSection = ({ drafts, onEditDraft, onDeleteDraft, onPublishDraft }: D
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [selectedDraft, setSelectedDraft] = useState<BlogDraft | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean;
+    draft: BlogDraft | null;
+  }>({
+    open: false,
+    draft: null
+  });
+  const [publishModal, setPublishModal] = useState<{
+    open: boolean;
+    draft: BlogDraft | null;
+  }>({
+    open: false,
+    draft: null
+  });
   const { toast } = useToast();
-  const { userRole, loading: roleLoading } = useUserRole();
+
+
 
   const categories = [...new Set(drafts.map(draft => draft.category))];
 
-  // Show loading if role is still being fetched
-  if (roleLoading) {
+  // Safety check for drafts array
+  if (!Array.isArray(drafts)) {
     return (
       <div className="space-y-8 p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 min-h-screen">
         <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="text-center">
+            <p className="text-red-500 mb-4">Error: Invalid drafts data</p>
+          </div>
         </div>
       </div>
     );
   }
 
+  // Show all drafts to all users (removed ownership validation)
   const filteredDrafts = drafts.filter(draft => {
     const matchesSearch = draft.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       draft.excerpt.toLowerCase().includes(searchTerm.toLowerCase());
@@ -45,16 +62,30 @@ const DraftsSection = ({ drafts, onEditDraft, onDeleteDraft, onPublishDraft }: D
     return matchesSearch && matchesCategory;
   });
 
-  const handleDeleteDraft = (draftId: string, draftTitle: string) => {
-    if (window.confirm(`Are you sure you want to delete the draft "${draftTitle}"? This action cannot be undone.`)) {
-      onDeleteDraft(draftId);
+  const handleDeleteDraft = (draft: BlogDraft) => {
+    setDeleteModal({ open: true, draft });
+  };
+
+  const confirmDeleteDraft = () => {
+    if (deleteModal.draft) {
+      onDeleteDraft(deleteModal.draft.id);
+      setDeleteModal({ open: false, draft: null });
     }
   };
 
   const handlePublishDraft = (draft: BlogDraft) => {
-    if (window.confirm(`Are you sure you want to publish "${draft.title}"? This will move it from drafts to published posts.`)) {
-      onPublishDraft(draft);
+    setPublishModal({ open: true, draft });
+  };
+
+  const confirmPublishDraft = () => {
+    if (publishModal.draft) {
+      onPublishDraft(publishModal.draft);
+      setPublishModal({ open: false, draft: null });
     }
+  };
+
+  const handleEditDraft = (draft: BlogDraft) => {
+    onEditDraft(draft);
   };
 
   const renderContent = (content: string) => {
@@ -82,6 +113,7 @@ const DraftsSection = ({ drafts, onEditDraft, onDeleteDraft, onPublishDraft }: D
 
   return (
     <div className="space-y-8 p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 min-h-screen">
+      
       {/* Header Section */}
       <div className="relative">
         <div className="absolute inset-0 rounded-xl blur-3xl" />
@@ -99,7 +131,7 @@ const DraftsSection = ({ drafts, onEditDraft, onDeleteDraft, onPublishDraft }: D
               </p>
             </div>
           </div>
-          <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg">
+          <Card className="border-0  bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg">
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1 relative group">
@@ -163,34 +195,30 @@ const DraftsSection = ({ drafts, onEditDraft, onDeleteDraft, onPublishDraft }: D
 
                 {/* Floating Action Buttons */}
                 <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                  {canEditAndDelete(userRole) && (
-                    <>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => onEditDraft(draft)}
-                        className="h-9 w-9 p-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handlePublishDraft(draft)}
-                        className="h-9 w-9 p-0 bg-green-500/90 hover:bg-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
-                      >
-                        <Send className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteDraft(draft.id, draft.title)}
-                        className="h-9 w-9 p-0 bg-red-500/90 hover:bg-red-600 border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </>
-                  )}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleEditDraft(draft)}
+                    className="h-9 w-9 p-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handlePublishDraft(draft)}
+                    className="h-9 w-9 p-0 bg-green-500/90 hover:bg-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteDraft(draft)}
+                    className="h-9 w-9 p-0 bg-red-500/90 hover:bg-red-600 border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
 
@@ -301,55 +329,49 @@ const DraftsSection = ({ drafts, onEditDraft, onDeleteDraft, onPublishDraft }: D
                           </div>
 
                           <div className="flex gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
-                            {canEditAndDelete(userRole) && (
-                              <>
-                                <Button
-                                  onClick={() => onEditDraft(selectedDraft)}
-                                  className="flex-1 h-11 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                                >
-                                  <Edit className="w-4 h-4 mr-2" />
-                                  Edit Draft
-                                </Button>
-                                <Button
-                                  onClick={() => handlePublishDraft(selectedDraft)}
-                                  className="h-11 px-6 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                                >
-                                  <Send className="w-4 h-4 mr-2" />
-                                  Publish
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  onClick={() => handleDeleteDraft(selectedDraft.id, selectedDraft.title)}
-                                  className="h-11 px-6 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                                >
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  Delete
-                                </Button>
-                              </>
-                            )}
+                            <Button
+                              onClick={() => handleEditDraft(selectedDraft)}
+                              className="flex-1 h-11 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit Draft
+                            </Button>
+                            <Button
+                              onClick={() => handlePublishDraft(selectedDraft)}
+                              className="h-11 px-6 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                            >
+                              <Send className="w-4 h-4 mr-2" />
+                              Publish
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              onClick={() => handleDeleteDraft(selectedDraft)}
+                              className="h-11 px-6 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </Button>
                           </div>
                         </div>
                       )}
                     </DialogContent>
                   </Dialog>
 
-                  {canEditAndDelete(userRole) && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEditDraft(draft)}
-                      className="h-9 w-9 p-0 bg-white/50 dark:bg-slate-800/50 hover:bg-orange-50 dark:hover:bg-orange-900/20 border-slate-200 dark:border-slate-700 hover:border-orange-300 dark:hover:border-orange-600 rounded-xl transition-all duration-300 group/edit"
-                    >
-                      <Edit className="w-4 h-4 group-hover/edit:text-orange-600 dark:group-hover/edit:text-orange-400 transition-colors" />
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditDraft(draft)}
+                    className="h-9 w-9 p-0 bg-white/50 dark:bg-slate-800/50 hover:bg-orange-50 dark:hover:bg-orange-900/20 border-slate-200 dark:border-slate-700 hover:border-orange-300 dark:hover:border-orange-600 rounded-xl transition-all duration-300 group/edit"
+                  >
+                    <Edit className="w-4 h-4 group-hover/edit:text-orange-600 dark:group-hover/edit:text-orange-400 transition-colors" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       ) : (
-        <Card className="border-0 shadow-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg rounded-2xl overflow-hidden">
+        <Card className="border-0  bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg rounded-2xl overflow-hidden">
           <CardContent className="text-center py-16 px-8">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-orange-100 to-amber-200 dark:from-orange-800 dark:to-amber-700 rounded-full blur-3xl opacity-50 w-24 h-24 mx-auto" />
@@ -378,6 +400,30 @@ const DraftsSection = ({ drafts, onEditDraft, onDeleteDraft, onPublishDraft }: D
           </CardContent>
         </Card>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        open={deleteModal.open}
+        onOpenChange={(open) => setDeleteModal({ ...deleteModal, open })}
+        title="Delete Draft"
+        description={`Are you sure you want to delete "${deleteModal.draft?.title}"? This action cannot be undone.`}
+        onConfirm={confirmDeleteDraft}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+      />
+
+      {/* Publish Confirmation Modal */}
+      <ConfirmModal
+        open={publishModal.open}
+        onOpenChange={(open) => setPublishModal({ ...publishModal, open })}
+        title="Publish Draft"
+        description={`Are you sure you want to publish "${publishModal.draft?.title}"? This will move it from drafts to published posts.`}
+        onConfirm={confirmPublishDraft}
+        confirmText="Publish"
+        cancelText="Cancel"
+        variant="default"
+      />
     </div>
   );
 };

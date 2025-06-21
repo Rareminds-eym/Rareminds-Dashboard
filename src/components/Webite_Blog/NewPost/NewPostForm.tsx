@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Save, Sparkles } from 'lucide-react';
 import { BlogPost } from '../../../types/blog';
 import { BlogFormProps } from '../shared/BlogFormTypes';
 import { useBlogForm } from '../shared/useBlogForm';
 import { BlogFormLayout } from '../shared/BlogFormLayout';
 import { useToast } from '../../../hooks/use-toast';
+import PublishConfirmModal from '../shared/PublishConfirmModal';
 
 const NewPostForm: React.FC<BlogFormProps> = ({ onPostSaved, editingPost }) => {
   const { toast } = useToast();
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const formHook = useBlogForm(editingPost);
   const { 
     title, 
@@ -37,6 +40,13 @@ const NewPostForm: React.FC<BlogFormProps> = ({ onPostSaved, editingPost }) => {
       return;
     }
 
+    // Show the confirmation modal instead of directly publishing
+    setShowPublishModal(true);
+  };
+
+  const handleConfirmPublish = async () => {
+    setIsPublishing(true);
+    
     const post: BlogPost = {
       id: editingPost?.id || `post-${Date.now()}`,
       title,
@@ -63,6 +73,8 @@ const NewPostForm: React.FC<BlogFormProps> = ({ onPostSaved, editingPost }) => {
         title: "Post Published",
         description: "Post is submitted successfully.",
       });
+      
+      setShowPublishModal(false);
     } catch (error) {
       console.error('Error publishing post:', error);
       toast({
@@ -70,12 +82,14 @@ const NewPostForm: React.FC<BlogFormProps> = ({ onPostSaved, editingPost }) => {
         description: "Failed to submit the post. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsPublishing(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-8xl mx-auto space-y-8">
         {/* Header Section */}
         <div className="bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-2xl p-8 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -104,6 +118,15 @@ const NewPostForm: React.FC<BlogFormProps> = ({ onPostSaved, editingPost }) => {
           isEditing={false}
         />
       </div>
+
+      <PublishConfirmModal
+        isOpen={showPublishModal}
+        onClose={() => setShowPublishModal(false)}
+        onConfirm={handleConfirmPublish}
+        isEditing={false}
+        isLoading={isPublishing}
+        postTitle={title}
+      />
     </div>
   );
 };

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BlogDraft } from '../../../types/blog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
+import { ConfirmModal } from '../../ui/modal';
 import { Edit, Trash2, Globe, Clock, FileText } from 'lucide-react';
 import { useBlogDrafts } from '../../../hooks/useBlogDrafts';
 import { useToast } from '../../../hooks/use-toast';
@@ -14,6 +15,13 @@ interface DraftsListProps {
 const DraftsList = ({ onEditDraft }: DraftsListProps) => {
   const { drafts, loading, deleteDraft, publishDraft } = useBlogDrafts();
   const { toast } = useToast();
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean;
+    draft: BlogDraft | null;
+  }>({
+    open: false,
+    draft: null
+  });
 
   const handlePublishDraft = async (draftId: string) => {
     const result = await publishDraft(draftId);
@@ -26,9 +34,12 @@ const DraftsList = ({ onEditDraft }: DraftsListProps) => {
   };
 
   const handleDeleteDraft = async (draftId: string) => {
-    if (window.confirm('Are you sure you want to delete this draft?')) {
-      await deleteDraft(draftId);
-    }
+    await deleteDraft(draftId);
+    setDeleteModal({ open: false, draft: null });
+  };
+
+  const openDeleteModal = (draft: BlogDraft) => {
+    setDeleteModal({ open: true, draft });
   };
 
   if (loading) {
@@ -136,7 +147,7 @@ const DraftsList = ({ onEditDraft }: DraftsListProps) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleDeleteDraft(draft.id)}
+                  onClick={() => openDeleteModal(draft)}
                   className="h-8 px-3 text-red-600 border-red-200 hover:bg-red-50"
                 >
                   <Trash2 className="w-3 h-3" />
@@ -146,6 +157,18 @@ const DraftsList = ({ onEditDraft }: DraftsListProps) => {
           </CardContent>
         </Card>
       ))}
+      
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        open={deleteModal.open}
+        onOpenChange={(open) => setDeleteModal({ ...deleteModal, open })}
+        title="Delete Draft"
+        description={`Are you sure you want to delete "${deleteModal.draft?.title}"? This action cannot be undone.`}
+        onConfirm={() => deleteModal.draft && handleDeleteDraft(deleteModal.draft.id)}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </div>
   );
 };
