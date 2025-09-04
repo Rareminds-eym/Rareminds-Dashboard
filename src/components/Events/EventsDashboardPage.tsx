@@ -1,28 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, FileText, Eye } from 'lucide-react';
 import DashboardOverview from './Dashboard/DashboardOverview';
 import PostedPostsSection from './PostedPosts/PostedPostsSection';
-import ProjectPostManager from './NewPost/ProjectPostManager';
-import { ProjectPost } from '../../types/project';
-import { useProjects } from '../../hooks/useProjects';
+import EventPostManager from './EventPostManager';
+import { EventPost } from '../../types/event';
+import { useEvents } from '../../hooks/useEvents';
 
-const ProjectsDashboardPage = () => {
-  const { projects, loading: projectsLoading, deleteProject } = useProjects();
+const EventsDashboardPage = () => {
+  const { events, loading: eventsLoading, deleteEvent, refetch } = useEvents();
   const [activeSection, setActiveSection] = useState('overview');
-  const [editingProject, setEditingProject] = useState<ProjectPost | null>(null);
+  const [editingEvent, setEditingEvent] = useState<EventPost | null>(null);
 
-  const handleProjectSaved = () => {
-    setEditingProject(null);
-    setActiveSection('overview');
+  // Fetch events when component mounts
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  const handleEventSaved = () => {
+    console.log('Event saved, refreshing data...');
+    setEditingEvent(null);
+    setActiveSection('events'); // Switch to events view to see the update
+    refetch(); // Refresh the events list
   };
 
-  const handleEditProject = (project: ProjectPost) => {
-    setEditingProject(project);
+  const handleEditEvent = (event: EventPost) => {
+    setEditingEvent(event);
     setActiveSection('new-post');
   };
 
-  const handleDeleteProject = async (projectId: string) => {
-    await deleteProject(projectId);
+  const handleDeleteEvent = async (eventId: string) => {
+    await deleteEvent(eventId);
   };
 
   return (
@@ -51,7 +58,7 @@ const ProjectsDashboardPage = () => {
               </button>
               <button
                 onClick={() => {
-                  setEditingProject(null);
+                  setEditingEvent(null);
                   setActiveSection('new-post');
                 }}
                 className={`relative px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${
@@ -61,12 +68,12 @@ const ProjectsDashboardPage = () => {
                 }`}
               >
                 <Plus className="w-4 h-4 inline mr-2" />
-                New Project
+                New Event
               </button>
               <button
-                onClick={() => setActiveSection('projects')}
+                onClick={() => setActiveSection('events')}
                 className={`relative px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${
-                  activeSection === 'projects'
+                  activeSection === 'events'
                     ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
                 }`}
@@ -74,7 +81,7 @@ const ProjectsDashboardPage = () => {
                 <FileText className="w-4 h-4 inline mr-2" />
                 Events
                 <span className="ml-1 px-2 py-0.5 text-xs bg-slate-200 dark:bg-slate-600 rounded-full">
-                  {projects.length}
+                  {events.length}
                 </span>
               </button>
             </div>
@@ -84,7 +91,7 @@ const ProjectsDashboardPage = () => {
 
       {/* Main Content */}
       <main className="px-6 py-8">
-        {projectsLoading ? (
+        {eventsLoading ? (
           <div className="flex items-center justify-center py-24">
             <div className="text-center space-y-4">
               <div className="relative">
@@ -92,8 +99,8 @@ const ProjectsDashboardPage = () => {
                 <div className="absolute inset-0 w-16 h-16 border-4 border-transparent rounded-full animate-ping border-t-slate-400 dark:border-t-slate-500 mx-auto"></div>
               </div>
               <div className="space-y-2">
-                <p className="text-slate-900 dark:text-white font-medium">Loading your projects</p>
-                <p className="text-slate-500 dark:text-slate-400 text-sm">Please wait while we fetch your projects...</p>
+                <p className="text-slate-900 dark:text-white font-medium">Loading your events</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Please wait while we fetch your events...</p>
               </div>
             </div>
           </div>
@@ -102,28 +109,29 @@ const ProjectsDashboardPage = () => {
             {activeSection === 'overview' && (
               <div className="animate-in fade-in duration-500">
                 <DashboardOverview 
-                  projects={projects} 
-                  onNewProject={() => {
-                    setEditingProject(null);
+                  events={events} 
+                  onNewEvent={() => {
+                    setEditingEvent(null);
                     setActiveSection('new-post');
                   }}
-                  onViewProjects={() => setActiveSection('projects')}
+                  onViewEvents={() => setActiveSection('events')}
                 />
               </div>
             )}
             {activeSection === 'new-post' && (
               <div className="animate-in fade-in duration-500">
-                <ProjectPostManager 
-                  editingProject={editingProject}
+                <EventPostManager 
+                  editingEvent={editingEvent}
+                  onEventSaved={handleEventSaved}
                 />
               </div>
             )}
-            {activeSection === 'projects' && (
+            {activeSection === 'events' && (
               <div className="animate-in fade-in duration-500">
                 <PostedPostsSection 
-                  posts={projects}
-                  onEditPost={handleEditProject}
-                  onDeletePost={handleDeleteProject}
+                  posts={events}
+                  onEditPost={handleEditEvent}
+                  onDeletePost={handleDeleteEvent}
                 />
               </div>
             )}
@@ -134,4 +142,4 @@ const ProjectsDashboardPage = () => {
   );
 };
 
-export default ProjectsDashboardPage;
+export default EventsDashboardPage;

@@ -1,7 +1,7 @@
 import EventsDashboardPage from '../../components/Events/EventsDashboardPage';
 
-const ProjectsPage = () => {
+const EventsPage = () => {
   return <EventsDashboardPage />;
 };
 
-export default ProjectsPage;
+export default EventsPage;

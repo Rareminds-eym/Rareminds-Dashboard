@@ -202,8 +202,8 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-black rounded-xl shadow-sm">
-                  <Edit3 className="w-5 h-5 text-white" />
+                <div className="p-2 bg-purple-600 rounded-xl shadow-sm">
+                  <Sparkles className="w-5 h-5 text-white" />
                 </div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
                   {editingPost ? 'Edit Project' : 'Create New Project'}
@@ -233,8 +233,9 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                 )}
               </Button>
               <Button 
-                onClick={handleSubmit}
-                className="h-11 px-6 bg-black shadow-xl shadow-black/10 hover:shadow-md transition-all duration-200"
+                type="submit"
+                form="project-form"
+                className="h-11 px-6 bg-purple-600 hover:bg-purple-700 shadow-xl shadow-purple-600/10 hover:shadow-md transition-all duration-200"
               >
                 <Save className="w-4 h-4 mr-2" />
                 {editingPost ? 'Update Project' : 'Save Project'}
@@ -243,7 +244,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        <form id="project-form" onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Main Content - Takes 3 columns */}
           <div className="xl:col-span-3 space-y-6">
             {/* Post Content Card */}
@@ -258,14 +259,14 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                 {/* Title Input */}
                 <div className="space-y-2">
                   <Label htmlFor="title" className="text-sm font-medium text-slate-700">
-                    Title *
+                    Project Title *
                   </Label>
                   <Input
                     id="title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Enter your post title..."
-                    className="h-12 text-lg border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+                    placeholder="Enter your project title..."
+                    className="h-12 text-lg border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
                     required
                   />
                 </div>
@@ -281,7 +282,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                         value={featuredImage}
                         onChange={(e) => setFeaturedImage(e.target.value)}
                         placeholder="Image URL or upload a file..."
-                        className="flex-1 border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+                        className="flex-1 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
                       />
                       <Button
                         type="button"
@@ -319,51 +320,45 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                   </Label>
                   <div className="space-y-3">
                     <div className="flex gap-3">
-                      <Video className="w-5 h-5 text-gray-400 mt-2.5" />
-                      <div className="flex-1 space-y-2">
-                        <div className="flex gap-2">
-                          <Input
-                            id="video-urls"
-                            value={videoInput}
-                            onChange={(e) => setVideoInput(e.target.value)}
-                            onKeyDown={handleVideoKeyDown}
-                            placeholder="https://youtube.com/watch?v=... or video embed URL"
-                            className="flex-1 border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
-                          />
-                          <Button
-                            type="button"
-                            onClick={addVideoUrl}
-                            variant="outline"
-                            size="sm"
-                            className="h-10 px-4 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200"
-                          >
-                            Add
-                          </Button>
-                        </div>
-                        {/* Display added video URLs */}
-                        {videoUrls.length > 0 && (
-                          <div className="space-y-2">
-                            {videoUrls.map((url, index) => (
-                              <div key={index} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
-                                <Video className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                                <span className="text-sm text-slate-700 flex-1 truncate" title={url}>
-                                  {url}
-                                </span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeVideoUrl(url)}
-                                  className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600 transition-all duration-200"
-                                >
-                                  <X className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      <Input
+                        id="video-urls"
+                        value={videoInput}
+                        onChange={(e) => setVideoInput(e.target.value)}
+                        onKeyDown={handleVideoKeyDown}
+                        placeholder="https://youtube.com/watch?v=... or video embed URL"
+                        className="flex-1 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                      />
+                      <Button
+                        type="button"
+                        onClick={addVideoUrl}
+                        variant="outline"
+                        className="h-10 px-4 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200"
+                      >
+                        Add
+                      </Button>
                     </div>
+                    {/* Display added video URLs */}
+                    {videoUrls.length > 0 && (
+                      <div className="space-y-2">
+                        {videoUrls.map((url, index) => (
+                          <div key={index} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                            <Video className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                            <span className="text-sm text-slate-700 flex-1 truncate" title={url}>
+                              {url}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeVideoUrl(url)}
+                              className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600 transition-all duration-200"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -399,7 +394,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                           onClick={action}
                           className={`h-8 w-8 p-0 transition-all duration-200 ${
                             isActive 
-                              ? 'bg-blue-100 text-blue-600 shadow-sm' 
+                              ? 'bg-purple-100 text-purple-600 shadow-sm' 
                               : 'hover:bg-white hover:shadow-sm text-slate-600'
                           }`}
                           title={title}
@@ -410,7 +405,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                     </div>
                   </div>
                   
-                  <div className="border border-slate-200 rounded-xl min-h-[400px] prose prose-sm max-w-none p-6 bg-white focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all duration-200">
+                  <div className="border border-slate-200 rounded-xl min-h-[400px] prose prose-sm max-w-none p-6 bg-white focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-100 transition-all duration-200">
                     <EditorContent editor={editor} />
                   </div>
                 </div>
@@ -425,7 +420,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                     value={conclusion}
                     onChange={(e) => setConclusion(e.target.value)}
                     placeholder="Add a conclusion or final thoughts about this project..."
-                    className="border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none transition-all duration-200"
+                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none transition-all duration-200"
                     rows={4}
                   />
                 </div>
@@ -449,7 +444,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                   <Label htmlFor="tags" className="text-sm font-medium text-slate-700">
                     Project Tags
                   </Label>
-                  <div className="space-y-3">X
+                  <div className="space-y-3">
                     <div className="flex gap-2">
                       <Input
                         id="tags"
@@ -457,7 +452,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                         onChange={(e) => setTagInput(e.target.value)}
                         onKeyDown={handleTagKeyDown}
                         placeholder="Add project tags..."
-                        className="flex-1 border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+                        className="flex-1 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
                       />
                       <Button
                         type="button"
@@ -466,7 +461,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                         disabled={!tagInput.trim()}
                         className="border-slate-200 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50 transition-all duration-200"
                       >
-                        Addƒ
+                        Add
                       </Button>
                     </div>
                     
@@ -476,14 +471,14 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                           <Badge
                             key={tag}
                             variant="secondary"
-                            className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-all duration-200"
+                            className="flex items-center gap-1.5 px-3 py-1 bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-all duration-200"
                           >
                             {tag}
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="h-auto p-0 text-blue-500 hover:text-blue-700 transition-colors duration-200"
+                              className="h-auto p-0 text-purple-500 hover:text-purple-700 transition-colors duration-200"
                               onClick={() => removeTag(tag)}
                             >
                               <X className="w-3 h-3" />
@@ -492,10 +487,6 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                         ))}
                       </div>
                     )}
-                    
-                    <p className="text-xs text-slate-500">
-                      Press Enter or comma to add tags (e.g., "React", "AI", "Machine Learning")
-                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -509,7 +500,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                   SEO Settings
                 </CardTitle>
                 <CardDescription className="text-slate-500">
-                  Optimize your post for search engines
+                  Optimize your project for search engines
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
@@ -522,7 +513,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                     value={seo.meta_title}
                     onChange={(e) => setSeo(prev => ({ ...prev, meta_title: e.target.value }))}
                     placeholder="SEO title for search engines"
-                    className="border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
                   />
                   <p className={`text-xs transition-colors duration-200 ${
                     seo.meta_title.length > 60 ? 'text-red-500' : 'text-slate-500'
@@ -540,7 +531,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                     value={seo.meta_description}
                     onChange={(e) => setSeo(prev => ({ ...prev, meta_description: e.target.value }))}
                     placeholder="Brief description for search results"
-                    className="border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none transition-all duration-200"
+                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none transition-all duration-200"
                     rows={3}
                   />
                   <p className={`text-xs transition-colors duration-200 ${
@@ -559,7 +550,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                     value={seo.slug}
                     onChange={(e) => setSeo(prev => ({ ...prev, slug: e.target.value }))}
                     placeholder="url-friendly-slug"
-                    className="border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
                   />
                   <p className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded border">
                     URL: /projects/{seo.slug || 'your-project-slug'}

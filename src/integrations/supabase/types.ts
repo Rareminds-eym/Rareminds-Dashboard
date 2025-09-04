@@ -120,6 +120,110 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          description: string
+          event_date: string
+          event_time: string
+          duration: string
+          location: string
+          organizer_name: string
+          organizer_email: string
+          organizer_phone: string
+          capacity: number
+          category: string
+          price: string | null
+          registration_deadline: string | null
+          requirements: string | null
+          agenda: string | null
+          speakers: string[] | null
+          sponsors: string[] | null
+          additional_contact_info: string | null
+          status: string
+          event_banner: string | null
+          featured_image: string | null
+          event_tags: string[] | null
+          meta_title: string
+          meta_description: string
+          slug: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          description: string
+          event_date: string
+          event_time: string
+          duration: string
+          location: string
+          organizer_name: string
+          organizer_email: string
+          organizer_phone: string
+          capacity?: number
+          category: string
+          price?: string | null
+          registration_deadline?: string | null
+          requirements?: string | null
+          agenda?: string | null
+          speakers?: string[] | null
+          sponsors?: string[] | null
+          additional_contact_info?: string | null
+          status?: string
+          event_banner?: string | null
+          featured_image?: string | null
+          event_tags?: string[] | null
+          meta_title: string
+          meta_description: string
+          slug: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          description?: string
+          event_date?: string
+          event_time?: string
+          duration?: string
+          location?: string
+          organizer_name?: string
+          organizer_email?: string
+          organizer_phone?: string
+          capacity?: number
+          category?: string
+          price?: string | null
+          registration_deadline?: string | null
+          requirements?: string | null
+          agenda?: string | null
+          speakers?: string[] | null
+          sponsors?: string[] | null
+          additional_contact_info?: string | null
+          status?: string
+          event_banner?: string | null
+          featured_image?: string | null
+          event_tags?: string[] | null
+          meta_title?: string
+          meta_description?: string
+          slug?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       project_posts: {
         Row: {
           id: string
