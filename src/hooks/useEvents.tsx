@@ -16,38 +16,81 @@ export const useEvents = () => {
   const { userRole } = useUserRole();
   const { toast } = useToast();
 
+  // Helper function to translate database errors to user-friendly messages
+  const getDatabaseErrorMessage = (error: any): string => {
+    if (error?.code === '23502') {
+      // NOT NULL constraint violation
+      const column = error.message.match(/column "([^"]+)"/)?.[1];
+      if (column) {
+        const fieldNames: { [key: string]: string } = {
+          'organizer_phone': 'Organizer Phone',
+          'title': 'Event Title',
+          'description': 'Event Description',
+          'event_date': 'Event Date',
+          'event_time': 'Event Time',
+          'duration': 'Duration',
+          'location': 'Location',
+          'organizer_name': 'Organizer Name',
+          'organizer_email': 'Organizer Email',
+          'category': 'Category',
+        };
+        const friendlyName = fieldNames[column] || column;
+        return `The field "${friendlyName}" is required and cannot be empty. Please fill in this field.`;
+      }
+      return 'Some required fields are empty. Please fill in all required fields.';
+    }
+    
+    if (error?.code === '23505') {
+      // UNIQUE constraint violation
+      return 'An event with similar details already exists. Please check for duplicates.';
+    }
+    
+    if (error?.code === '23503') {
+      // FOREIGN KEY constraint violation
+      return 'Invalid reference data. Please check your selections and try again.';
+    }
+    
+    if (error?.code === '42501') {
+      // Insufficient privilege
+      return 'You do not have permission to perform this action.';
+    }
+    
+    // Default error message
+    return error?.message || 'An unexpected database error occurred. Please try again.';
+  };
+
   // Helper function to convert database row to EventPost
   const dbRowToEventPost = (row: EventRow): EventPost => {
     return {
       id: row.id,
       user_id: row.user_id,
-      title: row.title,
-      description: row.description,
-      event_date: row.event_date,
-      event_time: row.event_time,
-      duration: row.duration,
-      location: row.location,
-      organizer_name: row.organizer_name,
-      organizer_email: row.organizer_email,
-      organizer_phone: row.organizer_phone,
-      capacity: row.capacity,
-      category: row.category,
-      price: row.price,
-      registration_deadline: row.registration_deadline,
-      requirements: row.requirements,
-      agenda: row.agenda,
-      speakers: row.speakers,
-      sponsors: row.sponsors,
-      additional_contact_info: row.additional_contact_info,
-      status: row.status as 'upcoming' | 'ongoing' | 'completed' | 'cancelled',
-      event_banner: row.event_banner,
-      featured_image: row.featured_image,
-      event_tags: row.event_tags,
-      meta_title: row.meta_title,
-      meta_description: row.meta_description,
-      slug: row.slug,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
+      title: row.title || '',
+      description: row.description || '',
+      event_date: row.event_date || '',
+      event_time: row.event_time || '',
+      duration: row.duration || '',
+      location: row.location || '',
+      organizer_name: row.organizer_name || '',
+      organizer_email: row.organizer_email || '',
+      organizer_phone: row.organizer_phone || null,
+      capacity: row.capacity || 0,
+      category: row.category || '',
+      price: row.price || null,
+      registration_deadline: row.registration_deadline || null,
+      requirements: row.requirements || null,
+      agenda: row.agenda || null,
+      speakers: row.speakers || null,
+      sponsors: row.sponsors || null,
+      additional_contact_info: row.additional_contact_info || null,
+      status: (row.status as 'upcoming' | 'ongoing' | 'completed' | 'cancelled') || 'upcoming',
+      event_banner: row.event_banner || null,
+      featured_image: row.featured_image || null,
+      event_tags: row.event_tags || null,
+      meta_title: row.meta_title || '',
+      meta_description: row.meta_description || '',
+      slug: row.slug || '',
+      created_at: row.created_at || new Date().toISOString(),
+      updated_at: row.updated_at || new Date().toISOString(),
     };
   };
 
@@ -129,7 +172,7 @@ export const useEvents = () => {
         location: eventData.location,
         organizer_name: eventData.organizer_name,
         organizer_email: eventData.organizer_email,
-        organizer_phone: eventData.organizer_phone || null,
+        organizer_phone: eventData.organizer_phone || '',
         capacity: eventData.capacity,
         category: eventData.category,
         price: eventData.price || null,
@@ -180,7 +223,7 @@ export const useEvents = () => {
       return createdEvent;
     } catch (err) {
       console.error('createEvent error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create event';
+      const errorMessage = getDatabaseErrorMessage(err);
       console.error('Error details:', {
         error: err,
         message: errorMessage,
@@ -275,7 +318,7 @@ export const useEvents = () => {
         location: eventData.location,
         organizer_name: eventData.organizer_name,
         organizer_email: eventData.organizer_email,
-        organizer_phone: eventData.organizer_phone || null,
+        organizer_phone: eventData.organizer_phone || '',
         capacity: eventData.capacity,
         category: eventData.category,
         price: eventData.price || null,
@@ -384,7 +427,7 @@ export const useEvents = () => {
       return updatedEventWithTags;
     } catch (err) {
       console.error('updateEvent error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update event';
+      const errorMessage = getDatabaseErrorMessage(err);
       console.error('Update error details:', {
         error: err,
         message: errorMessage,

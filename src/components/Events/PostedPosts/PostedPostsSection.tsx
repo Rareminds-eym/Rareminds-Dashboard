@@ -28,16 +28,21 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
   };
 
   // Get all unique tags from posts
-  const allTags = [...new Set(posts.flatMap(post => post.event_tags || []))];
+  const allTags = [...new Set(posts.flatMap(post => post.event_tags || []).filter(Boolean))];
 
   const filteredPosts = posts.filter(post => {
-    const excerpt = generateExcerpt(post.description);
-    const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      excerpt.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.organizer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTag = filterTag === 'all' || (post.event_tags && post.event_tags.includes(filterTag));
-    return matchesSearch && matchesTag;
+    try {
+      const excerpt = generateExcerpt(post.description || '');
+      const matchesSearch = (post.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        excerpt.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (post.organizer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (post.location || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTag = filterTag === 'all' || (post.event_tags && post.event_tags.includes(filterTag));
+      return matchesSearch && matchesTag;
+    } catch (error) {
+      console.error('Error filtering post:', error, post);
+      return false;
+    }
   });
 
   const handleDeletePost = (postId: string, postTitle: string) => {

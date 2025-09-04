@@ -11,7 +11,7 @@ export interface EventPost {
   location: string;
   organizer_name: string;
   organizer_email: string;
-  organizer_phone: string;
+  organizer_phone?: string | null;
   capacity: number;
   category: string;
   price?: string | null;
