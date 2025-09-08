@@ -1,6 +1,6 @@
 
 import { EventPost } from '../../../types/event';
-import { Plus, FileText, Calendar, TrendingUp, Video, Tag } from 'lucide-react';
+import { Plus, FileText, Calendar, TrendingUp, Video, Tag, Eye } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
@@ -105,7 +105,11 @@ const DashboardOverview = ({ events, onNewEvent, onViewEvents }: DashboardOvervi
           {recentEvents.length > 0 ? (
             <div className="space-y-6">
               {recentEvents.map((event) => (
-                <div key={event.id} className="group flex items-start space-x-4 p-4 rounded-xl hover:bg-secondary/30 transition-all duration-200 border border-transparent hover:border-border/50">
+                <div 
+                  key={event.id} 
+                  className="group relative flex items-start space-x-4 p-4 rounded-xl hover:bg-secondary/30 transition-all duration-200 border border-transparent hover:border-border/50 cursor-pointer"
+                  onClick={onViewEvents}
+                >
                   {event.featured_image && (
                     <div className="relative overflow-hidden rounded-lg flex-shrink-0">
                       <img
@@ -150,6 +154,22 @@ const DashboardOverview = ({ events, onNewEvent, onViewEvents }: DashboardOvervi
                         {new Date(event.created_at).toLocaleDateString()}
                       </span>
                     </div>
+                  </div>
+                  
+                  {/* View Project Button - appears on hover */}
+                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="bg-white/90 rounded-3xl backdrop-blur-sm border-border/50 hover:bg-primary hover:text-white shadow-lg"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onViewEvents();
+                      }}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Project
+                    </Button>
                   </div>
                 </div>
               ))}

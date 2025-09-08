@@ -70,6 +70,8 @@ export const useEvents = () => {
       event_time: row.event_time || '',
       duration: row.duration || '',
       location: row.location || '',
+      is_physical: row.is_physical || true,
+      event_link: row.event_link || null,
       organizer_name: row.organizer_name || '',
       organizer_email: row.organizer_email || '',
       organizer_phone: row.organizer_phone || null,
@@ -79,7 +81,7 @@ export const useEvents = () => {
       registration_deadline: row.registration_deadline || null,
       requirements: row.requirements || null,
       agenda: row.agenda || null,
-      speakers: row.speakers || null,
+      speakers_details: row.speakers_details || null,
       sponsors: row.sponsors || null,
       additional_contact_info: row.additional_contact_info || null,
       status: (row.status as 'upcoming' | 'ongoing' | 'completed' | 'cancelled') || 'upcoming',
@@ -137,9 +139,11 @@ export const useEvents = () => {
         throw new Error('You must be logged in to create events. Please log in and try again.');
       }
 
-      // Validate required fields
+      // Validate required fields based on event type
+      const requiredLocationField = eventData.is_physical ? eventData.location : eventData.event_link;
+      
       if (!eventData.title || !eventData.description || !eventData.event_date || 
-          !eventData.event_time || !eventData.duration || !eventData.location || !eventData.organizer_name || 
+          !eventData.event_time || !eventData.duration || !requiredLocationField || !eventData.organizer_name || 
           !eventData.organizer_email || !eventData.category) {
         console.log('Validation failed in useEvents:', {
           title: !!eventData.title,
@@ -148,6 +152,9 @@ export const useEvents = () => {
           event_time: !!eventData.event_time,
           duration: !!eventData.duration,
           location: !!eventData.location,
+          event_link: !!eventData.event_link,
+          is_physical: eventData.is_physical,
+          requiredLocationField: !!requiredLocationField,
           organizer_name: !!eventData.organizer_name,
           organizer_email: !!eventData.organizer_email,
           category: !!eventData.category
@@ -169,7 +176,9 @@ export const useEvents = () => {
         event_date: eventData.event_date,
         event_time: eventData.event_time,
         duration: eventData.duration,
-        location: eventData.location,
+        location: eventData.is_physical ? eventData.location : '',
+        is_physical: eventData.is_physical,
+        event_link: eventData.is_physical ? null : eventData.event_link,
         organizer_name: eventData.organizer_name,
         organizer_email: eventData.organizer_email,
         organizer_phone: eventData.organizer_phone || '',
@@ -179,7 +188,7 @@ export const useEvents = () => {
         registration_deadline: eventData.registration_deadline || null,
         requirements: eventData.requirements || null,
         agenda: eventData.agenda || null,
-        speakers: eventData.speakers || null,
+        speakers_details: eventData.speakers_details || null,
         sponsors: eventData.sponsors || null,
         additional_contact_info: eventData.additional_contact_info || null,
         status: eventData.status,
@@ -284,9 +293,11 @@ export const useEvents = () => {
         throw new Error('You can only update your own events');
       }
 
-      // Validate required fields
+      // Validate required fields based on event type
+      const requiredLocationField = eventData.is_physical ? eventData.location : eventData.event_link;
+      
       if (!eventData.title || !eventData.description || !eventData.event_date || 
-          !eventData.event_time || !eventData.duration || !eventData.location || !eventData.organizer_name || 
+          !eventData.event_time || !eventData.duration || !requiredLocationField || !eventData.organizer_name || 
           !eventData.organizer_email || !eventData.category) {
         console.log('Validation failed in updateEvent:', {
           title: !!eventData.title,
@@ -295,6 +306,9 @@ export const useEvents = () => {
           event_time: !!eventData.event_time,
           duration: !!eventData.duration,
           location: !!eventData.location,
+          event_link: !!eventData.event_link,
+          is_physical: eventData.is_physical,
+          requiredLocationField: !!requiredLocationField,
           organizer_name: !!eventData.organizer_name,
           organizer_email: !!eventData.organizer_email,
           category: !!eventData.category
@@ -315,7 +329,9 @@ export const useEvents = () => {
         event_date: eventData.event_date,
         event_time: eventData.event_time,
         duration: eventData.duration,
-        location: eventData.location,
+        location: eventData.is_physical ? eventData.location : '',
+        is_physical: eventData.is_physical,
+        event_link: eventData.is_physical ? null : eventData.event_link,
         organizer_name: eventData.organizer_name,
         organizer_email: eventData.organizer_email,
         organizer_phone: eventData.organizer_phone || '',
@@ -325,7 +341,7 @@ export const useEvents = () => {
         registration_deadline: eventData.registration_deadline || null,
         requirements: eventData.requirements || null,
         agenda: eventData.agenda || null,
-        speakers: eventData.speakers || null,
+        speakers_details: eventData.speakers_details || null,
         sponsors: eventData.sponsors || null,
         additional_contact_info: eventData.additional_contact_info || null,
         status: eventData.status,
