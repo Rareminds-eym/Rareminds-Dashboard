@@ -4,7 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
-import { EventPost, EventSEOSettings } from '../../../types/event';
+import { EventPost, EventSEOSettings, Speaker } from '../../../types/event';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -27,6 +27,8 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   const [eventTime, setEventTime] = useState('');
   const [duration, setDuration] = useState('');
   const [location, setLocation] = useState('');
+  const [isPhysical, setIsPhysical] = useState(true);
+  const [eventLink, setEventLink] = useState('');
   const [organizerName, setOrganizerName] = useState('');
   const [organizerEmail, setOrganizerEmail] = useState('');
   const [organizerPhone, setOrganizerPhone] = useState('');
@@ -36,8 +38,13 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   const [registrationDeadline, setRegistrationDeadline] = useState('');
   const [requirements, setRequirements] = useState('');
   const [agenda, setAgenda] = useState('');
-  const [speakers, setSpeakers] = useState<string[]>([]);
-  const [speakerInput, setSpeakerInput] = useState('');
+  const [speakersDetails, setSpeakersDetails] = useState<Speaker[]>([]);
+  const [currentSpeaker, setCurrentSpeaker] = useState<Speaker>({
+    name: '',
+    profile: '',
+    photo: '',
+    linkedIn: ''
+  });
   const [sponsors, setSponsors] = useState<string[]>([]);
   const [sponsorInput, setSponsorInput] = useState('');
   const [additionalContactInfo, setAdditionalContactInfo] = useState('');
@@ -89,6 +96,8 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setEventTime(editingPost.event_time);
       setDuration(editingPost.duration);
       setLocation(editingPost.location);
+      setIsPhysical(editingPost.is_physical);
+      setEventLink(editingPost.event_link || '');
       setOrganizerName(editingPost.organizer_name);
       setOrganizerEmail(editingPost.organizer_email);
       setOrganizerPhone(editingPost.organizer_phone);
@@ -98,7 +107,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setRegistrationDeadline(editingPost.registration_deadline || '');
       setRequirements(editingPost.requirements || '');
       setAgenda(editingPost.agenda || '');
-      setSpeakers(editingPost.speakers || []);
+      setSpeakersDetails(editingPost.speakers_details || []);
       setSponsors(editingPost.sponsors || []);
       setAdditionalContactInfo(editingPost.additional_contact_info || '');
       setStatus(editingPost.status);
@@ -161,22 +170,24 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   };
 
   const addSpeaker = () => {
-    const trimmedSpeaker = speakerInput.trim();
-    if (trimmedSpeaker && !speakers.includes(trimmedSpeaker)) {
-      setSpeakers([...speakers, trimmedSpeaker]);
-      setSpeakerInput('');
+    if (currentSpeaker.name.trim() && currentSpeaker.profile.trim()) {
+      setSpeakersDetails([...speakersDetails, {
+        ...currentSpeaker,
+        name: currentSpeaker.name.trim(),
+        profile: currentSpeaker.profile.trim(),
+        photo: currentSpeaker.photo?.trim() || null,
+        linkedIn: currentSpeaker.linkedIn?.trim() || null
+      }]);
+      setCurrentSpeaker({ name: '', profile: '', photo: '', linkedIn: '' });
     }
   };
 
-  const removeSpeaker = (speakerToRemove: string) => {
-    setSpeakers(speakers.filter(speaker => speaker !== speakerToRemove));
+  const removeSpeaker = (indexToRemove: number) => {
+    setSpeakersDetails(speakersDetails.filter((_, index) => index !== indexToRemove));
   };
 
-  const handleSpeakerKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addSpeaker();
-    }
+  const updateCurrentSpeaker = (field: keyof Speaker, value: string) => {
+    setCurrentSpeaker(prev => ({ ...prev, [field]: value }));
   };
 
   const addSponsor = () => {
@@ -222,23 +233,60 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
     console.log('Form submitted!');
     console.log('Form values:', { title, description, eventDate, eventTime, location, organizerName, organizerEmail });
     
-    if (!title || !description || !eventDate || !eventTime || !duration || !location || !organizerName || !organizerEmail || !category) {
-      console.log('Validation failed - missing required fields');
-      const missingFields = [];
-      if (!title) missingFields.push('Title');
-      if (!description) missingFields.push('Description');
-      if (!eventDate) missingFields.push('Event Date');
-      if (!eventTime) missingFields.push('Event Time');
-      if (!duration) missingFields.push('Duration');
-      if (!location) missingFields.push('Location');
-      if (!organizerName) missingFields.push('Organizer Name');
-      if (!organizerEmail) missingFields.push('Organizer Email');
-      if (!category) missingFields.push('Category');
-      
-      console.log('Missing fields:', missingFields);
+    // Comprehensive validation for all mandatory fields
+    const missingFields = [];
+    
+    // Event Title *
+    if (!title?.trim()) missingFields.push('Event Title');
+    
+    // Event Type (Category) *
+    if (!category?.trim()) missingFields.push('Event Type');
+    
+    // Featured Image *
+    if (!featuredImage?.trim()) missingFields.push('Featured Image');
+    
+    // Event Description *
+    if (!description?.trim()) missingFields.push('Event Description');
+    
+    // Event Date *
+    if (!eventDate?.trim()) missingFields.push('Event Date');
+    
+    // Event Time *
+    if (!eventTime?.trim()) missingFields.push('Event Time');
+    
+    // Duration *
+    if (!duration?.trim()) missingFields.push('Duration');
+    
+    // Address/Event Link based on Event Type *
+    if (isPhysical) {
+      if (!location?.trim()) missingFields.push('Address');
+    } else {
+      if (!eventLink?.trim()) missingFields.push('Event Link');
+    }
+    
+    // Status * (should always have a default, but check anyway)
+    if (!status) missingFields.push('Status');
+    
+    // Event Tags *
+    if (tags.length === 0) missingFields.push('Event Tags (at least one tag)');
+    
+    // Speakers *
+    if (speakersDetails.length === 0) missingFields.push('Speakers (at least one speaker)');
+    
+    // SEO Settings *
+    if (!seo.meta_title?.trim()) missingFields.push('SEO Meta Title');
+    if (!seo.meta_description?.trim()) missingFields.push('SEO Meta Description');
+    if (!seo.slug?.trim()) missingFields.push('SEO URL Slug');
+    
+    // Additional required fields for completeness
+    if (!organizerName?.trim()) missingFields.push('Organizer Name');
+    if (!organizerEmail?.trim()) missingFields.push('Organizer Email');
+    
+    if (missingFields.length > 0) {
+      console.log('Validation failed - missing required fields:', missingFields);
       toast({
         title: "Missing Required Fields",
-        description: `Please fill in: ${missingFields.join(', ')}`,
+        description: `Please fill in the following required fields: ${missingFields.join(', ')}`,
         variant: "destructive"
       });
       return;
@@ -253,7 +301,9 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       event_date: eventDate,
       event_time: eventTime,
       duration,
-      location,
+      location: isPhysical ? location : '',
+      is_physical: isPhysical,
+      event_link: isPhysical ? null : eventLink,
       organizer_name: organizerName,
       organizer_email: organizerEmail,
       organizer_phone: organizerPhone || null,
@@ -263,7 +313,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       registration_deadline: registrationDeadline || null,
       requirements: requirements || null,
       agenda: agenda || null,
-      speakers: speakers.length > 0 ? speakers : null,
+      speakers_details: speakersDetails.length > 0 ? speakersDetails : null,
       sponsors: sponsors.length > 0 ? sponsors : null,
       additional_contact_info: additionalContactInfo || null,
       status,
@@ -289,6 +339,8 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setEventTime('');
       setDuration('');
       setLocation('');
+      setIsPhysical(true);
+      setEventLink('');
       setOrganizerName('');
       setOrganizerEmail('');
       setOrganizerPhone('');
@@ -298,8 +350,8 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setRegistrationDeadline('');
       setRequirements('');
       setAgenda('');
-      setSpeakers([]);
-      setSpeakerInput('');
+      setSpeakersDetails([]);
+      setCurrentSpeaker({ name: '', profile: '', photo: '', linkedIn: '' });
       setSponsors([]);
       setSponsorInput('');
       setAdditionalContactInfo('');
@@ -389,24 +441,27 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                   />
                 </div>
 
-                {/* Category */}
+                {/* Event Type */}
                 <div className="space-y-2">
                   <Label htmlFor="category" className="text-sm font-medium text-slate-700">
-                    Category *
+                    Event Type *
                   </Label>
                   <Select value={category} onValueChange={setCategory} required>
                     <SelectTrigger className="h-12 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100">
-                      <SelectValue placeholder="Select event category" />
+                      <SelectValue placeholder="Select event type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="technology">Technology</SelectItem>
-                      <SelectItem value="business">Business</SelectItem>
-                      <SelectItem value="education">Education</SelectItem>
-                      <SelectItem value="workshop">Workshop</SelectItem>
-                      <SelectItem value="conference">Conference</SelectItem>
-                      <SelectItem value="networking">Networking</SelectItem>
-                      <SelectItem value="webinar">Webinar</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="Workshop">Workshop</SelectItem>
+                      <SelectItem value="Training">Training</SelectItem>
+                      <SelectItem value="Conference">Conference</SelectItem>
+                      <SelectItem value="Lecture">Lecture</SelectItem>
+                      <SelectItem value="Webinar">Webinar</SelectItem>
+                      <SelectItem value="Tutorial">Tutorial</SelectItem>
+                      <SelectItem value="Hackathon">Hackathon</SelectItem>
+                      <SelectItem value="Internship">Internship</SelectItem>
+                      <SelectItem value="Orientation">Orientation</SelectItem>
+                      <SelectItem value="Team-building">Team-building</SelectItem>
+                      <SelectItem value="Alumni-event">Alumni-event</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -414,7 +469,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                 {/* Featured Image */}
                 <div className="space-y-3">
                   <Label htmlFor="featured-image" className="text-sm font-medium text-slate-700">
-                    Featured Image
+                    Featured Image *
                   </Label>
                   <div className="space-y-3">
                     <div className="flex gap-3">
@@ -567,19 +622,65 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="location" className="text-sm font-medium text-slate-700">
-                    Location *
+                {/* Event Type Toggle */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium text-slate-700">
+                    Event Type *
                   </Label>
-                  <Input
-                    id="location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Event venue or online link"
-                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                    required
-                  />
+                  <div className="flex gap-4">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="eventType"
+                        checked={isPhysical}
+                        onChange={() => setIsPhysical(true)}
+                        className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 focus:ring-purple-500 focus:ring-2"
+                      />
+                      <span className="text-sm text-slate-700">Physical</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="eventType"
+                        checked={!isPhysical}
+                        onChange={() => setIsPhysical(false)}
+                        className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 focus:ring-purple-500 focus:ring-2"
+                      />
+                      <span className="text-sm text-slate-700">Virtual</span>
+                    </label>
+                  </div>
                 </div>
+                
+                {/* Conditional Fields based on Event Type */}
+                {isPhysical ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="location" className="text-sm font-medium text-slate-700">
+                      Address *
+                    </Label>
+                    <Input
+                      id="location"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="Enter event address"
+                      className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                      required
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="event-link" className="text-sm font-medium text-slate-700">
+                      Event Link *
+                    </Label>
+                    <Input
+                      id="event-link"
+                      value={eventLink}
+                      onChange={(e) => setEventLink(e.target.value)}
+                      placeholder="https://zoom.us/j/... or meeting link"
+                      className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                      required
+                    />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="price" className="text-sm font-medium text-slate-700">
                     Price (Optional)
@@ -727,7 +828,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                 {/* Status */}
                 <div className="space-y-2">
                   <Label htmlFor="status" className="text-sm font-medium text-slate-700">
-                    Status
+                    Status *
                   </Label>
                   <Select value={status} onValueChange={(value) => setStatus(value as 'upcoming' | 'ongoing' | 'completed' | 'cancelled')}>
                     <SelectTrigger className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100">
@@ -745,7 +846,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                 {/* Tags */}
                 <div className="space-y-3">
                   <Label htmlFor="tags" className="text-sm font-medium text-slate-700">
-                    Event Tags
+                    Event Tags *
                   </Label>
                   <div className="space-y-3">
                     <div className="flex gap-2">
@@ -800,43 +901,108 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-slate-800">
                   <Users className="w-4 h-4 text-blue-500" />
-                  Speakers
+                  Speakers *
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex gap-2">
-                  <Input
-                    value={speakerInput}
-                    onChange={(e) => setSpeakerInput(e.target.value)}
-                    onKeyDown={handleSpeakerKeyDown}
-                    placeholder="Add speaker name..."
-                    className="flex-1 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                  />
+              <CardContent className="space-y-4">
+                {/* Add New Speaker Form */}
+                <div className="space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-700">Speaker Name *</Label>
+                    <Input
+                      value={currentSpeaker.name}
+                      onChange={(e) => updateCurrentSpeaker('name', e.target.value)}
+                      placeholder="Enter speaker name..."
+                      className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-700">Speaker Profile *</Label>
+                    <Textarea
+                      value={currentSpeaker.profile}
+                      onChange={(e) => updateCurrentSpeaker('profile', e.target.value)}
+                      placeholder="Brief description of the speaker's background and expertise..."
+                      className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none transition-all duration-200"
+                      rows={3}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-700">Photo URL</Label>
+                    <Input
+                      value={currentSpeaker.photo || ''}
+                      onChange={(e) => updateCurrentSpeaker('photo', e.target.value)}
+                      placeholder="https://example.com/speaker-photo.jpg"
+                      className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-700">LinkedIn URL</Label>
+                    <Input
+                      value={currentSpeaker.linkedIn || ''}
+                      onChange={(e) => updateCurrentSpeaker('linkedIn', e.target.value)}
+                      placeholder="https://linkedin.com/in/speaker-profile"
+                      className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                    />
+                  </div>
+                  
                   <Button
                     type="button"
-                    variant="outline"
                     onClick={addSpeaker}
-                    disabled={!speakerInput.trim()}
-                    className="border-slate-200 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50 transition-all duration-200"
+                    disabled={!currentSpeaker.name.trim() || !currentSpeaker.profile.trim()}
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 transition-all duration-200"
                   >
-                    Add
+                    Add Speaker
                   </Button>
                 </div>
                 
-                {speakers.length > 0 && (
-                  <div className="space-y-2">
-                    {speakers.map((speaker, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200">
-                        <span className="text-sm text-slate-700">{speaker}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeSpeaker(speaker)}
-                          className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600 transition-all duration-200"
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
+                {/* Added Speakers List */}
+                {speakersDetails.length > 0 && (
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-slate-700">Added Speakers ({speakersDetails.length})</Label>
+                    {speakersDetails.map((speaker, index) => (
+                      <div key={index} className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center gap-3">
+                              {speaker.photo && (
+                                <img
+                                  src={speaker.photo}
+                                  alt={speaker.name}
+                                  className="w-12 h-12 rounded-full object-cover border-2 border-slate-200"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                  }}
+                                />
+                              )}
+                              <div>
+                                <h4 className="font-medium text-slate-800">{speaker.name}</h4>
+                                {speaker.linkedIn && (
+                                  <a
+                                    href={speaker.linkedIn}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                                  >
+                                    LinkedIn Profile
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-sm text-slate-600 line-clamp-2">{speaker.profile}</p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeSpeaker(index)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 transition-all duration-200"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -898,7 +1064,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-slate-800">
                   <Globe className="w-4 h-4 text-orange-500" />
-                  SEO Settings
+                  SEO Settings *
                 </CardTitle>
                 <CardDescription className="text-slate-500">
                   Optimize your event for search engines
@@ -907,7 +1073,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
               <CardContent className="space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="meta-title" className="text-sm font-medium text-slate-700">
-                    Meta Title
+                    Meta Title *
                   </Label>
                   <Input
                     id="meta-title"
@@ -925,7 +1091,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
 
                 <div className="space-y-2">
                   <Label htmlFor="meta-description" className="text-sm font-medium text-slate-700">
-                    Meta Description
+                    Meta Description *
                   </Label>
                   <Textarea
                     id="meta-description"
@@ -944,7 +1110,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
 
                 <div className="space-y-2">
                   <Label htmlFor="slug" className="text-sm font-medium text-slate-700">
-                    URL Slug
+                    URL Slug *
                   </Label>
                   <Input
                     id="slug"

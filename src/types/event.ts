@@ -1,5 +1,12 @@
 // Event-related type definitions matching the actual Supabase schema
 
+export interface Speaker {
+  name: string;
+  profile: string;
+  photo?: string | null;
+  linkedIn?: string | null;
+}
+
 export interface EventPost {
   id: string;
   user_id: string;
@@ -9,6 +16,8 @@ export interface EventPost {
   event_time: string;
   duration: string;
   location: string;
+  is_physical: boolean;
+  event_link?: string | null;
   organizer_name: string;
   organizer_email: string;
   organizer_phone?: string | null;
@@ -18,7 +27,7 @@ export interface EventPost {
   registration_deadline?: string | null;
   requirements?: string | null;
   agenda?: string | null;
-  speakers?: string[] | null;
+  speakers_details?: Speaker[] | null;
   sponsors?: string[] | null;
   additional_contact_info?: string | null;
   status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
@@ -45,6 +54,8 @@ export interface EventFormData {
   event_time: string;
   duration: string;
   location: string;
+  is_physical: boolean;
+  event_link?: string | null;
   organizer_name: string;
   organizer_email: string;
   organizer_phone: string;
@@ -54,7 +65,7 @@ export interface EventFormData {
   registration_deadline?: string | null;
   requirements?: string | null;
   agenda?: string | null;
-  speakers?: string[];
+  speakers_details?: Speaker[];
   sponsors?: string[];
   additional_contact_info?: string | null;
   status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
@@ -74,6 +85,8 @@ export interface EventDraft {
   event_time: string;
   duration: string;
   location: string;
+  is_physical: boolean;
+  event_link?: string | null;
   organizer_name: string;
   organizer_email: string;
   organizer_phone: string;
@@ -83,7 +96,7 @@ export interface EventDraft {
   registration_deadline?: string | null;
   requirements?: string | null;
   agenda?: string | null;
-  speakers?: string[];
+  speakers_details?: Speaker[];
   sponsors?: string[];
   additional_contact_info?: string | null;
   status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
