@@ -35,6 +35,8 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   const [capacity, setCapacity] = useState<number>(50);
   const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
+  const [priceType, setPriceType] = useState<'preset' | 'custom'>('preset');
+  const [customPrice, setCustomPrice] = useState('');
   const [registrationDeadline, setRegistrationDeadline] = useState('');
   const [requirements, setRequirements] = useState('');
   const [agenda, setAgenda] = useState('');
@@ -103,7 +105,18 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setOrganizerPhone(editingPost.organizer_phone);
       setCapacity(editingPost.capacity);
       setCategory(editingPost.category);
-      setPrice(editingPost.price || '');
+      const editPrice = editingPost.price || '';
+      setPrice(editPrice);
+      // Check if it's a preset value or custom
+      const presetValues = ['FREE', '₹500', '₹1000', '₹2000'];
+      if (presetValues.includes(editPrice)) {
+        setPriceType('preset');
+      } else if (editPrice.startsWith('₹')) {
+        setPriceType('custom');
+        setCustomPrice(editPrice.replace('₹', ''));
+      } else {
+        setPriceType('preset');
+      }
       setRegistrationDeadline(editingPost.registration_deadline || '');
       setRequirements(editingPost.requirements || '');
       setAgenda(editingPost.agenda || '');
@@ -190,6 +203,28 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
     setCurrentSpeaker(prev => ({ ...prev, [field]: value }));
   };
 
+  const handlePriceChange = (selectedPrice: string) => {
+    if (selectedPrice === 'custom') {
+      setPriceType('custom');
+      if (customPrice.trim()) {
+        setPrice(`₹${customPrice}`);
+      } else {
+        setPrice('');
+      }
+    } else {
+      setPriceType('preset');
+      setPrice(selectedPrice);
+      setCustomPrice('');
+    }
+  };
+
+  const handleCustomPriceChange = (value: string) => {
+    setCustomPrice(value);
+    if (value.trim()) {
+      setPrice(`₹${value}`);
+    }
+  };
+
   const addSponsor = () => {
     const trimmedSponsor = sponsorInput.trim();
     if (trimmedSponsor && !sponsors.includes(trimmedSponsor)) {
@@ -263,6 +298,11 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
     } else {
       if (!eventLink?.trim()) missingFields.push('Event Link');
     }
+
+    // Price *
+    if (!price?.trim() || (priceType === 'custom' && !customPrice?.trim())) {
+      missingFields.push('Price');
+    }
     
     // Status * (should always have a default, but check anyway)
     if (!status) missingFields.push('Status');
@@ -309,7 +349,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       organizer_phone: organizerPhone || null,
       capacity,
       category,
-      price: price || null,
+      price: price,
       registration_deadline: registrationDeadline || null,
       requirements: requirements || null,
       agenda: agenda || null,
@@ -347,6 +387,8 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setCapacity(50);
       setCategory('');
       setPrice('');
+      setPriceType('preset');
+      setCustomPrice('');
       setRegistrationDeadline('');
       setRequirements('');
       setAgenda('');
@@ -681,17 +723,62 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                     />
                   </div>
                 )}
-                <div className="space-y-2">
-                  <Label htmlFor="price" className="text-sm font-medium text-slate-700">
-                    Price (Optional)
+                {/* Price Selection */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium text-slate-700">
+                    Price *
                   </Label>
-                  <Input
-                    id="price"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="Free, $50, $100, etc."
-                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                  />
+                  <div className="space-y-3">
+                    {/* Preset Price Dropdown */}
+                    <div className="space-y-2">
+                      <Select 
+                        value={priceType === 'preset' ? price : 'custom'} 
+                        onValueChange={handlePriceChange}
+                        required
+                      >
+                        <SelectTrigger className="h-12 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100">
+                          <SelectValue placeholder="Select price or enter custom amount" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="FREE">FREE</SelectItem>
+                          <SelectItem value="₹500">₹500</SelectItem>
+                          <SelectItem value="₹1000">₹1000</SelectItem>
+                          <SelectItem value="₹2000">₹2000</SelectItem>
+                          <SelectItem value="custom">Enter Custom Amount</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {/* Custom Price Input */}
+                    {priceType === 'custom' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="custom-price" className="text-sm font-medium text-slate-700">
+                          Custom Amount (in ₹)
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-600 font-medium">₹</span>
+                          <Input
+                            id="custom-price"
+                            type="number"
+                            value={customPrice}
+                            onChange={(e) => handleCustomPriceChange(e.target.value)}
+                            placeholder="0"
+                            className="flex-1 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                            min="0"
+                            required
+                          />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Price Preview */}
+                    {price && (
+                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <span className="text-sm text-slate-600">Selected Price: </span>
+                        <span className="font-medium text-slate-800">{price}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="registration-deadline" className="text-sm font-medium text-slate-700">

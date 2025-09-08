@@ -23,7 +23,7 @@ export interface EventPost {
   organizer_phone?: string | null;
   capacity: number;
   category: string;
-  price?: string | null;
+  price: string;
   registration_deadline?: string | null;
   requirements?: string | null;
   agenda?: string | null;
@@ -61,7 +61,7 @@ export interface EventFormData {
   organizer_phone: string;
   capacity: number;
   category: string;
-  price?: string | null;
+  price: string;
   registration_deadline?: string | null;
   requirements?: string | null;
   agenda?: string | null;
@@ -92,7 +92,7 @@ export interface EventDraft {
   organizer_phone: string;
   capacity: number;
   category: string;
-  price?: string | null;
+  price: string;
   registration_deadline?: string | null;
   requirements?: string | null;
   agenda?: string | null;

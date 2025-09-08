@@ -77,7 +77,7 @@ export const useEvents = () => {
       organizer_phone: row.organizer_phone || null,
       capacity: row.capacity || 0,
       category: row.category || '',
-      price: row.price || null,
+      price: row.price || 'FREE',
       registration_deadline: row.registration_deadline || null,
       requirements: row.requirements || null,
       agenda: row.agenda || null,
@@ -144,7 +144,7 @@ export const useEvents = () => {
       
       if (!eventData.title || !eventData.description || !eventData.event_date || 
           !eventData.event_time || !eventData.duration || !requiredLocationField || !eventData.organizer_name || 
-          !eventData.organizer_email || !eventData.category) {
+          !eventData.organizer_email || !eventData.category || !eventData.price) {
         console.log('Validation failed in useEvents:', {
           title: !!eventData.title,
           description: !!eventData.description,
@@ -157,7 +157,8 @@ export const useEvents = () => {
           requiredLocationField: !!requiredLocationField,
           organizer_name: !!eventData.organizer_name,
           organizer_email: !!eventData.organizer_email,
-          category: !!eventData.category
+          category: !!eventData.category,
+          price: !!eventData.price
         });
         throw new Error('Missing required fields for event creation');
       }
@@ -184,7 +185,7 @@ export const useEvents = () => {
         organizer_phone: eventData.organizer_phone || '',
         capacity: eventData.capacity,
         category: eventData.category,
-        price: eventData.price || null,
+        price: eventData.price,
         registration_deadline: eventData.registration_deadline || null,
         requirements: eventData.requirements || null,
         agenda: eventData.agenda || null,
@@ -298,7 +299,7 @@ export const useEvents = () => {
       
       if (!eventData.title || !eventData.description || !eventData.event_date || 
           !eventData.event_time || !eventData.duration || !requiredLocationField || !eventData.organizer_name || 
-          !eventData.organizer_email || !eventData.category) {
+          !eventData.organizer_email || !eventData.category || !eventData.price) {
         console.log('Validation failed in updateEvent:', {
           title: !!eventData.title,
           description: !!eventData.description,
@@ -311,7 +312,8 @@ export const useEvents = () => {
           requiredLocationField: !!requiredLocationField,
           organizer_name: !!eventData.organizer_name,
           organizer_email: !!eventData.organizer_email,
-          category: !!eventData.category
+          category: !!eventData.category,
+          price: !!eventData.price
         });
         throw new Error('Missing required fields for event update');
       }
@@ -337,7 +339,7 @@ export const useEvents = () => {
         organizer_phone: eventData.organizer_phone || '',
         capacity: eventData.capacity,
         category: eventData.category,
-        price: eventData.price || null,
+        price: eventData.price,
         registration_deadline: eventData.registration_deadline || null,
         requirements: eventData.requirements || null,
         agenda: eventData.agenda || null,
