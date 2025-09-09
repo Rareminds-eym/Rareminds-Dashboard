@@ -70,22 +70,27 @@ export const useEvents = () => {
       event_time: row.event_time || '',
       duration: row.duration || '',
       location: row.location || '',
+      is_physical: row.is_physical || true,
+      event_link: row.event_link || null,
       organizer_name: row.organizer_name || '',
       organizer_email: row.organizer_email || '',
       organizer_phone: row.organizer_phone || null,
       capacity: row.capacity || 0,
       category: row.category || '',
-      price: row.price || null,
+      price: row.price || 'FREE',
       registration_deadline: row.registration_deadline || null,
       requirements: row.requirements || null,
       agenda: row.agenda || null,
-      speakers: row.speakers || null,
+      speakers_details: row.speakers_details || null,
       sponsors: row.sponsors || null,
       additional_contact_info: row.additional_contact_info || null,
       status: (row.status as 'upcoming' | 'ongoing' | 'completed' | 'cancelled') || 'upcoming',
       event_banner: row.event_banner || null,
       featured_image: row.featured_image || null,
       event_tags: row.event_tags || null,
+      events_gallery: Array.isArray(row.events_gallery) ? row.events_gallery : null,
+      teaser_video: row.teaser_video || null,
+      faq: Array.isArray(row.faq) ? row.faq : [],
       meta_title: row.meta_title || '',
       meta_description: row.meta_description || '',
       slug: row.slug || '',
@@ -139,10 +144,12 @@ export const useEvents = () => {
         throw new Error('You must be logged in to create events. Please log in and try again.');
       }
 
-      // Validate required fields
+      // Validate required fields based on event type
+      const requiredLocationField = eventData.is_physical ? eventData.location : eventData.event_link;
+      
       if (!eventData.title || !eventData.description || !eventData.event_date || 
-          !eventData.event_time || !eventData.duration || !eventData.location || !eventData.organizer_name || 
-          !eventData.organizer_email || !eventData.category) {
+          !eventData.event_time || !eventData.duration || !requiredLocationField || !eventData.organizer_name || 
+          !eventData.organizer_email || !eventData.category || !eventData.price) {
         console.log('Validation failed in useEvents:', {
           title: !!eventData.title,
           description: !!eventData.description,
@@ -150,9 +157,13 @@ export const useEvents = () => {
           event_time: !!eventData.event_time,
           duration: !!eventData.duration,
           location: !!eventData.location,
+          event_link: !!eventData.event_link,
+          is_physical: eventData.is_physical,
+          requiredLocationField: !!requiredLocationField,
           organizer_name: !!eventData.organizer_name,
           organizer_email: !!eventData.organizer_email,
-          category: !!eventData.category
+          category: !!eventData.category,
+          price: !!eventData.price
         });
         throw new Error('Missing required fields for event creation');
       }
@@ -171,23 +182,28 @@ export const useEvents = () => {
         event_date: eventData.event_date,
         event_time: eventData.event_time,
         duration: eventData.duration,
-        location: eventData.location,
+        location: eventData.is_physical ? eventData.location : '',
+        is_physical: eventData.is_physical,
+        event_link: eventData.is_physical ? null : eventData.event_link,
         organizer_name: eventData.organizer_name,
         organizer_email: eventData.organizer_email,
         organizer_phone: eventData.organizer_phone || '',
         capacity: eventData.capacity,
         category: eventData.category,
-        price: eventData.price || null,
+        price: eventData.price,
         registration_deadline: eventData.registration_deadline || null,
         requirements: eventData.requirements || null,
         agenda: eventData.agenda || null,
-        speakers: eventData.speakers || null,
+        speakers_details: eventData.speakers_details || null,
         sponsors: eventData.sponsors || null,
         additional_contact_info: eventData.additional_contact_info || null,
         status: eventData.status,
         event_banner: eventData.event_banner || null,
         featured_image: eventData.featured_image || null,
         event_tags: eventData.event_tags || null,
+        events_gallery: eventData.events_gallery || [],
+        teaser_video: eventData.teaser_video || null,
+        faq: eventData.faq || [],
         meta_title,
         meta_description,
         slug,
@@ -288,10 +304,12 @@ export const useEvents = () => {
         throw new Error('You can only update your own events');
       }
 
-      // Validate required fields
+      // Validate required fields based on event type
+      const requiredLocationField = eventData.is_physical ? eventData.location : eventData.event_link;
+      
       if (!eventData.title || !eventData.description || !eventData.event_date || 
-          !eventData.event_time || !eventData.duration || !eventData.location || !eventData.organizer_name || 
-          !eventData.organizer_email || !eventData.category) {
+          !eventData.event_time || !eventData.duration || !requiredLocationField || !eventData.organizer_name || 
+          !eventData.organizer_email || !eventData.category || !eventData.price) {
         console.log('Validation failed in updateEvent:', {
           title: !!eventData.title,
           description: !!eventData.description,
@@ -299,9 +317,13 @@ export const useEvents = () => {
           event_time: !!eventData.event_time,
           duration: !!eventData.duration,
           location: !!eventData.location,
+          event_link: !!eventData.event_link,
+          is_physical: eventData.is_physical,
+          requiredLocationField: !!requiredLocationField,
           organizer_name: !!eventData.organizer_name,
           organizer_email: !!eventData.organizer_email,
-          category: !!eventData.category
+          category: !!eventData.category,
+          price: !!eventData.price
         });
         throw new Error('Missing required fields for event update');
       }
@@ -319,23 +341,28 @@ export const useEvents = () => {
         event_date: eventData.event_date,
         event_time: eventData.event_time,
         duration: eventData.duration,
-        location: eventData.location,
+        location: eventData.is_physical ? eventData.location : '',
+        is_physical: eventData.is_physical,
+        event_link: eventData.is_physical ? null : eventData.event_link,
         organizer_name: eventData.organizer_name,
         organizer_email: eventData.organizer_email,
         organizer_phone: eventData.organizer_phone || '',
         capacity: eventData.capacity,
         category: eventData.category,
-        price: eventData.price || null,
+        price: eventData.price,
         registration_deadline: eventData.registration_deadline || null,
         requirements: eventData.requirements || null,
         agenda: eventData.agenda || null,
-        speakers: eventData.speakers || null,
+        speakers_details: eventData.speakers_details || null,
         sponsors: eventData.sponsors || null,
         additional_contact_info: eventData.additional_contact_info || null,
         status: eventData.status,
         event_banner: eventData.event_banner || null,
         featured_image: eventData.featured_image || null,
         event_tags: eventData.event_tags || null,
+        events_gallery: eventData.events_gallery || [],
+        teaser_video: eventData.teaser_video || null,
+        faq: eventData.faq || [],
         meta_title,
         meta_description,
         slug,

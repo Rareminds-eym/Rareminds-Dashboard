@@ -1,5 +1,17 @@
 // Event-related type definitions matching the actual Supabase schema
 
+export interface Speaker {
+  name: string;
+  profile: string;
+  photo?: string | null;
+  linkedIn?: string | null;
+}
+
+export interface FAQItem {
+  question: string;
+  answer: string;
+}
+
 export interface EventPost {
   id: string;
   user_id: string;
@@ -12,16 +24,18 @@ export interface EventPost {
   location_type?: 'physical' | 'virtual';
   location_geo?: { lat: string; lng: string } | null;
   location_link?: string | null;
+  is_physical: boolean;
+  event_link?: string | null;
   organizer_name: string;
   organizer_email: string;
   organizer_phone?: string | null;
   capacity: number;
   category: string;
-  price?: string | null;
+  price: string;
   registration_deadline?: string | null;
   requirements?: string | null;
   agenda?: string | null;
-  speakers?: string[] | null;
+  speakers_details?: Speaker[] | null;
   sponsors?: string[] | null;
   additional_contact_info?: string | null;
   status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
@@ -30,6 +44,9 @@ export interface EventPost {
   event_tags?: string[] | null;
   location_latitude?: number | null;
   location_longitude?: number | null;
+  events_gallery?: string[] | null;
+  teaser_video?: string | null;
+  faq: FAQItem[];
   meta_title: string;
   meta_description: string;
   slug: string;
@@ -50,22 +67,27 @@ export interface EventFormData {
   event_time: string;
   duration: string;
   location: string;
+  is_physical: boolean;
+  event_link?: string | null;
   organizer_name: string;
   organizer_email: string;
   organizer_phone: string;
   capacity: number;
   category: string;
-  price?: string | null;
+  price: string;
   registration_deadline?: string | null;
   requirements?: string | null;
   agenda?: string | null;
-  speakers?: string[];
+  speakers_details?: Speaker[];
   sponsors?: string[];
   additional_contact_info?: string | null;
   status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
   event_banner?: string | null;
   featured_image?: string | null;
   event_tags: string[];
+  events_gallery: string[];
+  teaser_video?: string | null;
+  faq: FAQItem[];
   seo: EventSEOSettings;
   location_latitude?: number | null;
   location_longitude?: number | null;
@@ -81,22 +103,27 @@ export interface EventDraft {
   event_time: string;
   duration: string;
   location: string;
+  is_physical: boolean;
+  event_link?: string | null;
   organizer_name: string;
   organizer_email: string;
   organizer_phone: string;
   capacity: number;
   category: string;
-  price?: string | null;
+  price: string;
   registration_deadline?: string | null;
   requirements?: string | null;
   agenda?: string | null;
-  speakers?: string[];
+  speakers_details?: Speaker[];
   sponsors?: string[];
   additional_contact_info?: string | null;
   status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
   event_banner?: string | null;
   featured_image?: string | null;
   event_tags?: string[];
+  events_gallery?: string[];
+  teaser_video?: string | null;
+  faq?: FAQItem[];
   meta_title?: string;
   meta_description?: string;
   slug?: string;
