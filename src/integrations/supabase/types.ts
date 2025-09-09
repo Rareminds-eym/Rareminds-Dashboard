@@ -146,6 +146,7 @@ export type Database = {
           event_banner: string | null
           featured_image: string | null
           event_tags: string[] | null
+          faq: Json
           meta_title: string
           meta_description: string
           slug: string
@@ -177,6 +178,7 @@ export type Database = {
           event_banner?: string | null
           featured_image?: string | null
           event_tags?: string[] | null
+          faq?: Json
           meta_title: string
           meta_description: string
           slug: string
@@ -208,6 +210,7 @@ export type Database = {
           event_banner?: string | null
           featured_image?: string | null
           event_tags?: string[] | null
+          faq?: Json
           meta_title?: string
           meta_description?: string
           slug?: string

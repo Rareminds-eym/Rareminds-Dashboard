@@ -4,7 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
-import { EventPost, EventSEOSettings, Speaker } from '../../../types/event';
+import { EventPost, EventSEOSettings, Speaker, FAQItem } from '../../../types/event';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -12,8 +12,10 @@ import { Textarea } from '../../ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Globe, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign } from 'lucide-react';
+import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Globe, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign, HelpCircle, Images } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
+import { FAQManager } from '../FAQManager';
+import { EventGalleryManager } from '../EventGalleryManager';
 
 interface NewPostSectionProps {
   onPostSaved: (post: EventPost) => void;
@@ -60,6 +62,8 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
     meta_description: '',
     slug: ''
   });
+  const [faqs, setFaqs] = useState<FAQItem[]>([]);
+  const [eventsGallery, setEventsGallery] = useState<string[]>([]);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -127,6 +131,8 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setEventBanner(editingPost.event_banner || '');
       setFeaturedImage(editingPost.featured_image || '');
       setTags(editingPost.event_tags || []);
+      setFaqs(editingPost.faq || []);
+      setEventsGallery(editingPost.events_gallery || []);
       setSeo({
         meta_title: editingPost.meta_title,
         meta_description: editingPost.meta_description,
@@ -360,6 +366,8 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       event_banner: eventBanner || null,
       featured_image: featuredImage || null,
       event_tags: tags,
+      events_gallery: eventsGallery.length > 0 ? eventsGallery : null,
+      faq: faqs,
       meta_title: seo.meta_title || title,
       meta_description: seo.meta_description || description.substring(0, 160),
       slug: seo.slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
@@ -402,6 +410,8 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setFeaturedImage('');
       setTags([]);
       setTagInput('');
+      setFaqs([]);
+      setEventsGallery([]);
       setSeo({ meta_title: '', meta_description: '', slug: '' });
     }
   };
@@ -846,6 +856,110 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                     />
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Event Gallery Section Card */}
+            <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-slate-800">
+                      <Images className="w-5 h-5 text-pink-500" />
+                      Event Gallery
+                    </CardTitle>
+                    <CardDescription className="text-slate-500 mt-1">
+                      Add multiple images to showcase your event and attract more attendees
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.accept = 'image/*';
+                        fileInput.multiple = true;
+                        fileInput.onchange = (e) => {
+                          const files = (e.target as HTMLInputElement).files;
+                          if (!files || eventsGallery.length >= 8) return;
+                          
+                          const fileReaders: Promise<string>[] = [];
+                          const remainingSlots = 8 - eventsGallery.length;
+                          const filesToProcess = Array.from(files).slice(0, remainingSlots);
+                          
+                          filesToProcess.forEach((file) => {
+                            if (file.type.startsWith('image/')) {
+                              fileReaders.push(
+                                new Promise((resolve) => {
+                                  const reader = new FileReader();
+                                  reader.onload = (e) => resolve(e.target?.result as string);
+                                  reader.readAsDataURL(file);
+                                })
+                              );
+                            }
+                          });
+                          
+                          Promise.all(fileReaders).then((base64Images) => {
+                            const newImages = base64Images.filter(img => !eventsGallery.includes(img));
+                            if (newImages.length > 0) {
+                              setEventsGallery([...eventsGallery, ...newImages]);
+                            }
+                          });
+                        };
+                        fileInput.click();
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Upload
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const url = prompt('Enter image URL:');
+                        if (url && url.trim() && !eventsGallery.includes(url.trim()) && eventsGallery.length < 8) {
+                          setEventsGallery([...eventsGallery, url.trim()]);
+                        }
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Link2 className="h-4 w-4" />
+                      Add URL
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <EventGalleryManager
+                  images={eventsGallery}
+                  onChange={setEventsGallery}
+                  minImages={2}
+                  maxImages={8}
+                />
+              </CardContent>
+            </Card>
+
+            {/* FAQ Section Card */}
+            <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-slate-800">
+                  <HelpCircle className="w-5 h-5 text-indigo-500" />
+                  Frequently Asked Questions
+                </CardTitle>
+                <CardDescription className="text-slate-500">
+                  Add common questions and answers about your event to help attendees
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FAQManager
+                  faqs={faqs}
+                  onChange={setFaqs}
+                />
               </CardContent>
             </Card>
 
