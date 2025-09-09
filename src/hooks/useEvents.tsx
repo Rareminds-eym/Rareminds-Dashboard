@@ -96,6 +96,8 @@ export const useEvents = () => {
       slug: row.slug || '',
       created_at: row.created_at || new Date().toISOString(),
       updated_at: row.updated_at || new Date().toISOString(),
+      location_latitude: row.location_latitude ?? null,
+      location_longitude: row.location_longitude ?? null,
     };
   };
 
@@ -205,6 +207,8 @@ export const useEvents = () => {
         meta_title,
         meta_description,
         slug,
+        location_latitude: eventData.location_latitude ?? null,
+        location_longitude: eventData.location_longitude ?? null,
       };
 
       console.log('Prepared newEvent for database:', newEvent);
@@ -216,7 +220,7 @@ export const useEvents = () => {
         .select()
         .single();
 
-      console.log('Database insert result:', { data, error });
+      console.log('Supabase insert result:', { data, error });
       if (error) {
         console.error('Database insert error details:', {
           message: error.message,
@@ -363,6 +367,8 @@ export const useEvents = () => {
         meta_description,
         slug,
         updated_at: new Date().toISOString(),
+        location_latitude: eventData.location_latitude ?? null,
+        location_longitude: eventData.location_longitude ?? null
       };
 
       console.log('Prepared updatedEvent for database:', updatedEvent);

@@ -21,6 +21,9 @@ export interface EventPost {
   event_time: string;
   duration: string;
   location: string;
+  location_type?: 'physical' | 'virtual';
+  location_geo?: { lat: string; lng: string } | null;
+  location_link?: string | null;
   is_physical: boolean;
   event_link?: string | null;
   organizer_name: string;
@@ -39,6 +42,8 @@ export interface EventPost {
   event_banner?: string | null;
   featured_image?: string | null;
   event_tags?: string[] | null;
+  location_latitude?: number | null;
+  location_longitude?: number | null;
   events_gallery?: string[] | null;
   teaser_video?: string | null;
   faq: FAQItem[];
@@ -84,6 +89,8 @@ export interface EventFormData {
   teaser_video?: string | null;
   faq: FAQItem[];
   seo: EventSEOSettings;
+  location_latitude?: number | null;
+  location_longitude?: number | null;
 }
 
 // Event Draft types (if needed in the future)

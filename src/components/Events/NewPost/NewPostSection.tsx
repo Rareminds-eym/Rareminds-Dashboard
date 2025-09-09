@@ -12,7 +12,7 @@ import { Textarea } from '../../ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Globe, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign, HelpCircle, Images, Play } from 'lucide-react';
+import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Globe, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign, HelpCircle, Images, Play, Search} from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 import { FAQManager } from '../FAQManager';
 import { EventGalleryManager } from '../EventGalleryManager';
@@ -30,6 +30,9 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   const [eventTime, setEventTime] = useState('');
   const [duration, setDuration] = useState('');
   const [location, setLocation] = useState('');
+  const [locationType, setLocationType] = useState<'physical' | 'virtual'>('physical');
+  const [locationGeo, setLocationGeo] = useState<{ lat: string; lng: string }>({ lat: '', lng: '' });
+  const [locationLink, setLocationLink] = useState('');
   const [isPhysical, setIsPhysical] = useState(true);
   const [eventLink, setEventLink] = useState('');
   const [organizerName, setOrganizerName] = useState('');
@@ -71,6 +74,36 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
+  // Geocode address to lat/lng
+  const geocodeAddress = async () => {
+    if (!location) return;
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`);
+      const data = await response.json();
+      if (data && data.length > 0) {
+        setLocationGeo({ lat: data[0].lat, lng: data[0].lon });
+        console.log('Coordinates after geocoding:', { lat: data[0].lat, lng: data[0].lon });
+        toast({
+          title: "Location Found",
+          description: `Latitude: ${data[0].lat}, Longitude: ${data[0].lon}`,
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Location Not Found",
+          description: "Could not find coordinates for the given address.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch location coordinates.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -97,13 +130,19 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   });
 
   useEffect(() => {
-    if (editingPost && editor) {
+  if (editingPost && editor) {
       setTitle(editingPost.title);
       setDescription(editingPost.description);
       setEventDate(editingPost.event_date);
       setEventTime(editingPost.event_time);
       setDuration(editingPost.duration);
       setLocation(editingPost.location);
+      setLocationType(editingPost.location_type || 'physical');
+      setLocationGeo({ 
+        lat: editingPost.location_latitude ? String(editingPost.location_latitude) : '',
+        lng: editingPost.location_longitude ? String(editingPost.location_longitude) : ''
+      });
+      setLocationLink(editingPost.location_link || '');
       setIsPhysical(editingPost.is_physical);
       setEventLink(editingPost.event_link || '');
       setOrganizerName(editingPost.organizer_name);
@@ -274,9 +313,36 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted!');
-    console.log('Form values:', { title, description, eventDate, eventTime, location, organizerName, organizerEmail });
+  console.log('Form submitted!');
+  console.log('Form values:', { title, description, eventDate, eventTime, location, organizerName, organizerEmail });
+  console.log('Location Type:', locationType);
+  console.log('Raw Latitude:', locationGeo.lat, 'Raw Longitude:', locationGeo.lng);
+  const parsedLat = locationType === 'physical' ? parseFloat(locationGeo.lat) : null;
+  const parsedLng = locationType === 'physical' ? parseFloat(locationGeo.lng) : null;
+  console.log('Parsed Latitude:', parsedLat, 'Parsed Longitude:', parsedLng);
     
+
+  if (!title || !description || !eventDate || !eventTime || !duration || !location || !organizerName || !organizerEmail || !category || (locationType === 'physical' && (!locationGeo.lat || !locationGeo.lng || isNaN(parseFloat(locationGeo.lat)) || isNaN(parseFloat(locationGeo.lng)))) || (locationType === 'virtual' && !locationLink)) {
+    if (locationType === 'physical' && (!locationGeo.lat || !locationGeo.lng || isNaN(parseFloat(locationGeo.lat)) || isNaN(parseFloat(locationGeo.lng)))) {
+      console.log('Invalid latitude/longitude:', locationGeo);
+    }
+      console.log('Validation failed - missing required fields');
+      const missingFields = [];
+      if (!title) missingFields.push('Title');
+      if (!description) missingFields.push('Description');
+      if (!eventDate) missingFields.push('Event Date');
+      if (!eventTime) missingFields.push('Event Time');
+      if (!duration) missingFields.push('Duration');
+  if (!location) missingFields.push('Location');
+  if (!locationType) missingFields.push('Location Type');
+  if (locationType === 'physical' && (!locationGeo.lat || !locationGeo.lng || isNaN(parseFloat(locationGeo.lat)) || isNaN(parseFloat(locationGeo.lng)))) missingFields.push('Valid Geolocation (Latitude/Longitude)');
+  if (locationType === 'virtual' && !locationLink) missingFields.push('Event Link');
+      if (!organizerName) missingFields.push('Organizer Name');
+      if (!organizerEmail) missingFields.push('Organizer Email');
+      if (!category) missingFields.push('Category');
+      
+      console.log('Missing fields:', missingFields);
+
     // Comprehensive validation for all mandatory fields
     const missingFields = [];
     
@@ -342,6 +408,43 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
     }
 
     console.log('Creating event object...');
+  const event: EventPost = {
+    id: editingPost?.id || `event-${Date.now()}`,
+    user_id: editingPost?.user_id || '',
+    title,
+    description,
+    event_date: eventDate,
+    event_time: eventTime,
+    duration,
+    location,
+    location_type: locationType,
+    location_latitude: parsedLat,
+    location_longitude: parsedLng,
+    location_link: locationType === 'virtual' ? locationLink : null,
+    organizer_name: organizerName,
+    organizer_email: organizerEmail,
+    organizer_phone: organizerPhone || null,
+    capacity,
+    category,
+    price: price || null,
+    registration_deadline: registrationDeadline || null,
+    requirements: requirements || null,
+    agenda: agenda || null,
+    speakers: speakers.length > 0 ? speakers : null,
+    sponsors: sponsors.length > 0 ? sponsors : null,
+    additional_contact_info: additionalContactInfo || null,
+    status,
+    event_banner: eventBanner || null,
+    featured_image: featuredImage || null,
+    event_tags: tags,
+    meta_title: seo.meta_title || title,
+    meta_description: seo.meta_description || description.substring(0, 160),
+    slug: seo.slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+    created_at: editingPost?.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  console.log('Event object to be saved:', event);
+  console.log('Calling onPostSaved with event:', event);
     const event: EventPost = {
       id: editingPost?.id || `event-${Date.now()}`,
       user_id: editingPost?.user_id || '',
@@ -379,11 +482,42 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       updated_at: new Date().toISOString()
     };
 
+
     console.log('Event object created:', event);
     console.log('Calling onPostSaved...');
     onPostSaved(event);
     
     if (!editingPost) {
+  editor?.commands.clearContent();
+  setTitle('');
+  setDescription('');
+  setEventDate('');
+  setEventTime('');
+  setDuration('');
+  setLocation('');
+  setLocationType('physical');
+  setLocationGeo({ lat: '', lng: '' });
+  setLocationLink('');
+  setOrganizerName('');
+  setOrganizerEmail('');
+  setOrganizerPhone('');
+  setCapacity(50);
+  setCategory('');
+  setPrice('');
+  setRegistrationDeadline('');
+  setRequirements('');
+  setAgenda('');
+  setSpeakers([]);
+  setSpeakerInput('');
+  setSponsors([]);
+  setSponsorInput('');
+  setAdditionalContactInfo('');
+  setStatus('upcoming');
+  setEventBanner('');
+  setFeaturedImage('');
+  setTags([]);
+  setTagInput('');
+  setSeo({ meta_title: '', meta_description: '', slug: '' });
       editor?.commands.clearContent();
       setTitle('');
       setDescription('');
@@ -684,6 +818,79 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                   <Label className="text-sm font-medium text-slate-700">
                     Event Type *
                   </Label>
+                  <Input
+                    id="location"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Event venue or online name"
+                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                    required
+                  />
+                  <div className="mt-2 flex gap-4">
+                    <Label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="location-type"
+                        value="physical"
+                        checked={locationType === 'physical'}
+                        onChange={() => setLocationType('physical')}
+                        className="accent-purple-600"
+                      />
+                      Physical
+                    </Label>
+                    <Label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="location-type"
+                        value="virtual"
+                        checked={locationType === 'virtual'}
+                        onChange={() => setLocationType('virtual')}
+                        className="accent-purple-600"
+                      />
+                      Virtual
+                    </Label>
+                  </div>
+                  {locationType === 'physical' && (
+                    <div className="mt-2 grid grid-cols-2 gap-4 items-center">
+                      <Input
+                        type="text"
+                        value={locationGeo.lat}
+                        onChange={e => setLocationGeo({ ...locationGeo, lat: e.target.value })}
+                        placeholder="Latitude"
+                        className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                        required
+                      />
+                      <Input
+                        type="text"
+                        value={locationGeo.lng}
+                        onChange={e => setLocationGeo({ ...locationGeo, lng: e.target.value })}
+                        placeholder="Longitude"
+                        className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={geocodeAddress}
+                        className="col-span-2 mt-2 flex items-center gap-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200"
+                      >
+                        <Search className="w-4 h-4" />
+                        Get Coordinates from Address
+                      </Button>
+                    </div>
+                  )}
+                  {locationType === 'virtual' && (
+                    <div className="mt-2">
+                      <Input
+                        type="url"
+                        value={locationLink}
+                        onChange={e => setLocationLink(e.target.value)}
+                        placeholder="Event link (e.g. Zoom/Google Meet)"
+                        className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                        required
+                      />
+                    </div>
+                  )}
                   <div className="flex gap-4">
                     <label className="flex items-center space-x-2 cursor-pointer">
                       <input
