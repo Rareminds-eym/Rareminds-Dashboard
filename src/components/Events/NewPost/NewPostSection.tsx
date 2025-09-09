@@ -12,10 +12,11 @@ import { Textarea } from '../../ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Globe, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign, HelpCircle, Images } from 'lucide-react';
+import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Globe, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign, HelpCircle, Images, Play } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 import { FAQManager } from '../FAQManager';
 import { EventGalleryManager } from '../EventGalleryManager';
+import { TeaserVideoManager } from '../TeaserVideoManager';
 
 interface NewPostSectionProps {
   onPostSaved: (post: EventPost) => void;
@@ -64,6 +65,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   });
   const [faqs, setFaqs] = useState<FAQItem[]>([]);
   const [eventsGallery, setEventsGallery] = useState<string[]>([]);
+  const [teaserVideo, setTeaserVideo] = useState<string | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -133,6 +135,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setTags(editingPost.event_tags || []);
       setFaqs(editingPost.faq || []);
       setEventsGallery(editingPost.events_gallery || []);
+      setTeaserVideo(editingPost.teaser_video || null);
       setSeo({
         meta_title: editingPost.meta_title,
         meta_description: editingPost.meta_description,
@@ -367,6 +370,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       featured_image: featuredImage || null,
       event_tags: tags,
       events_gallery: eventsGallery.length > 0 ? eventsGallery : null,
+      teaser_video: teaserVideo,
       faq: faqs,
       meta_title: seo.meta_title || title,
       meta_description: seo.meta_description || description.substring(0, 160),
@@ -412,6 +416,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setTagInput('');
       setFaqs([]);
       setEventsGallery([]);
+      setTeaserVideo(null);
       setSeo({ meta_title: '', meta_description: '', slug: '' });
     }
   };
@@ -856,6 +861,74 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                     />
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Teaser Video Section Card */}
+            <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-slate-800">
+                      <Play className="w-5 h-5 text-purple-500" />
+                      Teaser Video
+                    </CardTitle>
+                    <CardDescription className="text-slate-500 mt-1">
+                      Upload a video or add a YouTube link to preview your event
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.accept = 'video/*';
+                        fileInput.onchange = (e) => {
+                          const file = (e.target as HTMLInputElement).files?.[0];
+                          if (!file) return;
+                          
+                          if (file.type.startsWith('video/')) {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                              const result = e.target?.result as string;
+                              setTeaserVideo(result);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        };
+                        fileInput.click();
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Upload
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const url = prompt('Enter YouTube URL or video link:');
+                        if (url && url.trim()) {
+                          setTeaserVideo(url.trim());
+                        }
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Link2 className="h-4 w-4" />
+                      Add Link
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <TeaserVideoManager
+                  video={teaserVideo}
+                  onChange={setTeaserVideo}
+                />
               </CardContent>
             </Card>
 
