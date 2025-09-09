@@ -343,36 +343,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       
       console.log('Missing fields:', missingFields);
 
-    // Comprehensive validation for all mandatory fields
-    const missingFields = [];
     
-    // Event Title *
-    if (!title?.trim()) missingFields.push('Event Title');
-    
-    // Event Type (Category) *
-    if (!category?.trim()) missingFields.push('Event Type');
-    
-    // Featured Image *
-    if (!featuredImage?.trim()) missingFields.push('Featured Image');
-    
-    // Event Description *
-    if (!description?.trim()) missingFields.push('Event Description');
-    
-    // Event Date *
-    if (!eventDate?.trim()) missingFields.push('Event Date');
-    
-    // Event Time *
-    if (!eventTime?.trim()) missingFields.push('Event Time');
-    
-    // Duration *
-    if (!duration?.trim()) missingFields.push('Duration');
-    
-    // Address/Event Link based on Event Type *
-    if (isPhysical) {
-      if (!location?.trim()) missingFields.push('Address');
-    } else {
-      if (!eventLink?.trim()) missingFields.push('Event Link');
-    }
 
     // Price *
     if (!price?.trim() || (priceType === 'custom' && !customPrice?.trim())) {
@@ -445,47 +416,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   };
   console.log('Event object to be saved:', event);
   console.log('Calling onPostSaved with event:', event);
-    const event: EventPost = {
-      id: editingPost?.id || `event-${Date.now()}`,
-      user_id: editingPost?.user_id || '',
-      title,
-      description,
-      event_date: eventDate,
-      event_time: eventTime,
-      duration,
-      location: isPhysical ? location : '',
-      is_physical: isPhysical,
-      event_link: isPhysical ? null : eventLink,
-      organizer_name: organizerName,
-      organizer_email: organizerEmail,
-      organizer_phone: organizerPhone || null,
-      capacity,
-      category,
-      price: price,
-      registration_deadline: registrationDeadline || null,
-      requirements: requirements || null,
-      agenda: agenda || null,
-      speakers_details: speakersDetails.length > 0 ? speakersDetails : null,
-      sponsors: sponsors.length > 0 ? sponsors : null,
-      additional_contact_info: additionalContactInfo || null,
-      status,
-      event_banner: eventBanner || null,
-      featured_image: featuredImage || null,
-      event_tags: tags,
-      events_gallery: eventsGallery.length > 0 ? eventsGallery : null,
-      teaser_video: teaserVideo,
-      faq: faqs,
-      meta_title: seo.meta_title || title,
-      meta_description: seo.meta_description || description.substring(0, 160),
-      slug: seo.slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-      created_at: editingPost?.created_at || new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-
-    console.log('Event object created:', event);
-    console.log('Calling onPostSaved...');
-    onPostSaved(event);
+  onPostSaved(event);
     
     if (!editingPost) {
   editor?.commands.clearContent();
@@ -1611,6 +1542,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       </div>
     </div>
   );
+};
 };
 
 export default NewPostSection;
