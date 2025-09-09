@@ -7,6 +7,11 @@ export interface Speaker {
   linkedIn?: string | null;
 }
 
+export interface FAQItem {
+  question: string;
+  answer: string;
+}
+
 export interface EventPost {
   id: string;
   user_id: string;
@@ -34,6 +39,8 @@ export interface EventPost {
   event_banner?: string | null;
   featured_image?: string | null;
   event_tags?: string[] | null;
+  events_gallery?: string[] | null;
+  faq: FAQItem[];
   meta_title: string;
   meta_description: string;
   slug: string;
@@ -72,6 +79,8 @@ export interface EventFormData {
   event_banner?: string | null;
   featured_image?: string | null;
   event_tags: string[];
+  events_gallery: string[];
+  faq: FAQItem[];
   seo: EventSEOSettings;
 }
 
@@ -103,6 +112,8 @@ export interface EventDraft {
   event_banner?: string | null;
   featured_image?: string | null;
   event_tags?: string[];
+  events_gallery?: string[];
+  faq?: FAQItem[];
   meta_title?: string;
   meta_description?: string;
   slug?: string;

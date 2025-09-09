@@ -54,6 +54,8 @@ const EventPostManager = ({ editingEvent: externalEditingEvent, onEventSaved }: 
       event_banner: eventData.event_banner,
       featured_image: eventData.featured_image,
       event_tags: eventData.event_tags || [],
+      events_gallery: eventData.events_gallery || [],
+      faq: eventData.faq || [],
       seo: {
         meta_title: eventData.meta_title,
         meta_description: eventData.meta_description,
