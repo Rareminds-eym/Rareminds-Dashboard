@@ -57,6 +57,8 @@ const EventPostManager = ({ editingEvent: externalEditingEvent, onEventSaved }: 
         meta_description: eventData.meta_description,
         slug: eventData.slug,
       },
+      location_latitude: eventData.location_latitude,
+      location_longitude: eventData.location_longitude,
     };
 
     console.log('Converted formData:', formData);

@@ -151,6 +151,8 @@ export type Database = {
           slug: string
           created_at: string
           updated_at: string
+          location_latitude: number | null
+          location_longitude: number | null
         }
         Insert: {
           id?: string
@@ -182,6 +184,8 @@ export type Database = {
           slug: string
           created_at?: string
           updated_at?: string
+          location_latitude?: number | null
+          location_longitude?: number | null
         }
         Update: {
           id?: string
@@ -213,6 +217,8 @@ export type Database = {
           slug?: string
           created_at?: string
           updated_at?: string
+          location_latitude?: number | null
+          location_longitude?: number | null
         }
         Relationships: [
           {

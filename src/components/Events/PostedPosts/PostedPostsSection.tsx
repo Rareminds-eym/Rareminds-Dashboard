@@ -30,6 +30,13 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
   // Get all unique tags from posts
   const allTags = [...new Set(posts.flatMap(post => post.event_tags || []).filter(Boolean))];
 
+  // Debug: log all posts to verify location fields
+  console.log('All event posts:', posts);
+  if (posts.length > 0) {
+    posts.forEach(post => {
+      console.log(`Event: ${post.title}, Lat: ${post.location_latitude}, Lng: ${post.location_longitude}`);
+    });
+  }
   const filteredPosts = posts.filter(post => {
     try {
       const excerpt = generateExcerpt(post.description || '');
@@ -233,6 +240,37 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                             className="prose prose-slate dark:prose-invert prose-sm max-w-none prose-headings:font-semibold prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline"
                             dangerouslySetInnerHTML={{ __html: selectedPost.description }}
                           />
+                          {/* Location Type Display */}
+                          <div className="mt-6">
+                            <span className="font-medium text-slate-700 dark:text-slate-300">
+                              {selectedPost.location}
+                              {selectedPost.location_type === 'physical' && selectedPost.location_geo && (
+                                <div className="mt-2">
+                                  <iframe
+                                    title="Event Location Map"
+                                    width="250"
+                                    height="150"
+                                    style={{ borderRadius: '12px', border: 'none' }}
+                                    src={`https://maps.google.com/maps?q=${selectedPost.location_geo.lat},${selectedPost.location_geo.lng}&z=15&output=embed`}
+                                    allowFullScreen
+                                  />
+                                </div>
+                              )}
+                              {selectedPost.location_type === 'virtual' && selectedPost.location_link && (
+                                <div className="mt-2">
+                                  <a
+                                    href={selectedPost.location_link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ml-2"
+                                  >
+                                    {/* ExternalLink icon can be imported and used here if desired */}
+                                    Join Event
+                                  </a>
+                                </div>
+                              )}
+                            </span>
+                          </div>
 
                           {selectedPost.requirements && (
                             <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
