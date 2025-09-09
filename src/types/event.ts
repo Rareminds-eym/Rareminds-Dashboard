@@ -40,6 +40,7 @@ export interface EventPost {
   featured_image?: string | null;
   event_tags?: string[] | null;
   events_gallery?: string[] | null;
+  teaser_video?: string | null;
   faq: FAQItem[];
   meta_title: string;
   meta_description: string;
@@ -80,6 +81,7 @@ export interface EventFormData {
   featured_image?: string | null;
   event_tags: string[];
   events_gallery: string[];
+  teaser_video?: string | null;
   faq: FAQItem[];
   seo: EventSEOSettings;
 }
@@ -113,6 +115,7 @@ export interface EventDraft {
   featured_image?: string | null;
   event_tags?: string[];
   events_gallery?: string[];
+  teaser_video?: string | null;
   faq?: FAQItem[];
   meta_title?: string;
   meta_description?: string;
