@@ -2,7 +2,6 @@
 
 export interface Speaker {
   name: string;
-  profile: string;
   photo?: string | null;
   linkedIn?: string | null;
 }
