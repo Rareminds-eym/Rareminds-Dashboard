@@ -48,7 +48,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const [speakersDetails, setSpeakersDetails] = useState<Speaker[]>([]);
   const [currentSpeaker, setCurrentSpeaker] = useState<Speaker>({
     name: '',
-    profile: '',
     photo: '',
     linkedIn: ''
   });
@@ -238,11 +237,10 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   };
 
   const addSpeaker = () => {
-    if (currentSpeaker.name.trim() && currentSpeaker.profile.trim()) {
+    if (currentSpeaker.name.trim()) {
       const normalized: Speaker = {
         ...currentSpeaker,
         name: currentSpeaker.name.trim(),
-        profile: currentSpeaker.profile.trim(),
         photo: currentSpeaker.photo?.trim() || '',
         linkedIn: currentSpeaker.linkedIn?.trim() || ''
       };
@@ -255,7 +253,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
         // Add new speaker
         setSpeakersDetails([...speakersDetails, normalized]);
       }
-      setCurrentSpeaker({ name: '', profile: '', photo: '', linkedIn: '' });
+      setCurrentSpeaker({ name: '', photo: '', linkedIn: '' });
     }
   };
 
@@ -263,7 +261,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     const s = speakersDetails[index];
     setCurrentSpeaker({
       name: s.name || '',
-      profile: s.profile || '',
       photo: s.photo || '',
       linkedIn: s.linkedIn || ''
     });
@@ -272,7 +269,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
 
   const cancelEditSpeaker = () => {
     setEditingSpeakerIndex(null);
-    setCurrentSpeaker({ name: '', profile: '', photo: '', linkedIn: '' });
+    setCurrentSpeaker({ name: '', photo: '', linkedIn: '' });
   };
 
   const removeSpeaker = (indexToRemove: number) => {
@@ -444,7 +441,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
       setRequirements('');
       setAgenda('');
       setSpeakersDetails([]);
-      setCurrentSpeaker({ name: '', profile: '', photo: '', linkedIn: '' });
+      setCurrentSpeaker({ name: '', photo: '', linkedIn: '' });
       setSponsors([]);
       setSponsorInput('');
       setAdditionalContactInfo('');
@@ -475,7 +472,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                   {editingPost ? 'Edit Event' : 'Create New Event'}
                 </h1>
               </div>
-              <p className="text-slate-600 text-lg">
+              <p className="text-slate-600 text-lg"> 
                 {editingPost ? 'Update your existing event details' : 'Plan and publish your upcoming event'}
               </p>
             </div>
@@ -1269,16 +1266,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-slate-700">Speaker Profile *</Label>
-                    <Textarea
-                      value={currentSpeaker.profile}
-                      onChange={(e) => updateCurrentSpeaker('profile', e.target.value)}
-                      placeholder="Brief description of the speaker's background and expertise..."
-                      className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none transition-all duration-200"
-                      rows={3}
-                    />
-                  </div>
                   
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-slate-700">Photo URL</Label>
@@ -1304,7 +1291,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                     <Button
                       type="button"
                       onClick={addSpeaker}
-                      disabled={!currentSpeaker.name.trim() || !currentSpeaker.profile.trim()}
+                      disabled={!currentSpeaker.name.trim()}
                       className="flex-1 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 transition-all duration-200"
                     >
                       {editingSpeakerIndex !== null ? 'Save Changes' : 'Add Speaker'}
@@ -1355,7 +1342,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                                 )}
                               </div>
                             </div>
-                            <p className="text-sm text-slate-600 line-clamp-2">{speaker.profile}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <Button
