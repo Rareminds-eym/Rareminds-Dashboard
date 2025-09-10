@@ -12,7 +12,7 @@ import { Textarea } from '../../ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Globe, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign, HelpCircle, Images, Play, Search} from 'lucide-react';
+import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Globe, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign, HelpCircle, Images, Play, Search, Loader2} from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 import { FAQManager } from '../FAQManager';
 import { EventGalleryManager } from '../EventGalleryManager';
@@ -21,9 +21,10 @@ import { TeaserVideoManager } from '../TeaserVideoManager';
 interface NewPostSectionProps {
   onPostSaved: (post: EventPost) => void;
   editingPost?: EventPost | null;
+  isSaving?: boolean;
 }
 
-const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
+const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostSectionProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [eventDate, setEventDate] = useState('');
@@ -51,6 +52,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
     photo: '',
     linkedIn: ''
   });
+  const [editingSpeakerIndex, setEditingSpeakerIndex] = useState<number | null>(null);
   const [sponsors, setSponsors] = useState<string[]>([]);
   const [sponsorInput, setSponsorInput] = useState('');
   const [additionalContactInfo, setAdditionalContactInfo] = useState('');
@@ -127,61 +129,70 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
     },
   });
 
+  // Track the last loaded edit ID to prevent reloading the same data
+  const [lastLoadedEditId, setLastLoadedEditId] = useState<string | null>(null);
+
   useEffect(() => {
-  if (editingPost && editor) {
-      setTitle(editingPost.title);
-      setDescription(editingPost.description);
-      setEventDate(editingPost.event_date);
-      setEventTime(editingPost.event_time);
-      setDuration(editingPost.duration);
-      setLocation(editingPost.location);
-      setLocationType(editingPost.location_type || 'physical');
-      setLocationGeo({ 
-        lat: editingPost.location_latitude ? String(editingPost.location_latitude) : '',
-        lng: editingPost.location_longitude ? String(editingPost.location_longitude) : ''
-      });
-      setLocationLink(editingPost.location_link || '');
-      setOrganizerName(editingPost.organizer_name);
-      setOrganizerEmail(editingPost.organizer_email);
-      setOrganizerPhone(editingPost.organizer_phone);
-      setCapacity(editingPost.capacity);
-      setCategory(editingPost.category);
-      const editPrice = editingPost.price || '';
-      setPrice(editPrice);
-      // Check if it's a preset value or custom
-      const presetValues = ['FREE', '₹500', '₹1000', '₹2000'];
-      if (presetValues.includes(editPrice)) {
-        setPriceType('preset');
-      } else if (editPrice.startsWith('₹')) {
-        setPriceType('custom');
-        setCustomPrice(editPrice.replace('₹', ''));
-      } else {
-        setPriceType('preset');
-      }
-      setRegistrationDeadline(editingPost.registration_deadline || '');
-      setRequirements(editingPost.requirements || '');
-      setAgenda(editingPost.agenda || '');
-      setSpeakersDetails(editingPost.speakers_details || []);
-      setSponsors(editingPost.sponsors || []);
-      setAdditionalContactInfo(editingPost.additional_contact_info || '');
-      setStatus(editingPost.status);
-      setEventBanner(editingPost.event_banner || '');
-      setFeaturedImage(editingPost.featured_image || '');
-      setTags(editingPost.event_tags || []);
-      setFaqs(editingPost.faq || []);
-      setEventsGallery(editingPost.events_gallery || []);
-      setTeaserVideo(editingPost.teaser_video || null);
-      setSeo({
-        meta_title: editingPost.meta_title,
-        meta_description: editingPost.meta_description,
-        slug: editingPost.slug
-      });
-      
-      if (editingPost.description) {
-        editor.commands.setContent(editingPost.description);
-      }
+    if (!editingPost || !editor) return;
+    
+    // Skip if we already loaded this event's data
+    if (editingPost.id === lastLoadedEditId) return;
+    
+    setTitle(editingPost.title);
+    setDescription(editingPost.description);
+    setEventDate(editingPost.event_date);
+    setEventTime(editingPost.event_time);
+    setDuration(editingPost.duration);
+    setLocation(editingPost.location);
+    setLocationType(editingPost.location_type || 'physical');
+    setLocationGeo({ 
+      lat: editingPost.location_latitude ? String(editingPost.location_latitude) : '',
+      lng: editingPost.location_longitude ? String(editingPost.location_longitude) : ''
+    });
+    setLocationLink(editingPost.location_link || '');
+    setOrganizerName(editingPost.organizer_name);
+    setOrganizerEmail(editingPost.organizer_email);
+    setOrganizerPhone(editingPost.organizer_phone);
+    setCapacity(editingPost.capacity);
+    setCategory(editingPost.category);
+    const editPrice = editingPost.price || '';
+    setPrice(editPrice);
+    // Check if it's a preset value or custom
+    const presetValues = ['FREE', '₹500', '₹1000', '₹2000'];
+    if (presetValues.includes(editPrice)) {
+      setPriceType('preset');
+    } else if (editPrice.startsWith('₹')) {
+      setPriceType('custom');
+      setCustomPrice(editPrice.replace('₹', ''));
+    } else {
+      setPriceType('preset');
     }
-  }, [editingPost, editor]);
+    setRegistrationDeadline(editingPost.registration_deadline || '');
+    setRequirements(editingPost.requirements || '');
+    setAgenda(editingPost.agenda || '');
+    setSpeakersDetails(editingPost.speakers_details || []);
+    setSponsors(editingPost.sponsors || []);
+    setAdditionalContactInfo(editingPost.additional_contact_info || '');
+    setStatus(editingPost.status);
+    setEventBanner(editingPost.event_banner || '');
+    setFeaturedImage(editingPost.featured_image || '');
+    setTags(editingPost.event_tags || []);
+    setFaqs(editingPost.faq || []);
+    setEventsGallery(editingPost.events_gallery || []);
+    setTeaserVideo(editingPost.teaser_video || null);
+    setSeo({
+      meta_title: editingPost.meta_title,
+      meta_description: editingPost.meta_description,
+      slug: editingPost.slug
+    });
+    
+    if (editingPost.description) {
+      editor.commands.setContent(editingPost.description);
+    }
+    
+    // Update the last loaded ID
+    setLastLoadedEditId(editingPost.id);
+  }, [editingPost, editor, lastLoadedEditId]);
 
   useEffect(() => {
     if (title) {
@@ -228,15 +239,40 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
 
   const addSpeaker = () => {
     if (currentSpeaker.name.trim() && currentSpeaker.profile.trim()) {
-      setSpeakersDetails([...speakersDetails, {
+      const normalized: Speaker = {
         ...currentSpeaker,
         name: currentSpeaker.name.trim(),
         profile: currentSpeaker.profile.trim(),
-        photo: currentSpeaker.photo?.trim() || null,
-        linkedIn: currentSpeaker.linkedIn?.trim() || null
-      }]);
+        photo: currentSpeaker.photo?.trim() || '',
+        linkedIn: currentSpeaker.linkedIn?.trim() || ''
+      };
+
+      if (editingSpeakerIndex !== null) {
+        // Update existing speaker
+        setSpeakersDetails(prev => prev.map((s, i) => (i === editingSpeakerIndex ? normalized : s)));
+        setEditingSpeakerIndex(null);
+      } else {
+        // Add new speaker
+        setSpeakersDetails([...speakersDetails, normalized]);
+      }
       setCurrentSpeaker({ name: '', profile: '', photo: '', linkedIn: '' });
     }
+  };
+
+  const startEditSpeaker = (index: number) => {
+    const s = speakersDetails[index];
+    setCurrentSpeaker({
+      name: s.name || '',
+      profile: s.profile || '',
+      photo: s.photo || '',
+      linkedIn: s.linkedIn || ''
+    });
+    setEditingSpeakerIndex(index);
+  };
+
+  const cancelEditSpeaker = () => {
+    setEditingSpeakerIndex(null);
+    setCurrentSpeaker({ name: '', profile: '', photo: '', linkedIn: '' });
   };
 
   const removeSpeaker = (indexToRemove: number) => {
@@ -465,10 +501,20 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
               <Button 
                 type="submit"
                 form="event-form"
-                className="h-11 px-6 bg-purple-600 hover:bg-purple-700 shadow-xl shadow-purple-600/10 hover:shadow-md transition-all duration-200"
+                disabled={isSaving}
+                className="h-11 px-6 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 disabled:cursor-not-allowed shadow-xl shadow-purple-600/10 hover:shadow-md transition-all duration-200"
               >
-                <Save className="w-4 h-4 mr-2" />
-                {editingPost ? 'Update Event' : 'Save Event'}
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {editingPost ? 'Updating...' : 'Saving...'}
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    {editingPost ? 'Update Event' : 'Save Event'}
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -1254,14 +1300,26 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                     />
                   </div>
                   
-                  <Button
-                    type="button"
-                    onClick={addSpeaker}
-                    disabled={!currentSpeaker.name.trim() || !currentSpeaker.profile.trim()}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 transition-all duration-200"
-                  >
-                    Add Speaker
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button
+                      type="button"
+                      onClick={addSpeaker}
+                      disabled={!currentSpeaker.name.trim() || !currentSpeaker.profile.trim()}
+                      className="flex-1 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 transition-all duration-200"
+                    >
+                      {editingSpeakerIndex !== null ? 'Save Changes' : 'Add Speaker'}
+                    </Button>
+                    {editingSpeakerIndex !== null && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={cancelEditSpeaker}
+                        className="flex-1 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200"
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 
                 {/* Added Speakers List */}
@@ -1299,15 +1357,26 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                             </div>
                             <p className="text-sm text-slate-600 line-clamp-2">{speaker.profile}</p>
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeSpeaker(index)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50 transition-all duration-200"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startEditSpeaker(index)}
+                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-all duration-200"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeSpeaker(index)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 transition-all duration-200"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))}

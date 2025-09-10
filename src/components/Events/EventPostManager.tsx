@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useEvents } from '../../hooks/useEvents';
 import { EventPost, EventFormData } from '../../types/event';
 import EventFormSection from './NewPost/NewPostSection';
@@ -11,21 +11,29 @@ interface EventPostManagerProps {
 
 const EventPostManager = ({ editingEvent: externalEditingEvent, onEventSaved }: EventPostManagerProps) => {
   const [editingPost, setEditingPost] = useState<EventPost | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const { createEvent, updateEvent } = useEvents();
   const { toast } = useToast();
 
   console.log('EventPostManager rendered with editingEvent:', externalEditingEvent);
 
+  // Memoize the event ID to reduce unnecessary effect runs
+  const editingEventId = useMemo(() => externalEditingEvent?.id, [externalEditingEvent?.id]);
+
   // Update internal editing state when external prop changes
   useEffect(() => {
+    // Only update if the event actually changed (by ID)
+    if (!externalEditingEvent && !editingPost) return;
+    if (externalEditingEvent?.id === editingPost?.id) return;
+    
     console.log('EventPostManager useEffect - setting editingPost to:', externalEditingEvent);
     if (externalEditingEvent) {
       console.log('Event ID being set for editing:', externalEditingEvent.id, 'Type:', typeof externalEditingEvent.id);
     }
     setEditingPost(externalEditingEvent || null);
-  }, [externalEditingEvent]);
+  }, [externalEditingEvent, editingEventId, editingPost]);
 
-  const handlePostSaved = async (eventData: EventPost) => {
+  const handlePostSaved = useCallback(async (eventData: EventPost) => {
     console.log('EventPostManager - handlePostSaved called with:', eventData);
     
     // Convert EventPost to EventFormData format
@@ -80,6 +88,7 @@ const EventPostManager = ({ editingEvent: externalEditingEvent, onEventSaved }: 
     });
 
     try {
+      setIsSaving(true);
       console.log('handlePostSaved - Start processing:', { editingPost, formData });
       
       if (editingPost) {
@@ -132,13 +141,16 @@ const EventPostManager = ({ editingEvent: externalEditingEvent, onEventSaved }: 
         description: errorMessage,
         variant: "destructive"
       });
+    } finally {
+      setIsSaving(false);
     }
-  };
+  }, [editingPost, updateEvent, createEvent, toast, onEventSaved]);
 
   return (
     <EventFormSection
       onPostSaved={handlePostSaved}
       editingPost={editingPost}
+      isSaving={isSaving}
     />
   );
 };

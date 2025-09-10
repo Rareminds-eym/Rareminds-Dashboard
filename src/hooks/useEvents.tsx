@@ -8,6 +8,10 @@ import type { Database } from '../integrations/supabase/types';
 
 type EventRow = Database['public']['Tables']['events']['Row'];
 
+// Simple in-memory cache to avoid refetch flash between tabs/routes
+let __eventsCache: EventPost[] = [];
+let __eventsFetchedOnce = false;
+
 export const useEvents = () => {
   const [events, setEvents] = useState<EventPost[]>([]);
   const [loading, setLoading] = useState(false);
@@ -117,6 +121,8 @@ export const useEvents = () => {
 
       const eventsWithParsedTags = data?.map(dbRowToEventPost) || [];
       console.log('Events fetched successfully:', eventsWithParsedTags.length, 'events');
+      __eventsCache = eventsWithParsedTags;
+      __eventsFetchedOnce = true;
       setEvents(eventsWithParsedTags);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch events';
@@ -132,7 +138,7 @@ export const useEvents = () => {
   }, [toast]);
 
   // Create a new event
-  const createEvent = async (eventData: EventFormData): Promise<EventPost | null> => {
+  const createEvent = useCallback(async (eventData: EventFormData): Promise<EventPost | null> => {
     console.log('useEvents - createEvent called with:', eventData);
     try {
       setLoading(true);
@@ -235,6 +241,8 @@ export const useEvents = () => {
 
       const createdEvent = dbRowToEventPost(data);
       setEvents(prev => [createdEvent, ...prev]);
+      __eventsCache = [createdEvent, ...__eventsCache];
+      __eventsFetchedOnce = true;
       
       toast({
         title: "Success",
@@ -261,10 +269,10 @@ export const useEvents = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, userRole]);
 
   // Update an existing event
-  const updateEvent = async (id: string, eventData: EventFormData): Promise<EventPost | null> => {
+  const updateEvent = useCallback(async (id: string, eventData: EventFormData): Promise<EventPost | null> => {
     console.log('useEvents - updateEvent called with:', { id, eventData });
     console.log('Event ID type:', typeof id, 'Value:', id);
     
@@ -452,6 +460,8 @@ export const useEvents = () => {
       setEvents(prev => prev.map(event => 
         event.id === id ? updatedEventWithTags : event
       ));
+      __eventsCache = __eventsCache.map(event => event.id === id ? updatedEventWithTags : event);
+      __eventsFetchedOnce = true;
       
       toast({
         title: "Success",
@@ -479,10 +489,10 @@ export const useEvents = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, userRole]);
 
   // Delete an event
-  const deleteEvent = async (id: string): Promise<boolean> => {
+  const deleteEvent = useCallback(async (id: string): Promise<boolean> => {
     if (!user) {
       toast({
         title: "Error",
@@ -548,6 +558,8 @@ export const useEvents = () => {
       if (error) throw error;
 
       setEvents(prev => prev.filter(event => event.id !== id));
+      __eventsCache = __eventsCache.filter(event => event.id !== id);
+      __eventsFetchedOnce = true;
       
       toast({
         title: "Success",
@@ -568,10 +580,10 @@ export const useEvents = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, userRole, user]);
 
   // Get a single event by ID
-  const getEventById = async (id: string): Promise<EventPost | null> => {
+  const getEventById = useCallback(async (id: string): Promise<EventPost | null> => {
     try {
       setLoading(true);
       setError(null);
@@ -598,16 +610,26 @@ export const useEvents = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   // Load events on hook initialization
   useEffect(() => {
     console.log('useEvents useEffect:', { user: !!user, loading });
-    if (user) {
-      console.log('User authenticated, fetching events...');
-      fetchEvents();
-    } else {
+    if (!user) {
       console.log('No user, not fetching events');
+      return;
+    }
+
+    // Serve from cache immediately to avoid flash on tab switch
+    if (__eventsCache.length > 0) {
+      console.log('Hydrating events from cache:', __eventsCache.length);
+      setEvents(__eventsCache);
+    }
+
+    // Only fetch once per session unless user calls refetch
+    if (!__eventsFetchedOnce) {
+      console.log('Fetching events for the first time...');
+      fetchEvents();
     }
   }, [user, fetchEvents]);
 
