@@ -15,6 +15,9 @@ const ProjectsPage = lazy(() => import('./pages/Projects/ProjectsPage'));
 const ProjectsOverviewPage = lazy(() => import('./pages/Projects/Overview/ProjectsOverviewPage'));
 const ProjectDraftsPage = lazy(() => import('./pages/Projects/DraftProject/ProjectDraftsPage'));
 const EventsPage = lazy(() => import('./pages/Events/EventsPage'));
+const EventsOverviewPage = lazy(() => import('./pages/Events/Overview/EventsOverviewPage'));
+const NewEventPage = lazy(() => import('./pages/Events/NewEvent/NewEventPage'));
+const EventsListPage = lazy(() => import('./pages/Events/EventsList/EventsListPage'));
 const NanmaduvalanPage = lazy(() => import('./pages/NanmaduvalanPage'));
 const AuthPageWrapper = lazy(() => import('./pages/AuthPageWrapper'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -135,6 +138,32 @@ export const router = createBrowserRouter([
             <EventsPage />
           </Suspense>
         ),
+        children: [
+          {
+            index: true,
+            element: (
+              <Suspense fallback={<RouteLoading />}>
+                <EventsOverviewPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'new-event',
+            element: (
+              <Suspense fallback={<RouteLoading />}>
+                <NewEventPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'list',
+            element: (
+              <Suspense fallback={<RouteLoading />}>
+                <EventsListPage />
+              </Suspense>
+            ),
+          },
+        ],
       },
       {
         path: 'nanmaduvalan',
