@@ -65,37 +65,6 @@ const DashboardOverview = ({ events, onNewEvent, onViewEvents }: DashboardOvervi
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Upcoming</CardTitle>
             <div className="p-2 bg-orange-100 rounded-lg">
-                      {/* Location Type & Map/Link */}
-                      <div className="mt-2">
-                        <span className="font-medium">
-                          {event.location}
-                          {event.location_type === 'physical' && event.location_geo && (
-                            <div className="mt-2">
-                              <iframe
-                                title="Event Location Map"
-                                width="250"
-                                height="150"
-                                style={{ borderRadius: '12px', border: 'none' }}
-                                src={`https://maps.google.com/maps?q=${event.location_geo.lat},${event.location_geo.lng}&z=15&output=embed`}
-                                allowFullScreen
-                              />
-                            </div>
-                          )}
-                          {event.location_type === 'virtual' && event.location_link && (
-                            <div className="mt-2">
-                              <a
-                                href={event.location_link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ml-2"
-                              >
-                                {/* You may want to use an icon here, e.g. <ExternalLink /> */}
-                                Join Event
-                              </a>
-                            </div>
-                          )}
-                        </span>
-                      </div>
               <TrendingUp className="h-5 w-5 text-orange-600" />
             </div>
           </CardHeader>

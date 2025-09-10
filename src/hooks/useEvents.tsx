@@ -103,6 +103,7 @@ export const useEvents = () => {
 
   // Fetch all events
   const fetchEvents = useCallback(async () => {
+    console.log('fetchEvents called');
     try {
       setLoading(true);
       setError(null);
@@ -115,6 +116,7 @@ export const useEvents = () => {
       if (error) throw error;
 
       const eventsWithParsedTags = data?.map(dbRowToEventPost) || [];
+      console.log('Events fetched successfully:', eventsWithParsedTags.length, 'events');
       setEvents(eventsWithParsedTags);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch events';
@@ -600,8 +602,12 @@ export const useEvents = () => {
 
   // Load events on hook initialization
   useEffect(() => {
+    console.log('useEvents useEffect:', { user: !!user, loading });
     if (user) {
+      console.log('User authenticated, fetching events...');
       fetchEvents();
+    } else {
+      console.log('No user, not fetching events');
     }
   }, [user, fetchEvents]);
 
