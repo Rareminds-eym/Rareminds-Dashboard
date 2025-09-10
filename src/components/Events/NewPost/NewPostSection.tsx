@@ -33,8 +33,6 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   const [locationType, setLocationType] = useState<'physical' | 'virtual'>('physical');
   const [locationGeo, setLocationGeo] = useState<{ lat: string; lng: string }>({ lat: '', lng: '' });
   const [locationLink, setLocationLink] = useState('');
-  const [isPhysical, setIsPhysical] = useState(true);
-  const [eventLink, setEventLink] = useState('');
   const [organizerName, setOrganizerName] = useState('');
   const [organizerEmail, setOrganizerEmail] = useState('');
   const [organizerPhone, setOrganizerPhone] = useState('');
@@ -143,8 +141,6 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
         lng: editingPost.location_longitude ? String(editingPost.location_longitude) : ''
       });
       setLocationLink(editingPost.location_link || '');
-      setIsPhysical(editingPost.is_physical);
-      setEventLink(editingPost.event_link || '');
       setOrganizerName(editingPost.organizer_name);
       setOrganizerEmail(editingPost.organizer_email);
       setOrganizerPhone(editingPost.organizer_phone);
@@ -352,9 +348,11 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
     event_date: eventDate,
     event_time: eventTime,
     duration,
-    location: location || (isPhysical ? location : 'Virtual Event'),
-    is_physical: isPhysical,
-    event_link: isPhysical ? null : eventLink,
+    location: locationType === 'physical' ? location : 'Virtual Event',
+    location_type: locationType,
+    location_link: locationType === 'virtual' ? locationLink : null,
+    is_physical: locationType === 'physical',
+    event_link: locationType === 'virtual' ? locationLink : null,
     organizer_name: organizerName,
     organizer_email: organizerEmail,
     organizer_phone: organizerPhone || null,
@@ -398,8 +396,6 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setLocationType('physical');
       setLocationGeo({ lat: '', lng: '' });
       setLocationLink('');
-      setIsPhysical(true);
-      setEventLink('');
       setOrganizerName('');
       setOrganizerEmail('');
       setOrganizerPhone('');
@@ -505,10 +501,10 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                   />
                 </div>
 
-                {/* Event Type */}
+                {/* Event Category */}
                 <div className="space-y-2">
                   <Label htmlFor="category" className="text-sm font-medium text-slate-700">
-                    Event Type *
+                    Event Category *
                   </Label>
                   <Select value={category} onValueChange={setCategory} required>
                     <SelectTrigger className="h-12 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100">
@@ -686,20 +682,12 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                     />
                   </div>
                 </div>
-                {/* Event Type Toggle */}
+                {/* Location Section */}
                 <div className="space-y-3">
                   <Label className="text-sm font-medium text-slate-700">
                     Event Type *
                   </Label>
-                  <Input
-                    id="location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Event venue or online name"
-                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                    required
-                  />
-                  <div className="mt-2 flex gap-4">
+                  <div className="flex gap-4">
                     <Label className="flex items-center gap-2">
                       <input
                         type="radio"
@@ -724,37 +712,54 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                     </Label>
                   </div>
                   {locationType === 'physical' && (
-                    <div className="mt-2 grid grid-cols-2 gap-4 items-center">
-                      <Input
-                        type="text"
-                        value={locationGeo.lat}
-                        onChange={e => setLocationGeo({ ...locationGeo, lat: e.target.value })}
-                        placeholder="Latitude"
-                        className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
-                        required
-                      />
-                      <Input
-                        type="text"
-                        value={locationGeo.lng}
-                        onChange={e => setLocationGeo({ ...locationGeo, lng: e.target.value })}
-                        placeholder="Longitude"
-                        className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
-                        required
-                      />
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="location" className="text-sm font-medium text-slate-700">
+                          Address *
+                        </Label>
+                        <Input
+                          id="location"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          placeholder="Enter event address"
+                          className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                          required
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <Input
+                          type="text"
+                          value={locationGeo.lat}
+                          onChange={e => setLocationGeo({ ...locationGeo, lat: e.target.value })}
+                          placeholder="Latitude"
+                          className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                        />
+                        <Input
+                          type="text"
+                          value={locationGeo.lng}
+                          onChange={e => setLocationGeo({ ...locationGeo, lng: e.target.value })}
+                          placeholder="Longitude"
+                          className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                        />
+                      </div>
                       <Button
                         type="button"
                         variant="outline"
                         onClick={geocodeAddress}
-                        className="col-span-2 mt-2 flex items-center gap-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200"
+                        className="flex items-center gap-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200"
                       >
                         <Search className="w-4 h-4" />
                         Get Coordinates from Address
                       </Button>
-                    </div>
+                    </>
                   )}
                   {locationType === 'virtual' && (
-                    <div className="mt-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="event-link" className="text-sm font-medium text-slate-700">
+                        Event Link *
+                      </Label>
                       <Input
+                        id="event-link"
                         type="url"
                         value={locationLink}
                         onChange={e => setLocationLink(e.target.value)}
@@ -764,60 +769,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
                       />
                     </div>
                   )}
-                  <div className="flex gap-4">
-                    <label className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="eventType"
-                        checked={isPhysical}
-                        onChange={() => setIsPhysical(true)}
-                        className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 focus:ring-purple-500 focus:ring-2"
-                      />
-                      <span className="text-sm text-slate-700">Physical</span>
-                    </label>
-                    <label className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="eventType"
-                        checked={!isPhysical}
-                        onChange={() => setIsPhysical(false)}
-                        className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 focus:ring-purple-500 focus:ring-2"
-                      />
-                      <span className="text-sm text-slate-700">Virtual</span>
-                    </label>
-                  </div>
                 </div>
-                
-                {/* Conditional Fields based on Event Type */}
-                {isPhysical ? (
-                  <div className="space-y-2">
-                    <Label htmlFor="location" className="text-sm font-medium text-slate-700">
-                      Address *
-                    </Label>
-                    <Input
-                      id="location"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      placeholder="Enter event address"
-                      className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                      required
-                    />
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label htmlFor="event-link" className="text-sm font-medium text-slate-700">
-                      Event Link *
-                    </Label>
-                    <Input
-                      id="event-link"
-                      value={eventLink}
-                      onChange={(e) => setEventLink(e.target.value)}
-                      placeholder="https://zoom.us/j/... or meeting link"
-                      className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                      required
-                    />
-                  </div>
-                )}
                 {/* Price Selection */}
                 <div className="space-y-3">
                   <Label className="text-sm font-medium text-slate-700">
