@@ -322,61 +322,26 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   console.log('Parsed Latitude:', parsedLat, 'Parsed Longitude:', parsedLng);
     
 
-  if (!title || !description || !eventDate || !eventTime || !duration || !location || !organizerName || !organizerEmail || !category || (locationType === 'physical' && (!locationGeo.lat || !locationGeo.lng || isNaN(parseFloat(locationGeo.lat)) || isNaN(parseFloat(locationGeo.lng)))) || (locationType === 'virtual' && !locationLink)) {
-    if (locationType === 'physical' && (!locationGeo.lat || !locationGeo.lng || isNaN(parseFloat(locationGeo.lat)) || isNaN(parseFloat(locationGeo.lng)))) {
-      console.log('Invalid latitude/longitude:', locationGeo);
-    }
-      console.log('Validation failed - missing required fields');
-      const missingFields = [];
-      if (!title) missingFields.push('Title');
-      if (!description) missingFields.push('Description');
-      if (!eventDate) missingFields.push('Event Date');
-      if (!eventTime) missingFields.push('Event Time');
-      if (!duration) missingFields.push('Duration');
-  if (!location) missingFields.push('Location');
-  if (!locationType) missingFields.push('Location Type');
-  if (locationType === 'physical' && (!locationGeo.lat || !locationGeo.lng || isNaN(parseFloat(locationGeo.lat)) || isNaN(parseFloat(locationGeo.lng)))) missingFields.push('Valid Geolocation (Latitude/Longitude)');
-  if (locationType === 'virtual' && !locationLink) missingFields.push('Event Link');
-      if (!organizerName) missingFields.push('Organizer Name');
-      if (!organizerEmail) missingFields.push('Organizer Email');
-      if (!category) missingFields.push('Category');
-      
-      console.log('Missing fields:', missingFields);
-
+  if (!title || !description || !eventDate || !eventTime || !duration || !organizerName || !organizerEmail || !category) {
+    console.log('Validation failed - missing required fields');
+    const missingFields = [];
+    if (!title) missingFields.push('Title');
+    if (!description) missingFields.push('Description');
+    if (!eventDate) missingFields.push('Event Date');
+    if (!eventTime) missingFields.push('Event Time');
+    if (!duration) missingFields.push('Duration');
+    if (!organizerName) missingFields.push('Organizer Name');
+    if (!organizerEmail) missingFields.push('Organizer Email');
+    if (!category) missingFields.push('Category');
     
-
-    // Price *
-    if (!price?.trim() || (priceType === 'custom' && !customPrice?.trim())) {
-      missingFields.push('Price');
-    }
-    
-    // Status * (should always have a default, but check anyway)
-    if (!status) missingFields.push('Status');
-    
-    // Event Tags *
-    if (tags.length === 0) missingFields.push('Event Tags (at least one tag)');
-    
-    // Speakers *
-    if (speakersDetails.length === 0) missingFields.push('Speakers (at least one speaker)');
-    
-    // SEO Settings *
-    if (!seo.meta_title?.trim()) missingFields.push('SEO Meta Title');
-    if (!seo.meta_description?.trim()) missingFields.push('SEO Meta Description');
-    if (!seo.slug?.trim()) missingFields.push('SEO URL Slug');
-    
-    // Additional required fields for completeness
-    if (!organizerName?.trim()) missingFields.push('Organizer Name');
-    if (!organizerEmail?.trim()) missingFields.push('Organizer Email');
-    
-    if (missingFields.length > 0) {
-      console.log('Validation failed - missing required fields:', missingFields);
-      toast({
-        title: "Missing Required Fields",
-        description: `Please fill in the following required fields: ${missingFields.join(', ')}`,
-        variant: "destructive"
-      });
-      return;
-    }
+    console.log('Validation failed - missing required fields:', missingFields);
+    toast({
+      title: "Missing Required Fields",
+      description: `Please fill in the following required fields: ${missingFields.join(', ')}`,
+      variant: "destructive"
+    });
+    return;
+  }
 
     console.log('Creating event object...');
   const event: EventPost = {
@@ -387,30 +352,33 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
     event_date: eventDate,
     event_time: eventTime,
     duration,
-    location,
-    location_type: locationType,
-    location_latitude: parsedLat,
-    location_longitude: parsedLng,
-    location_link: locationType === 'virtual' ? locationLink : null,
+    location: location || (isPhysical ? location : 'Virtual Event'),
+    is_physical: isPhysical,
+    event_link: isPhysical ? null : eventLink,
     organizer_name: organizerName,
     organizer_email: organizerEmail,
     organizer_phone: organizerPhone || null,
     capacity,
     category,
-    price: price || null,
+    price: price || 'FREE',
     registration_deadline: registrationDeadline || null,
     requirements: requirements || null,
     agenda: agenda || null,
-    speakers: speakers.length > 0 ? speakers : null,
-    sponsors: sponsors.length > 0 ? sponsors : null,
+    speakers_details: speakersDetails,
+    sponsors: sponsors,
     additional_contact_info: additionalContactInfo || null,
     status,
     event_banner: eventBanner || null,
     featured_image: featuredImage || null,
     event_tags: tags,
+    events_gallery: eventsGallery,
+    teaser_video: teaserVideo,
+    faq: faqs,
     meta_title: seo.meta_title || title,
     meta_description: seo.meta_description || description.substring(0, 160),
     slug: seo.slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+    location_latitude: parsedLat,
+    location_longitude: parsedLng,
     created_at: editingPost?.created_at || new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
@@ -419,36 +387,7 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   onPostSaved(event);
     
     if (!editingPost) {
-  editor?.commands.clearContent();
-  setTitle('');
-  setDescription('');
-  setEventDate('');
-  setEventTime('');
-  setDuration('');
-  setLocation('');
-  setLocationType('physical');
-  setLocationGeo({ lat: '', lng: '' });
-  setLocationLink('');
-  setOrganizerName('');
-  setOrganizerEmail('');
-  setOrganizerPhone('');
-  setCapacity(50);
-  setCategory('');
-  setPrice('');
-  setRegistrationDeadline('');
-  setRequirements('');
-  setAgenda('');
-  setSpeakers([]);
-  setSpeakerInput('');
-  setSponsors([]);
-  setSponsorInput('');
-  setAdditionalContactInfo('');
-  setStatus('upcoming');
-  setEventBanner('');
-  setFeaturedImage('');
-  setTags([]);
-  setTagInput('');
-  setSeo({ meta_title: '', meta_description: '', slug: '' });
+      // Clear form after successful creation
       editor?.commands.clearContent();
       setTitle('');
       setDescription('');
@@ -456,6 +395,9 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       setEventTime('');
       setDuration('');
       setLocation('');
+      setLocationType('physical');
+      setLocationGeo({ lat: '', lng: '' });
+      setLocationLink('');
       setIsPhysical(true);
       setEventLink('');
       setOrganizerName('');
@@ -1542,7 +1484,6 @@ const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
       </div>
     </div>
   );
-};
 };
 
 export default NewPostSection;
