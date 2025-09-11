@@ -41,6 +41,7 @@ export interface EventPost {
   event_banner?: string | null;
   featured_image?: string | null;
   event_tags?: string[] | null;
+  key_highlights?: string[] | null;
   location_latitude?: number | null;
   location_longitude?: number | null;
   events_gallery?: string[] | null;
@@ -84,6 +85,7 @@ export interface EventFormData {
   event_banner?: string | null;
   featured_image?: string | null;
   event_tags: string[];
+  key_highlights: string[];
   events_gallery: string[];
   teaser_video?: string | null;
   faq: FAQItem[];
@@ -120,6 +122,7 @@ export interface EventDraft {
   event_banner?: string | null;
   featured_image?: string | null;
   event_tags?: string[];
+  key_highlights?: string[];
   events_gallery?: string[];
   teaser_video?: string | null;
   faq?: FAQItem[];

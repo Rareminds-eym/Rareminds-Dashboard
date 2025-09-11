@@ -62,6 +62,7 @@ const EventPostManager = ({ editingEvent: externalEditingEvent, onEventSaved }: 
       event_banner: eventData.event_banner,
       featured_image: eventData.featured_image,
       event_tags: eventData.event_tags || [],
+      key_highlights: eventData.key_highlights || [],
       events_gallery: eventData.events_gallery || [],
       teaser_video: eventData.teaser_video || null,
       faq: eventData.faq || [],
@@ -75,6 +76,7 @@ const EventPostManager = ({ editingEvent: externalEditingEvent, onEventSaved }: 
     };
 
     console.log('Converted formData:', formData);
+    console.log('Key highlights in EventPostManager:', eventData.key_highlights, '->', formData.key_highlights);
     console.log('FormData validation check:', {
       hasTitle: !!formData.title,
       hasDescription: !!formData.description,
@@ -84,6 +86,7 @@ const EventPostManager = ({ editingEvent: externalEditingEvent, onEventSaved }: 
       hasOrganizerName: !!formData.organizer_name,
       hasOrganizerEmail: !!formData.organizer_email,
       hasCategory: !!formData.category,
+      hasKeyHighlights: !!formData.key_highlights && formData.key_highlights.length > 0,
       formDataKeys: Object.keys(formData)
     });
 
