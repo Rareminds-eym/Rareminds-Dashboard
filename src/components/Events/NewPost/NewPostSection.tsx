@@ -12,11 +12,12 @@ import { Textarea } from '../../ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Globe, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign, HelpCircle, Images, Play, Search, Loader2} from 'lucide-react';
+import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Globe, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign, HelpCircle, Images, Play, Search, Loader2, Plus} from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 import { FAQManager } from '../FAQManager';
 import { EventGalleryManager } from '../EventGalleryManager';
 import { TeaserVideoManager } from '../TeaserVideoManager';
+import { KeyHighlightsManager } from '../KeyHighlightsManager';
 
 interface NewPostSectionProps {
   onPostSaved: (post: EventPost) => void;
@@ -68,7 +69,15 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const [faqs, setFaqs] = useState<FAQItem[]>([]);
   const [eventsGallery, setEventsGallery] = useState<string[]>([]);
   const [teaserVideo, setTeaserVideo] = useState<string | null>(null);
+  const [keyHighlights, setKeyHighlights] = useState<string[]>([]);
+  
+  // Debug function to track keyHighlights changes
+  const handleKeyHighlightsChange = (newHighlights: string[]) => {
+    console.log('NewPostSection: Setting keyHighlights to:', newHighlights);
+    setKeyHighlights(newHighlights);
+  };
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [shouldTriggerAddHighlight, setShouldTriggerAddHighlight] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -176,6 +185,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     setEventBanner(editingPost.event_banner || '');
     setFeaturedImage(editingPost.featured_image || '');
     setTags(editingPost.event_tags || []);
+    setKeyHighlights(editingPost.key_highlights || []);
     setFaqs(editingPost.faq || []);
     setEventsGallery(editingPost.events_gallery || []);
     setTeaserVideo(editingPost.teaser_video || null);
@@ -373,6 +383,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   }
 
     console.log('Creating event object...');
+  console.log('KeyHighlights state before creating event:', keyHighlights);
   const event: EventPost = {
     id: editingPost?.id || `event-${Date.now()}`,
     user_id: editingPost?.user_id || '',
@@ -402,6 +413,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     event_banner: eventBanner || null,
     featured_image: featuredImage || null,
     event_tags: tags,
+    key_highlights: keyHighlights,
     events_gallery: eventsGallery,
     teaser_video: teaserVideo,
     faq: faqs,
@@ -450,6 +462,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
       setFeaturedImage('');
       setTags([]);
       setTagInput('');
+      setKeyHighlights([]);
       setFaqs([]);
       setEventsGallery([]);
       setTeaserVideo(null);
@@ -1088,6 +1101,43 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                   onChange={setEventsGallery}
                   minImages={2}
                   maxImages={8}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Key Highlights Section Card */}
+            <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-slate-800">
+                      <Sparkles className="w-5 h-5 text-yellow-500" />
+                      Key Highlights
+                    </CardTitle>
+                    <CardDescription className="text-slate-500 mt-1">
+                      Add important highlights and key points about your event
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShouldTriggerAddHighlight(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Highlight
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <KeyHighlightsManager
+                  highlights={keyHighlights}
+                  onChange={handleKeyHighlightsChange}
+                  shouldTriggerAddHighlight={shouldTriggerAddHighlight}
+                  onTriggerAddHighlightReset={() => setShouldTriggerAddHighlight(false)}
                 />
               </CardContent>
             </Card>
