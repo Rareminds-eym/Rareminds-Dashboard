@@ -4,6 +4,7 @@ export interface Speaker {
   name: string;
   photo?: string | null;
   linkedIn?: string | null;
+  role?: string | null;
 }
 
 export interface FAQItem {

@@ -50,7 +50,8 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const [currentSpeaker, setCurrentSpeaker] = useState<Speaker>({
     name: '',
     photo: '',
-    linkedIn: ''
+    linkedIn: '',
+    role: ''
   });
   const [editingSpeakerIndex, setEditingSpeakerIndex] = useState<number | null>(null);
   const [sponsors, setSponsors] = useState<string[]>([]);
@@ -252,7 +253,8 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
         ...currentSpeaker,
         name: currentSpeaker.name.trim(),
         photo: currentSpeaker.photo?.trim() || '',
-        linkedIn: currentSpeaker.linkedIn?.trim() || ''
+        linkedIn: currentSpeaker.linkedIn?.trim() || '',
+        role: currentSpeaker.role?.trim() || ''
       };
 
       if (editingSpeakerIndex !== null) {
@@ -263,7 +265,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
         // Add new speaker
         setSpeakersDetails([...speakersDetails, normalized]);
       }
-      setCurrentSpeaker({ name: '', photo: '', linkedIn: '' });
+      setCurrentSpeaker({ name: '', photo: '', linkedIn: '', role: '' });
     }
   };
 
@@ -272,14 +274,15 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     setCurrentSpeaker({
       name: s.name || '',
       photo: s.photo || '',
-      linkedIn: s.linkedIn || ''
+      linkedIn: s.linkedIn || '',
+      role: s.role || ''
     });
     setEditingSpeakerIndex(index);
   };
 
   const cancelEditSpeaker = () => {
     setEditingSpeakerIndex(null);
-    setCurrentSpeaker({ name: '', photo: '', linkedIn: '' });
+    setCurrentSpeaker({ name: '', photo: '', linkedIn: '', role: '' });
   };
 
   const removeSpeaker = (indexToRemove: number) => {
@@ -453,7 +456,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
       setRequirements('');
       setAgenda('');
       setSpeakersDetails([]);
-      setCurrentSpeaker({ name: '', photo: '', linkedIn: '' });
+      setCurrentSpeaker({ name: '', photo: '', linkedIn: '', role: '' });
       setSponsors([]);
       setSponsorInput('');
       setAdditionalContactInfo('');
@@ -1316,6 +1319,15 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                     />
                   </div>
                   
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-700">Role</Label>
+                    <Input
+                      value={currentSpeaker.role || ''}
+                      onChange={(e) => updateCurrentSpeaker('role', e.target.value)}
+                      placeholder="e.g., CEO, Senior Developer, Project Manager"
+                      className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                    />
+                  </div>
                   
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-slate-700">Photo URL</Label>
@@ -1380,6 +1392,9 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                               )}
                               <div>
                                 <h4 className="font-medium text-slate-800">{speaker.name}</h4>
+                                {speaker.role && (
+                                  <p className="text-sm text-slate-600">{speaker.role}</p>
+                                )}
                                 {speaker.linkedIn && (
                                   <a
                                     href={speaker.linkedIn}
