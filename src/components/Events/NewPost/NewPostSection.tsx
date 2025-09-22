@@ -71,6 +71,8 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const [eventsGallery, setEventsGallery] = useState<string[]>([]);
   const [teaserVideo, setTeaserVideo] = useState<string | null>(null);
   const [keyHighlights, setKeyHighlights] = useState<string[]>([]);
+  const [languages, setLanguages] = useState<string[]>([]);
+  const [languageInput, setLanguageInput] = useState('');
   
   // Debug function to track keyHighlights changes
   const handleKeyHighlightsChange = (newHighlights: string[]) => {
@@ -81,6 +83,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const [shouldTriggerAddHighlight, setShouldTriggerAddHighlight] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  const speakerPhotoInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   // Geocode address to lat/lng
@@ -187,6 +190,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     setFeaturedImage(editingPost.featured_image || '');
     setTags(editingPost.event_tags || []);
     setKeyHighlights(editingPost.key_highlights || []);
+    setLanguages(editingPost.languages || []);
     setFaqs(editingPost.faq || []);
     setEventsGallery(editingPost.events_gallery || []);
     setTeaserVideo(editingPost.teaser_video || null);
@@ -235,6 +239,18 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
       const reader = new FileReader();
       reader.onload = (e) => {
         setEventBanner(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSpeakerPhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const photoSrc = e.target?.result as string;
+        setCurrentSpeaker(prev => ({ ...prev, photo: photoSrc }));
       };
       reader.readAsDataURL(file);
     }
@@ -353,6 +369,25 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     }
   };
 
+  const addLanguage = () => {
+    const trimmed = languageInput.trim();
+    if (trimmed && !languages.includes(trimmed)) {
+      setLanguages([...languages, trimmed]);
+      setLanguageInput('');
+    }
+  };
+
+  const removeLanguage = (langToRemove: string) => {
+    setLanguages(languages.filter(l => l !== langToRemove));
+  };
+
+  const handleLanguageKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addLanguage();
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
   console.log('Form submitted!');
@@ -417,6 +452,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     featured_image: featuredImage || null,
     event_tags: tags,
     key_highlights: keyHighlights,
+    languages: languages,
     events_gallery: eventsGallery,
     teaser_video: teaserVideo,
     faq: faqs,
@@ -466,6 +502,8 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
       setTags([]);
       setTagInput('');
       setKeyHighlights([]);
+      setLanguages([]);
+      setLanguageInput('');
       setFaqs([]);
       setEventsGallery([]);
       setTeaserVideo(null);
@@ -1295,6 +1333,56 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                     )}
                   </div>
                 </div>
+
+                {/* Languages */}
+                <div className="space-y-3">
+                  <Label htmlFor="languages" className="text-sm font-medium text-slate-700">
+                    Languages
+                  </Label>
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <Input
+                        id="languages"
+                        value={languageInput}
+                        onChange={(e) => setLanguageInput(e.target.value)}
+                        onKeyDown={handleLanguageKeyDown}
+                        placeholder="Add languages (e.g., English, Hindi)..."
+                        className="flex-1 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addLanguage}
+                        disabled={!languageInput.trim()}
+                        className="border-slate-200 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50 transition-all duration-200"
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    {languages.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {languages.map((lang) => (
+                          <Badge
+                            key={lang}
+                            variant="secondary"
+                            className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition-all duration-200"
+                          >
+                            {lang}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto p-0 text-slate-500 hover:text-slate-700 transition-colors duration-200"
+                              onClick={() => removeLanguage(lang)}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -1331,11 +1419,29 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                   
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-slate-700">Photo URL</Label>
-                    <Input
-                      value={currentSpeaker.photo || ''}
-                      onChange={(e) => updateCurrentSpeaker('photo', e.target.value)}
-                      placeholder="https://example.com/speaker-photo.jpg"
-                      className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                    <div className="flex gap-3">
+                      <Input
+                        value={currentSpeaker.photo || ''}
+                        onChange={(e) => updateCurrentSpeaker('photo', e.target.value)}
+                        placeholder="https://example.com/speaker-photo.jpg"
+                        className="flex-1 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => speakerPhotoInputRef.current?.click()}
+                        className="h-10 px-4 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200"
+                        title="Upload from device"
+                      >
+                        <Upload className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <input
+                      ref={speakerPhotoInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleSpeakerPhotoUpload}
+                      className="hidden"
                     />
                   </div>
                   
@@ -1508,11 +1614,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                     placeholder="SEO title for search engines"
                     className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
                   />
-                  <p className={`text-xs transition-colors duration-200 ${
-                    seo.meta_title.length > 60 ? 'text-red-500' : 'text-slate-500'
-                  }`}>
-                    {seo.meta_title.length}/60 characters
-                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -1527,11 +1628,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                     className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none transition-all duration-200"
                     rows={3}
                   />
-                  <p className={`text-xs transition-colors duration-200 ${
-                    seo.meta_description.length > 160 ? 'text-red-500' : 'text-slate-500'
-                  }`}>
-                    {seo.meta_description.length}/160 characters
-                  </p>
                 </div>
 
                 <div className="space-y-2">
