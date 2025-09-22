@@ -103,6 +103,7 @@ export const useEvents = () => {
       updated_at: row.updated_at || new Date().toISOString(),
       location_latitude: row.location_latitude ?? null,
       location_longitude: row.location_longitude ?? null,
+      languages: Array.isArray((row as any).languages) ? (row as any).languages : null,
     };
   };
 
@@ -211,6 +212,7 @@ export const useEvents = () => {
         featured_image: eventData.featured_image || null,
         event_tags: eventData.event_tags || null,
         key_highlights: eventData.key_highlights || null,
+        languages: eventData.languages || [],
         events_gallery: eventData.events_gallery || [],
         teaser_video: eventData.teaser_video || null,
         faq: eventData.faq || [],
@@ -373,6 +375,7 @@ export const useEvents = () => {
         featured_image: eventData.featured_image || null,
         event_tags: eventData.event_tags || null,
         key_highlights: eventData.key_highlights || null,
+        languages: eventData.languages || [],
         events_gallery: eventData.events_gallery || [],
         teaser_video: eventData.teaser_video || null,
         faq: eventData.faq || [],

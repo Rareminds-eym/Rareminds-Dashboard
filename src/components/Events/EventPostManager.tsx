@@ -63,6 +63,7 @@ const EventPostManager = ({ editingEvent: externalEditingEvent, onEventSaved }: 
       featured_image: eventData.featured_image,
       event_tags: eventData.event_tags || [],
       key_highlights: eventData.key_highlights || [],
+      languages: eventData.languages || [],
       events_gallery: eventData.events_gallery || [],
       teaser_video: eventData.teaser_video || null,
       faq: eventData.faq || [],

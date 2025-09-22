@@ -43,6 +43,7 @@ export interface EventPost {
   featured_image?: string | null;
   event_tags?: string[] | null;
   key_highlights?: string[] | null;
+  languages?: string[] | null;
   location_latitude?: number | null;
   location_longitude?: number | null;
   events_gallery?: string[] | null;
@@ -87,6 +88,7 @@ export interface EventFormData {
   featured_image?: string | null;
   event_tags: string[];
   key_highlights: string[];
+  languages: string[];
   events_gallery: string[];
   teaser_video?: string | null;
   faq: FAQItem[];
