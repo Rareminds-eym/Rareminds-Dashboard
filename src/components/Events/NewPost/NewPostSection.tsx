@@ -76,6 +76,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const [languages, setLanguages] = useState<string[]>([]);
   const [languageInput, setLanguageInput] = useState('');
   const [enquiryPdfUrl, setEnquiryPdfUrl] = useState<string | null>(null);
+  const [enquiryPdfPath, setEnquiryPdfPath] = useState<string | null>(null);
   
   // Debug function to track keyHighlights changes
   const handleKeyHighlightsChange = (newHighlights: string[]) => {
@@ -157,6 +158,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     setTitle(editingPost.title);
     setDescription(editingPost.description);
     setEnquiryPdfUrl((editingPost as any).enquiry_pdf || null);
+    setEnquiryPdfPath((editingPost as any).enquiry_pdf_path || null);
     setEventDate(editingPost.event_date);
     setEventTime(editingPost.event_time);
     setDuration(editingPost.duration);
@@ -473,6 +475,8 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     languages: languages,
     events_gallery: eventsGallery,
     teaser_video: teaserVideo,
+    enquiry_pdf: enquiryPdfUrl,
+    enquiry_pdf_path: enquiryPdfPath,
     faq: faqs,
     meta_title: seo.meta_title || title,
     meta_description: seo.meta_description || description.substring(0, 160),
@@ -526,6 +530,8 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
       setFaqs([]);
       setEventsGallery([]);
       setTeaserVideo(null);
+      setEnquiryPdfUrl(null);
+      setEnquiryPdfPath(null);
       setSeo({ meta_title: '', meta_description: '', slug: '' });
     }
   };
@@ -1462,8 +1468,15 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                   <PDFUpload
                     eventId={editingPost.id}
                     currentPDFUrl={enquiryPdfUrl || undefined}
-                    onUploadComplete={(url) => setEnquiryPdfUrl(url)}
-                    onDeleteComplete={() => setEnquiryPdfUrl(null)}
+                    currentPDFPath={enquiryPdfPath || undefined}
+                    onUploadComplete={(url, path) => {
+                      setEnquiryPdfUrl(url);
+                      setEnquiryPdfPath(path || null);
+                    }}
+                    onDeleteComplete={() => {
+                      setEnquiryPdfUrl(null);
+                      setEnquiryPdfPath(null);
+                    }}
                   />
                 ) : (
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm text-slate-600">

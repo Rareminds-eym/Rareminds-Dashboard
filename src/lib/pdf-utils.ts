@@ -121,7 +121,7 @@ export const uploadEventEnquiryPDF = async (
       return { success: false, error: updateResult.error };
     }
 
-    return { success: true, url: uploadResult.url };
+    return { success: true, url: uploadResult.url, path: uploadResult.path };
   } catch (error) {
     console.error('Complete upload workflow error:', error);
     return { success: false, error: 'Failed to complete PDF upload process' };

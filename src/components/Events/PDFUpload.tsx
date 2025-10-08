@@ -10,7 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 interface PDFUploadProps {
   eventId: string;
   currentPDFUrl?: string | null;
-  onUploadComplete?: (url: string) => void;
+  currentPDFPath?: string | null;
+  onUploadComplete?: (url: string, path?: string) => void;
   onDeleteComplete?: () => void;
   disabled?: boolean;
 }
@@ -18,6 +19,7 @@ interface PDFUploadProps {
 export const PDFUpload: React.FC<PDFUploadProps> = ({
   eventId,
   currentPDFUrl,
+  currentPDFPath,
   onUploadComplete,
   onDeleteComplete,
   disabled = false
@@ -97,7 +99,7 @@ export const PDFUpload: React.FC<PDFUploadProps> = ({
           title: "PDF uploaded successfully",
           description: "The enquiry PDF has been attached to the event.",
         });
-        onUploadComplete?.(result.url);
+        onUploadComplete?.(result.url, result.path);
         setSelectedFile(null);
       } else {
         setError(result.error || 'Upload failed');
