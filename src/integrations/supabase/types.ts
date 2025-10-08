@@ -158,6 +158,7 @@ export type Database = {
           location_latitude: number | null
           location_longitude: number | null
           enquiry_pdf: string | null
+          enquiry_pdf_path: string | null
         }
         Insert: {
           id?: string
@@ -196,6 +197,7 @@ export type Database = {
           location_latitude?: number | null
           location_longitude?: number | null
           enquiry_pdf?: string | null
+          enquiry_pdf_path?: string | null
         }
         Update: {
           id?: string
@@ -234,6 +236,7 @@ export type Database = {
           location_latitude?: number | null
           location_longitude?: number | null
           enquiry_pdf?: string | null
+          enquiry_pdf_path?: string | null
         }
         Relationships: [
           {

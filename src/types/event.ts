@@ -50,6 +50,7 @@ export interface EventPost {
   events_gallery?: string[] | null;
   teaser_video?: string | null;
   enquiry_pdf?: string | null;
+  enquiry_pdf_path?: string | null;
   faq: FAQItem[];
   meta_title: string;
   meta_description: string;
@@ -94,6 +95,8 @@ export interface EventFormData {
   languages: string[];
   events_gallery: string[];
   teaser_video?: string | null;
+  enquiry_pdf?: string | null;
+  enquiry_pdf_path?: string | null;
   faq: FAQItem[];
   seo: EventSEOSettings;
   location_latitude?: number | null;
