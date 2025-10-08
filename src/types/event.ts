@@ -41,6 +41,7 @@ export interface EventPost {
   status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
   event_banner?: string | null;
   featured_image?: string | null;
+  mobile_featured_image?: string | null;
   event_tags?: string[] | null;
   key_highlights?: string[] | null;
   languages?: string[] | null;
@@ -48,6 +49,7 @@ export interface EventPost {
   location_longitude?: number | null;
   events_gallery?: string[] | null;
   teaser_video?: string | null;
+  enquiry_pdf?: string | null;
   faq: FAQItem[];
   meta_title: string;
   meta_description: string;
@@ -86,6 +88,7 @@ export interface EventFormData {
   status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
   event_banner?: string | null;
   featured_image?: string | null;
+  mobile_featured_image?: string | null;
   event_tags: string[];
   key_highlights: string[];
   languages: string[];
@@ -124,6 +127,7 @@ export interface EventDraft {
   status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
   event_banner?: string | null;
   featured_image?: string | null;
+  mobile_featured_image?: string | null;
   event_tags?: string[];
   key_highlights?: string[];
   events_gallery?: string[];

@@ -145,6 +145,7 @@ export type Database = {
           status: string
           event_banner: string | null
           featured_image: string | null
+          mobile_featured_image: string | null
           event_tags: string[] | null
           key_highlights: string[] | null
           languages: string[] | null
@@ -156,6 +157,7 @@ export type Database = {
           updated_at: string
           location_latitude: number | null
           location_longitude: number | null
+          enquiry_pdf: string | null
         }
         Insert: {
           id?: string
@@ -181,6 +183,7 @@ export type Database = {
           status?: string
           event_banner?: string | null
           featured_image?: string | null
+          mobile_featured_image?: string | null
           event_tags?: string[] | null
           key_highlights?: string[] | null
           languages?: string[] | null
@@ -192,6 +195,7 @@ export type Database = {
           updated_at?: string
           location_latitude?: number | null
           location_longitude?: number | null
+          enquiry_pdf?: string | null
         }
         Update: {
           id?: string
@@ -217,6 +221,7 @@ export type Database = {
           status?: string
           event_banner?: string | null
           featured_image?: string | null
+          mobile_featured_image?: string | null
           event_tags?: string[] | null
           key_highlights?: string[] | null
           languages?: string[] | null
@@ -228,6 +233,7 @@ export type Database = {
           updated_at?: string
           location_latitude?: number | null
           location_longitude?: number | null
+          enquiry_pdf?: string | null
         }
         Relationships: [
           {

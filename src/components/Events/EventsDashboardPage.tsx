@@ -7,14 +7,25 @@ import { EventPost } from '../../types/event';
 import { useEvents } from '../../hooks/useEvents';
 
 const EventsDashboardPage = () => {
-  const { events, loading: eventsLoading, deleteEvent, refetch } = useEvents();
+  const { events, loading: eventsLoading, deleteEvent, refetch, error } = useEvents();
   const [activeSection, setActiveSection] = useState('overview');
   const [editingEvent, setEditingEvent] = useState<EventPost | null>(null);
+  const [forceStopLoading, setForceStopLoading] = useState(false);
 
   // Fetch events when component mounts
   useEffect(() => {
     refetch();
   }, [refetch]);
+
+  // Safety: stop showing the loader after 15s and show a retry UI instead
+  useEffect(() => {
+    if (!eventsLoading) {
+      setForceStopLoading(false);
+      return;
+    }
+    const t = setTimeout(() => setForceStopLoading(true), 15000);
+    return () => clearTimeout(t);
+  }, [eventsLoading]);
 
   const handleEventSaved = () => {
     console.log('Event saved, refreshing data...');
@@ -91,7 +102,7 @@ const EventsDashboardPage = () => {
 
       {/* Main Content */}
       <main className="px-6 py-8">
-        {eventsLoading ? (
+        {eventsLoading && !forceStopLoading ? (
           <div className="flex items-center justify-center py-24">
             <div className="text-center space-y-4">
               <div className="relative">
@@ -102,6 +113,19 @@ const EventsDashboardPage = () => {
                 <p className="text-slate-900 dark:text-white font-medium">Loading your events</p>
                 <p className="text-slate-500 dark:text-slate-400 text-sm">Please wait while we fetch your events...</p>
               </div>
+            </div>
+          </div>
+        ) : forceStopLoading ? (
+          <div className="flex items-center justify-center py-24">
+            <div className="text-center space-y-4">
+              <p className="text-slate-900 dark:text-white font-medium">This is taking longer than expected.</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">{error || 'You can retry fetching your events.'}</p>
+              <button
+                onClick={() => { setForceStopLoading(false); refetch(); }}
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+              >
+                Retry
+              </button>
             </div>
           </div>
         ) : (

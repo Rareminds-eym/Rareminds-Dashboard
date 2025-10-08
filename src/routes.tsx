@@ -16,7 +16,8 @@ const ProjectsOverviewPage = lazy(() => import('./pages/Projects/Overview/Projec
 const ProjectDraftsPage = lazy(() => import('./pages/Projects/DraftProject/ProjectDraftsPage'));
 const EventsPage = lazy(() => import('./pages/Events/EventsPage'));
 const EventsOverviewPage = lazy(() => import('./pages/Events/Overview/EventsOverviewPage'));
-const NewEventPage = lazy(() => import('./pages/Events/NewEvent/NewEventPage'));
+// Use static import for NewEventPage to avoid dynamic import fetch issues during navigation
+import NewEventPage from './pages/Events/NewEvent/NewEventPage';
 const EventsListPage = lazy(() => import('./pages/Events/EventsList/EventsListPage'));
 const NanmaduvalanPage = lazy(() => import('./pages/NanmaduvalanPage'));
 const AuthPageWrapper = lazy(() => import('./pages/AuthPageWrapper'));
@@ -149,6 +150,23 @@ export const router = createBrowserRouter([
           },
           {
             path: 'new-event',
+            element: (
+              <Suspense fallback={<RouteLoading />}>
+                <NewEventPage />
+              </Suspense>
+            ),
+          },
+          // Safeguards for Unicode dash variants that can appear due to copy/paste or font substitutions
+          {
+            path: 'new–event', // en dash (U+2013)
+            element: (
+              <Suspense fallback={<RouteLoading />}>
+                <NewEventPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'new—event', // em dash (U+2014)
             element: (
               <Suspense fallback={<RouteLoading />}>
                 <NewEventPage />

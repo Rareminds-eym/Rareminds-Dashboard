@@ -12,12 +12,13 @@ import { Textarea } from '../../ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Globe, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign, HelpCircle, Images, Play, Search, Loader2, Plus} from 'lucide-react';
+import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Globe, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign, HelpCircle, Images, Play, Search, Loader2, Plus, File as FileIcon} from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 import { FAQManager } from '../FAQManager';
 import { EventGalleryManager } from '../EventGalleryManager';
 import { TeaserVideoManager } from '../TeaserVideoManager';
 import { KeyHighlightsManager } from '../KeyHighlightsManager';
+import { PDFUpload } from '../PDFUpload';
 
 interface NewPostSectionProps {
   onPostSaved: (post: EventPost) => void;
@@ -60,6 +61,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const [status, setStatus] = useState<'upcoming' | 'ongoing' | 'completed' | 'cancelled'>('upcoming');
   const [eventBanner, setEventBanner] = useState('');
   const [featuredImage, setFeaturedImage] = useState('');
+  const [mobileFeaturedImage, setMobileFeaturedImage] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [seo, setSeo] = useState<EventSEOSettings>({
@@ -73,6 +75,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const [keyHighlights, setKeyHighlights] = useState<string[]>([]);
   const [languages, setLanguages] = useState<string[]>([]);
   const [languageInput, setLanguageInput] = useState('');
+  const [enquiryPdfUrl, setEnquiryPdfUrl] = useState<string | null>(null);
   
   // Debug function to track keyHighlights changes
   const handleKeyHighlightsChange = (newHighlights: string[]) => {
@@ -82,6 +85,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [shouldTriggerAddHighlight, setShouldTriggerAddHighlight] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mobileFileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const speakerPhotoInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -152,6 +156,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     
     setTitle(editingPost.title);
     setDescription(editingPost.description);
+    setEnquiryPdfUrl((editingPost as any).enquiry_pdf || null);
     setEventDate(editingPost.event_date);
     setEventTime(editingPost.event_time);
     setDuration(editingPost.duration);
@@ -188,6 +193,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     setStatus(editingPost.status);
     setEventBanner(editingPost.event_banner || '');
     setFeaturedImage(editingPost.featured_image || '');
+    setMobileFeaturedImage((editingPost as any).mobile_featured_image || '');
     setTags(editingPost.event_tags || []);
     setKeyHighlights(editingPost.key_highlights || []);
     setLanguages(editingPost.languages || []);
@@ -228,6 +234,17 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
       const reader = new FileReader();
       reader.onload = (e) => {
         setFeaturedImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleMobileImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setMobileFeaturedImage(e.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -450,6 +467,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     status,
     event_banner: eventBanner || null,
     featured_image: featuredImage || null,
+    mobile_featured_image: mobileFeaturedImage || null,
     event_tags: tags,
     key_highlights: keyHighlights,
     languages: languages,
@@ -499,6 +517,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
       setStatus('upcoming');
       setEventBanner('');
       setFeaturedImage('');
+      setMobileFeaturedImage('');
       setTags([]);
       setTagInput('');
       setKeyHighlights([]);
@@ -657,6 +676,47 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                         <img
                           src={featuredImage}
                           alt="Featured preview"
+                          className="w-full max-w-lg h-48 object-cover rounded-xl border border-slate-200 shadow-sm group-hover:shadow-md transition-all duration-300"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Mobile Featured Image */}
+                <div className="space-y-3">
+                  <Label htmlFor="mobile-featured-image" className="text-sm font-medium text-slate-700">
+                    Mobile Featured Image
+                  </Label>
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <Input
+                        value={mobileFeaturedImage}
+                        onChange={(e) => setMobileFeaturedImage(e.target.value)}
+                        placeholder="Mobile image URL or upload a file..."
+                        className="flex-1 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => mobileFileInputRef.current?.click()}
+                        className="h-10 px-4 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200"
+                      >
+                        <Upload className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <input
+                      ref={mobileFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleMobileImageUpload}
+                      className="hidden"
+                    />
+                    {mobileFeaturedImage && (
+                      <div className="relative group">
+                        <img
+                          src={mobileFeaturedImage}
+                          alt="Mobile Featured preview"
                           className="w-full max-w-lg h-48 object-cover rounded-xl border border-slate-200 shadow-sm group-hover:shadow-md transition-all duration-300"
                         />
                       </div>
@@ -1386,7 +1446,34 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
               </CardContent>
             </Card>
 
-            {/* Speakers */}
+            {/* Enquiry PDF Section */}
+            <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-slate-800">
+                  <FileIcon className="w-4 h-4 text-red-500" />
+                  Enquiry PDF
+                </CardTitle>
+                <CardDescription className="text-slate-500">
+                  Attach a PDF (max 10MB) for event enquiries. Save the event first to enable uploading.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {editingPost ? (
+                  <PDFUpload
+                    eventId={editingPost.id}
+                    currentPDFUrl={enquiryPdfUrl || undefined}
+                    onUploadComplete={(url) => setEnquiryPdfUrl(url)}
+                    onDeleteComplete={() => setEnquiryPdfUrl(null)}
+                  />
+                ) : (
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm text-slate-600">
+                    Save the event to enable PDF upload.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+          {/* Speakers */}
             <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-slate-800">
