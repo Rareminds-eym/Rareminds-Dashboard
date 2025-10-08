@@ -61,6 +61,7 @@ const EventPostManager = ({ editingEvent: externalEditingEvent, onEventSaved }: 
       status: eventData.status,
       event_banner: eventData.event_banner,
       featured_image: eventData.featured_image,
+      mobile_featured_image: (eventData as any).mobile_featured_image || null,
       event_tags: eventData.event_tags || [],
       key_highlights: eventData.key_highlights || [],
       languages: eventData.languages || [],
