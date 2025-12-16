@@ -29,9 +29,10 @@ export interface ValidationErrors {
   content?: boolean;
 }
 
-export const categories = ['Government', 'School', 'Corporate', 'Institution'];
+export const categories = ['*', 'Government', 'School', 'Corporate', 'Institution'];
 
 export const subcategories: Record<string, string[]> = {
+  '*': ['All'],
   'Government': ['None'],
   'School': ['Teachers', 'Students'],
   'Corporate': ['Recruitment', 'Training'],
