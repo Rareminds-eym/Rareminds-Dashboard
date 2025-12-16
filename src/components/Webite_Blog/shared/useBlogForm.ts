@@ -118,7 +118,12 @@ export const useBlogForm = (initialData?: BlogPost | null) => {
     
     if (isInitialized && category !== previousCategoryRef.current && previousCategoryRef.current !== '') {
       console.log('🗑️ Resetting subcategory due to category change');
-      setSubcategory('');
+      // Auto-select "All" when "*" category is selected
+      if (category === '*') {
+        setSubcategory('All');
+      } else {
+        setSubcategory('');
+      }
     }
     previousCategoryRef.current = category;
   }, [category, subcategory, isInitialized]);
