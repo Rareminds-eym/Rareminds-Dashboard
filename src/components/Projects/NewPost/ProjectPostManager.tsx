@@ -1,75 +1,58 @@
 import { useState, useEffect } from 'react';
-import { useProjects } from '../../../hooks/useProjects';
-import { ProjectPost, ProjectFormData } from '../../../types/project';
+import { usePrograms } from '../../../hooks/usePrograms';
+import { Program, ProgramFormData } from '../../../types/program';
 import NewPostSection from './NewPostSection';
 import { useToast } from '../../../hooks/use-toast';
 
-interface ProjectPostManagerProps {
-  editingProject?: ProjectPost | null;
+interface ProgramPostManagerProps {
+  editingProgram?: Program | null;
 }
 
-const ProjectPostManager = ({ editingProject: externalEditingProject }: ProjectPostManagerProps) => {
-  const [editingPost, setEditingPost] = useState<ProjectPost | null>(null);
-  const { createProject, updateProject } = useProjects();
+const ProjectPostManager = ({ editingProgram: externalEditingProgram }: ProgramPostManagerProps) => {
+  const [editingProgram, setEditingProgram] = useState<Program | null>(null);
+  const { createProgram, updateProgram } = usePrograms();
   const { toast } = useToast();
 
-  // Update internal editing state when external prop changes
   useEffect(() => {
-    setEditingPost(externalEditingProject || null);
-  }, [externalEditingProject]);
+    setEditingProgram(externalEditingProgram || null);
+  }, [externalEditingProgram]);
 
-  const handlePostSaved = async (postData: ProjectPost) => {
-    // Convert ProjectPost to ProjectFormData format
-    const formData: ProjectFormData = {
-      title: postData.title,
-      featured_image: postData.featured_image,
-      videos_url: postData.videos_url,
-      project_tags: postData.project_tags || [],
-      content_json: postData.content_json || { type: 'doc', content: [] },
-      conclusion: postData.conclusion,
-      seo: {
-        meta_title: postData.meta_title,
-        meta_description: postData.meta_description,
-        slug: postData.slug,
-      },
-    };
-
+  const handleProgramSaved = async (formData: ProgramFormData) => {
     try {
-      if (editingPost) {
-        // Update existing project
-        const updatedProject = await updateProject(editingPost.id, formData);
-        if (updatedProject) {
-          setEditingPost(null);
+      if (editingProgram) {
+        const updated = await updateProgram(editingProgram.id, formData);
+        if (updated) {
+          setEditingProgram(null);
           toast({
-            title: "Success",
-            description: "Project updated successfully!",
-            variant: "default"
+            title: 'Success',
+            description: 'Program updated successfully!',
+            variant: 'default',
           });
         }
       } else {
-        // Create new project
-        const newProject = await createProject(formData);
-        if (newProject) {
+        const created = await createProgram(formData);
+        if (created) {
           toast({
-            title: "Success",
-            description: "Project created successfully!",
-            variant: "default"
+            title: 'Success',
+            description: 'Program created successfully!',
+            variant: 'default',
           });
         }
       }
     } catch (error) {
+      console.error('Failed to save program:', error);
       toast({
-        title: "Error",
-        description: "Failed to save project. Please try again.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to save program. Please try again.',
+        variant: 'destructive',
       });
     }
   };
 
   return (
     <NewPostSection
-      onPostSaved={handlePostSaved}
-      editingPost={editingPost}
+      onProgramSaved={handleProgramSaved}
+      editingProgram={editingProgram}
     />
   );
 };

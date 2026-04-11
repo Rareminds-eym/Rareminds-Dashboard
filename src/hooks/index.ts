@@ -5,6 +5,7 @@ export { useBlogPosts } from './useBlogPosts';
 export { useProjects } from './useProjects';
 export { useProjectDrafts } from './useProjectDrafts';
 export { useEvents } from './useEvents';
+export { usePrograms } from './usePrograms';
 export { useUserRole } from './useUserRole';
 export { useIsMobile } from './use-mobile';
 export { useToast } from './use-toast';

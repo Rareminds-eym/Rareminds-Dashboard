@@ -3,26 +3,21 @@ import { Plus, FileText, Eye } from 'lucide-react';
 import DashboardOverview from './Dashboard/DashboardOverview';
 import PostedPostsSection from './PostedPosts/PostedPostsSection';
 import ProjectPostManager from './NewPost/ProjectPostManager';
-import { ProjectPost } from '../../types/project';
-import { useProjects } from '../../hooks/useProjects';
+import { Program } from '../../types/program';
+import { usePrograms } from '../../hooks/usePrograms';
 
 const ProjectsDashboardPage = () => {
-  const { projects, loading: projectsLoading, deleteProject } = useProjects();
+  const { programs, loading: programsLoading, deleteProgram } = usePrograms();
   const [activeSection, setActiveSection] = useState('overview');
-  const [editingProject, setEditingProject] = useState<ProjectPost | null>(null);
+  const [editingProgram, setEditingProgram] = useState<Program | null>(null);
 
-  const handleProjectSaved = () => {
-    setEditingProject(null);
-    setActiveSection('overview');
-  };
-
-  const handleEditProject = (project: ProjectPost) => {
-    setEditingProject(project);
+  const handleEditProgram = (program: Program) => {
+    setEditingProgram(program);
     setActiveSection('new-post');
   };
 
-  const handleDeleteProject = async (projectId: string) => {
-    await deleteProject(projectId);
+  const handleDeleteProgram = async (programId: string) => {
+    await deleteProgram(programId);
   };
 
   return (
@@ -32,49 +27,46 @@ const ProjectsDashboardPage = () => {
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Projects</h1>
-              <p className="text-slate-600 dark:text-slate-400">Manage and track your project portfolio</p>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Programs</h1>
+              <p className="text-slate-600 dark:text-slate-400">Manage and track your program portfolio</p>
             </div>
 
             {/* Navigation */}
             <div className="flex items-center gap-1 bg-slate-100/60 dark:bg-slate-800/60 rounded-full p-1">
               <button
                 onClick={() => setActiveSection('overview')}
-                className={`relative px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${
-                  activeSection === 'overview'
-                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
-                }`}
+                className={`relative px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${activeSection === 'overview'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
+                  }`}
               >
                 <Eye className="w-4 h-4 inline mr-2" />
                 Overview
               </button>
               <button
                 onClick={() => {
-                  setEditingProject(null);
+                  setEditingProgram(null);
                   setActiveSection('new-post');
                 }}
-                className={`relative px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${
-                  activeSection === 'new-post'
-                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
-                }`}
+                className={`relative px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${activeSection === 'new-post'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
+                  }`}
               >
                 <Plus className="w-4 h-4 inline mr-2" />
-                New Project
+                New Program
               </button>
               <button
-                onClick={() => setActiveSection('projects')}
-                className={`relative px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${
-                  activeSection === 'projects'
-                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
-                }`}
+                onClick={() => setActiveSection('programs')}
+                className={`relative px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${activeSection === 'programs'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
+                  }`}
               >
                 <FileText className="w-4 h-4 inline mr-2" />
-                Projects
+                Programs
                 <span className="ml-1 px-2 py-0.5 text-xs bg-slate-200 dark:bg-slate-600 rounded-full">
-                  {projects.length}
+                  {programs.length}
                 </span>
               </button>
             </div>
@@ -84,7 +76,7 @@ const ProjectsDashboardPage = () => {
 
       {/* Main Content */}
       <main className="px-6 py-8">
-        {projectsLoading ? (
+        {programsLoading ? (
           <div className="flex items-center justify-center py-24">
             <div className="text-center space-y-4">
               <div className="relative">
@@ -92,8 +84,8 @@ const ProjectsDashboardPage = () => {
                 <div className="absolute inset-0 w-16 h-16 border-4 border-transparent rounded-full animate-ping border-t-slate-400 dark:border-t-slate-500 mx-auto"></div>
               </div>
               <div className="space-y-2">
-                <p className="text-slate-900 dark:text-white font-medium">Loading your projects</p>
-                <p className="text-slate-500 dark:text-slate-400 text-sm">Please wait while we fetch your projects...</p>
+                <p className="text-slate-900 dark:text-white font-medium">Loading your programs</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Please wait while we fetch your programs...</p>
               </div>
             </div>
           </div>
@@ -101,29 +93,29 @@ const ProjectsDashboardPage = () => {
           <div className="space-y-8">
             {activeSection === 'overview' && (
               <div className="animate-in fade-in duration-500">
-                <DashboardOverview 
-                  projects={projects} 
-                  onNewProject={() => {
-                    setEditingProject(null);
+                <DashboardOverview
+                  programs={programs}
+                  onNewProgram={() => {
+                    setEditingProgram(null);
                     setActiveSection('new-post');
                   }}
-                  onViewProjects={() => setActiveSection('projects')}
+                  onViewPrograms={() => setActiveSection('programs')}
                 />
               </div>
             )}
             {activeSection === 'new-post' && (
               <div className="animate-in fade-in duration-500">
-                <ProjectPostManager 
-                  editingProject={editingProject}
+                <ProjectPostManager
+                  editingProgram={editingProgram}
                 />
               </div>
             )}
-            {activeSection === 'projects' && (
+            {activeSection === 'programs' && (
               <div className="animate-in fade-in duration-500">
-                <PostedPostsSection 
-                  posts={projects}
-                  onEditPost={handleEditProject}
-                  onDeletePost={handleDeleteProject}
+                <PostedPostsSection
+                  programs={programs}
+                  onEditProgram={handleEditProgram}
+                  onDeleteProgram={handleDeleteProgram}
                 />
               </div>
             )}
