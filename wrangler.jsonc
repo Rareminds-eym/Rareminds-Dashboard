@@ -1,0 +1,7 @@
+{
+    "name": "rareminds-dashboard",
+    "compatibility_date": "2026-04-11",
+    "assets": {
+        "directory": "./dist"
+    }
+}
