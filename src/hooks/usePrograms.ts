@@ -99,8 +99,8 @@ export const usePrograms = () => {
             setLoading(true);
             setError(null);
 
-            const { data: { user: currentUser } } = await supabase.auth.getUser();
-            if (!currentUser) {
+            const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
+            if (authError || !currentUser) {
                 throw new Error('User not authenticated');
             }
 
@@ -251,7 +251,7 @@ export const usePrograms = () => {
                     .from('program_sections')
                     .delete()
                     .eq('program_id', id)
-                    .not('section_key', 'in', `(${newSectionKeys.join(',')})`);
+                    .not('section_key', 'in', `(${newSectionKeys.map(k => `"${k}"`).join(',')})`);
 
                 if (deleteError) throw deleteError;
             } else {

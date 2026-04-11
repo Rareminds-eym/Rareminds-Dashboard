@@ -36,8 +36,8 @@ const ProjectsDashboardPage = () => {
               <button
                 onClick={() => setActiveSection('overview')}
                 className={`relative px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${activeSection === 'overview'
-                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
                   }`}
               >
                 <Eye className="w-4 h-4 inline mr-2" />
@@ -49,8 +49,8 @@ const ProjectsDashboardPage = () => {
                   setActiveSection('new-post');
                 }}
                 className={`relative px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${activeSection === 'new-post'
-                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
                   }`}
               >
                 <Plus className="w-4 h-4 inline mr-2" />
@@ -59,8 +59,8 @@ const ProjectsDashboardPage = () => {
               <button
                 onClick={() => setActiveSection('programs')}
                 className={`relative px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${activeSection === 'programs'
-                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
                   }`}
               >
                 <FileText className="w-4 h-4 inline mr-2" />
@@ -94,12 +94,12 @@ const ProjectsDashboardPage = () => {
             {activeSection === 'overview' && (
               <div className="animate-in fade-in duration-500">
                 <DashboardOverview
-                  projects={programs}
-                  onNewProject={() => {
+                  programs={programs}
+                  onNewProgram={() => {
                     setEditingProgram(null);
                     setActiveSection('new-post');
                   }}
-                  onViewProjects={() => setActiveSection('programs')}
+                  onViewPrograms={() => setActiveSection('programs')}
                 />
               </div>
             )}
@@ -113,9 +113,9 @@ const ProjectsDashboardPage = () => {
             {activeSection === 'programs' && (
               <div className="animate-in fade-in duration-500">
                 <PostedPostsSection
-                  posts={programs}
-                  onEditPost={handleEditProgram}
-                  onDeletePost={handleDeleteProgram}
+                  programs={programs}
+                  onEditProgram={handleEditProgram}
+                  onDeleteProgram={handleDeleteProgram}
                 />
               </div>
             )}

@@ -5,16 +5,16 @@ import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
 
 interface DashboardOverviewProps {
-  projects: Program[];
-  onNewProject: () => void;
-  onViewProjects: () => void;
+  programs: Program[];
+  onNewProgram: () => void;
+  onViewPrograms: () => void;
 }
 
-const DashboardOverview = ({ projects, onNewProject, onViewProjects }: DashboardOverviewProps) => {
-  const recentPrograms = projects.slice(0, 3);
-  const totalPrograms = projects.length;
-  const activePrograms = projects.filter(p => p.is_active === true).length;
-  const thisMonthPrograms = projects.filter(program => {
+const DashboardOverview = ({ programs, onNewProgram, onViewPrograms }: DashboardOverviewProps) => {
+  const recentPrograms = programs.slice(0, 3);
+  const totalPrograms = programs.length;
+  const activePrograms = programs.filter(p => p.is_active === true).length;
+  const thisMonthPrograms = programs.filter(program => {
     const programDate = new Date(program.created_at);
     const now = new Date();
     return programDate.getMonth() === now.getMonth() && programDate.getFullYear() === now.getFullYear();
@@ -74,11 +74,11 @@ const DashboardOverview = ({ projects, onNewProject, onViewProjects }: Dashboard
             <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button onClick={onNewProject} variant="ghost" size="sm" className="w-full justify-start hover:bg-primary/10 rounded-lg">
+            <Button onClick={onNewProgram} variant="ghost" size="sm" className="w-full justify-start hover:bg-primary/10 rounded-lg">
               <Plus className="w-4 h-4 mr-3" />
               New Program
             </Button>
-            <Button onClick={onViewProjects} variant="ghost" size="sm" className="w-full justify-start hover:bg-primary/10 rounded-lg">
+            <Button onClick={onViewPrograms} variant="ghost" size="sm" className="w-full justify-start hover:bg-primary/10 rounded-lg">
               <FileText className="w-4 h-4 mr-3" />
               View All
             </Button>
@@ -146,7 +146,7 @@ const DashboardOverview = ({ projects, onNewProject, onViewProjects }: Dashboard
                 <FileText className="w-10 h-10 text-muted-foreground" />
               </div>
               <p className="text-muted-foreground mb-6 text-lg">No programs yet. Create your first program to get started!</p>
-              <Button onClick={onNewProject} className="bg-primary hover:bg-primary/90 shadow-lg px-8 py-3 rounded-xl">
+              <Button onClick={onNewProgram} className="bg-primary hover:bg-primary/90 shadow-lg px-8 py-3 rounded-xl">
                 <Plus className="w-4 h-4 mr-2" />
                 Create First Program
               </Button>

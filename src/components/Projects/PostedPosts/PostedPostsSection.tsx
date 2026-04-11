@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Program, ProgramSection } from '../../../types/program';
+import { Program } from '../../../types/program';
 import { Button } from '../../ui/button';
 import { Card, CardContent } from '../../ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../ui/dialog';
@@ -10,21 +10,21 @@ import { Edit, Trash2, Eye, Search, Calendar, MapPin, Filter, TrendingUp } from 
 import { useToast } from '../../../hooks/use-toast';
 
 interface PostedPostsSectionProps {
-  posts: Program[];
-  onEditPost: (program: Program) => void;
-  onDeletePost: (programId: string) => void;
+  programs: Program[];
+  onEditProgram: (program: Program) => void;
+  onDeleteProgram: (programId: string) => void;
 }
 
-const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSectionProps) => {
+const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: PostedPostsSectionProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedPost, setSelectedPost] = useState<Program | null>(null);
   const { toast } = useToast();
 
   // Get all unique statuses from programs
-  const allStatuses = [...new Set(posts.map(p => p.status).filter((s): s is string => s !== null))];
+  const allStatuses = [...new Set(programs.map(p => p.status).filter((s): s is string => s !== null))];
 
-  const filteredPosts = posts.filter(program => {
+  const filteredPosts = programs.filter(program => {
     const matchesSearch =
       program.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (program.short_description || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -34,7 +34,7 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
 
   const handleDeletePost = (programId: string, programTitle: string) => {
     if (window.confirm(`Are you sure you want to delete "${programTitle}"? This action cannot be undone.`)) {
-      onDeletePost(programId);
+      onDeleteProgram(programId);
     }
   };
 
@@ -65,7 +65,7 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                 Published Programs
               </h2>
               <p className="text-slate-600 dark:text-slate-400 mt-1">
-                Manage your published programs • {filteredPosts.length} of {posts.length} programs
+                Manage your published programs • {filteredPosts.length} of {programs.length} programs
               </p>
             </div>
           </div>
@@ -128,7 +128,7 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => onEditPost(program)}
+                    onClick={() => onEditProgram(program)}
                     className="h-9 w-9 p-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
                   >
                     <Edit className="w-4 h-4" />
@@ -314,7 +314,7 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
 
                           <div className="flex gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
                             <Button
-                              onClick={() => onEditPost(selectedPost)}
+                              onClick={() => onEditProgram(selectedPost)}
                               className="flex-1 h-11 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
                             >
                               <Edit className="w-4 h-4 mr-2" />
@@ -337,7 +337,7 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onEditPost(program)}
+                    onClick={() => onEditProgram(program)}
                     className="h-9 w-9 p-0 bg-white/50 dark:bg-slate-800/50 hover:bg-orange-50 dark:hover:bg-orange-900/20 border-slate-200 dark:border-slate-700 hover:border-orange-300 dark:hover:border-orange-600 rounded-xl transition-all duration-300 group/edit"
                   >
                     <Edit className="w-4 h-4 group-hover/edit:text-orange-600 dark:group-hover/edit:text-orange-400 transition-colors" />
@@ -358,7 +358,7 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
             </div>
             <h3 className="text-xl font-semibold mb-3 text-slate-900 dark:text-white">No Programs Found</h3>
             <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-md mx-auto leading-relaxed">
-              {posts.length === 0
+              {programs.length === 0
                 ? "You haven't created any programs yet. Start by creating your first program!"
                 : "No programs match your current filters. Try adjusting your search criteria."}
             </p>

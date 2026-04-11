@@ -40,6 +40,7 @@ const ProjectPostManager = ({ editingProgram: externalEditingProgram }: ProgramP
         }
       }
     } catch (error) {
+      console.error('Failed to save program:', error);
       toast({
         title: 'Error',
         description: 'Failed to save program. Please try again.',
