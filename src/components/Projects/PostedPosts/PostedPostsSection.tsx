@@ -1,71 +1,136 @@
 import { useState } from 'react';
-import { Program } from '../../../types/program';
+import { ProjectPost } from '../../../types/project';
 import { Button } from '../../ui/button';
 import { Card, CardContent } from '../../ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../ui/dialog';
+import { VideoPlayer } from '../../ui/video-player';
 import { Badge } from '../../ui/badge';
 import { Input } from '../../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { Edit, Trash2, Eye, Search, Calendar, MapPin, Filter, TrendingUp } from 'lucide-react';
+import { Edit, Trash2, Eye, Search, Calendar, Tag, Pin, Filter, TrendingUp } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 
 interface PostedPostsSectionProps {
-  programs: Program[];
-  onEditProgram: (program: Program) => void;
-  onDeleteProgram: (programId: string) => void;
+  posts: ProjectPost[];
+  onEditPost: (post: ProjectPost) => void;
+  onDeletePost: (postId: string) => void;
 }
 
-const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: PostedPostsSectionProps) => {
+const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSectionProps) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [selectedPost, setSelectedPost] = useState<Program | null>(null);
+  const [filterTag, setFilterTag] = useState('all');
+  const [selectedPost, setSelectedPost] = useState<ProjectPost | null>(null);
   const { toast } = useToast();
 
-  // Get all unique statuses from programs
-  const allStatuses = [...new Set(programs.map(p => p.status).filter((s): s is string => s !== null))];
+  // Generate excerpt from TipTap JSON content
+  const generateExcerpt = (contentJson: Record<string, unknown>): string => {
+    if (!contentJson || !contentJson.content) return '';
+    
+    const extractText = (node: Record<string, unknown>): string => {
+      if (node.type === 'text') {
+        return node.text as string || '';
+      }
+      if (node.content && Array.isArray(node.content)) {
+        return node.content.map(extractText).join('');
+      }
+      return '';
+    };
 
-  const filteredPosts = programs.filter(program => {
-    const matchesSearch =
-      program.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (program.short_description || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || program.status === filterStatus;
-    return matchesSearch && matchesStatus;
+    const content = contentJson.content as Record<string, unknown>[];
+    const text = content.map(extractText).join(' ').trim();
+    return text.length > 150 ? text.substring(0, 150) + '...' : text;
+  };
+
+  // Get all unique tags from posts
+  const allTags = [...new Set(posts.flatMap(post => post.project_tags || []))];
+
+  const filteredPosts = posts.filter(post => {
+    const excerpt = generateExcerpt(post.content_json);
+    const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      excerpt.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTag = filterTag === 'all' || (post.project_tags && post.project_tags.includes(filterTag));
+    return matchesSearch && matchesTag;
   });
 
-  const handleDeletePost = (programId: string, programTitle: string) => {
-    if (window.confirm(`Are you sure you want to delete "${programTitle}"? This action cannot be undone.`)) {
-      onDeleteProgram(programId);
+  const handleDeletePost = (postId: string, postTitle: string) => {
+    if (window.confirm(`Are you sure you want to delete "${postTitle}"? This action cannot be undone.`)) {
+      onDeletePost(postId);
     }
   };
 
-  const getStatusColor = (status: string | null) => {
-    switch (status?.toLowerCase()) {
-      case 'active': return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800';
-      case 'completed': return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800';
-      case 'in progress': return 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-800';
-      default: return 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
-    }
-  };
+  // Render TipTap JSON content as HTML
+  const renderTipTapContent = (contentJson: Record<string, unknown>): string => {
+    if (!contentJson || !contentJson.content) return '';
+    
+    const renderNode = (node: Record<string, unknown>): string => {
+      switch (node.type) {
+        case 'paragraph': {
+          const pContent = node.content && Array.isArray(node.content) ? 
+            node.content.map(renderNode).join('') : '';
+          return `<p class="mb-4">${pContent}</p>`;
+        }
+        case 'heading': {
+          const hContent = node.content && Array.isArray(node.content) ? 
+            node.content.map(renderNode).join('') : '';
+          const attrs = node.attrs as Record<string, unknown> || {};
+          const level = attrs.level as number || 1;
+          const headingClass = level === 1 ? 'text-2xl font-bold mt-4 mb-2' : 
+                              level === 2 ? 'text-xl font-semibold mt-4 mb-2' : 
+                              'text-lg font-semibold mt-4 mb-2';
+          return `<h${level} class="${headingClass} text-foreground">${hContent}</h${level}>`;
+        }
+        case 'bulletList': {
+          const listItems = node.content && Array.isArray(node.content) ? 
+            node.content.map(renderNode).join('') : '';
+          return `<ul class="list-disc ml-4 mb-4">${listItems}</ul>`;
+        }
+        case 'listItem': {
+          const liContent = node.content && Array.isArray(node.content) ? 
+            node.content.map(renderNode).join('') : '';
+          return `<li>${liContent}</li>`;
+        }
+        case 'text': {
+          let text = node.text as string || '';
+          if (node.marks && Array.isArray(node.marks)) {
+            node.marks.forEach((mark: Record<string, unknown>) => {
+              if (mark.type === 'bold') {
+                text = `<strong class="font-semibold">${text}</strong>`;
+              } else if (mark.type === 'italic') {
+                text = `<em class="italic">${text}</em>`;
+              } else if (mark.type === 'link') {
+                const attrs = mark.attrs as Record<string, unknown> || {};
+                text = `<a href="${attrs.href}" class="text-primary underline hover:text-primary/80">${text}</a>`;
+              }
+            });
+          }
+          return text;
+        }
+        default:
+          return node.content && Array.isArray(node.content) ? 
+            node.content.map(renderNode).join('') : '';
+      }
+    };
 
-  const formatSectionKey = (key: string) =>
-    key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const content = contentJson.content as Record<string, unknown>[];
+    return content.map(renderNode).join('');
+  };
 
   return (
     <div className="space-y-8 p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 min-h-screen">
       {/* Header Section */}
       <div className="relative">
-        <div className="absolute inset-0 rounded-xl blur-3xl" />
-        <div className="relative">
+        <div className="absolute inset-0  rounded-xl blur-3xl" />
+        <div className="relative ">
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">
               <TrendingUp className="w-6 h-6 text-white" />
             </div>
             <div>
               <h2 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                Published Programs
+                Published Projects
               </h2>
               <p className="text-slate-600 dark:text-slate-400 mt-1">
-                Manage your published programs • {filteredPosts.length} of {programs.length} programs
+                Manage your published projects • {filteredPosts.length} of {posts.length} projects
               </p>
             </div>
           </div>
@@ -75,21 +140,21 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                 <div className="flex-1 relative group">
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 transition-colors group-focus-within:text-blue-500" />
                   <Input
-                    placeholder="Search programs by title or description..."
+                    placeholder="Search projects by title or content..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-11 h-12 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 shadow-sm hover:shadow-md"
                   />
                 </div>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <Select value={filterTag} onValueChange={setFilterTag}>
                   <SelectTrigger className="w-full md:w-56 h-12 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 shadow-sm hover:shadow-md">
-                    <SelectValue placeholder="Filter by status" />
+                    <SelectValue placeholder="Filter by tag" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200 dark:border-slate-700 shadow-2xl">
-                    <SelectItem value="all" className="rounded-lg">All Statuses</SelectItem>
-                    {allStatuses.map((status) => (
-                      <SelectItem key={status} value={status} className="rounded-lg">
-                        {status}
+                    <SelectItem value="all" className="rounded-lg">All Tags</SelectItem>
+                    {allTags.map((tag) => (
+                      <SelectItem key={tag} value={tag} className="rounded-lg">
+                        {tag}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -100,17 +165,17 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
         </div>
       </div>
 
-      {/* Programs Grid */}
+      {/* Posts Grid */}
       {filteredPosts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 mt-16 lg:grid-cols-3 gap-6">
-          {filteredPosts.map((program) => (
-            <Card key={program.id} className="group hover:shadow-xl transition-all duration-500 border-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg overflow-hidden rounded-2xl">
+          {filteredPosts.map((post) => (
+            <Card key={post.id} className="group hover:shadow-xl transition-all duration-500 border-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg overflow-hidden rounded-2xl  ">
               <div className="relative overflow-hidden">
-                {program.image_url ? (
+                {post.featured_image ? (
                   <div className="relative h-48 overflow-hidden">
                     <img
-                      src={program.image_url}
-                      alt={program.title}
+                      src={post.featured_image}
+                      alt={post.title}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -118,7 +183,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                 ) : (
                   <div className="h-48 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center">
                     <div className="text-slate-400 dark:text-slate-500">
-                      <Filter className="w-12 h-12" />
+                      <Tag className="w-12 h-12" />
                     </div>
                   </div>
                 )}
@@ -128,7 +193,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => onEditProgram(program)}
+                    onClick={() => onEditPost(post)}
                     className="h-9 w-9 p-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
                   >
                     <Edit className="w-4 h-4" />
@@ -136,7 +201,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => handleDeletePost(program.id, program.title)}
+                    onClick={() => handleDeletePost(post.id, post.title)}
                     className="h-9 w-9 p-0 bg-red-500/90 hover:bg-red-600 border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -146,46 +211,30 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
 
               <CardContent className="p-6 space-y-4">
                 {/* Meta Information */}
-                <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center justify-between">
                   <div className="flex flex-wrap gap-2">
-                    {program.program_type && (
-                      <Badge variant="secondary" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/50 dark:to-purple-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 rounded-full px-3 py-1">
-                        {program.program_type}
+                    {post.project_tags && post.project_tags.length > 0 && post.project_tags.map((tag, index) => (
+                      <Badge key={index} variant="secondary" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/50 dark:to-purple-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 rounded-full px-3 py-1">
+                        <Pin className="w-3 h-3 mr-1" />
+                        {tag}
                       </Badge>
-                    )}
-                    {program.status && (
-                      <Badge variant="secondary" className={`rounded-full px-3 py-1 ${getStatusColor(program.status)}`}>
-                        {program.status}
-                      </Badge>
-                    )}
+                    ))}
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                    {program.location && (
-                      <span className="flex items-center bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-full">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        {program.location}
-                      </span>
-                    )}
-                    {program.date && (
-                      <span className="flex items-center bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-full">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        {new Date(program.date).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-full">
+                    <Calendar className="w-3 h-3 mr-1" />
+                    {new Date(post.created_at).toLocaleDateString()}
+                  </span>
                 </div>
 
                 {/* Title */}
                 <h3 className="font-semibold text-lg leading-tight line-clamp-2 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
-                  {program.title}
+                  {post.title}
                 </h3>
 
-                {/* Short Description */}
-                {program.short_description && (
-                  <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-3">
-                    {program.short_description}
-                  </p>
-                )}
+                {/* Excerpt */}
+                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-3">
+                  {generateExcerpt(post.content_json || {})}
+                </p>
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 pt-2">
@@ -195,7 +244,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                         variant="outline"
                         size="sm"
                         className="flex-1 h-9 bg-white/50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 rounded-xl transition-all duration-300 group/btn"
-                        onClick={() => setSelectedPost(program)}
+                        onClick={() => setSelectedPost(post)}
                       >
                         <Eye className="w-4 h-4 mr-2 group-hover/btn:text-blue-600 dark:group-hover/btn:text-blue-400 transition-colors" />
                         <span className="group-hover/btn:text-blue-600 dark:group-hover/btn:text-blue-400 transition-colors">View</span>
@@ -206,119 +255,83 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                         <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
                           {selectedPost?.title}
                         </DialogTitle>
-                        <DialogDescription className="flex items-center gap-4 text-sm flex-wrap">
-                          {selectedPost?.program_type && (
-                            <Badge variant="secondary" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/50 dark:to-purple-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 rounded-full">
-                              {selectedPost.program_type}
-                            </Badge>
-                          )}
-                          {selectedPost?.status && (
-                            <Badge variant="secondary" className={`rounded-full ${getStatusColor(selectedPost.status)}`}>
-                              {selectedPost.status}
-                            </Badge>
-                          )}
-                          {selectedPost?.location && (
-                            <span className="flex items-center text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">
-                              <MapPin className="w-3 h-3 mr-1" />
-                              {selectedPost.location}
-                            </span>
-                          )}
-                          {selectedPost?.date && (
-                            <span className="flex items-center text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">
-                              <Calendar className="w-3 h-3 mr-1" />
-                              {new Date(selectedPost.date).toLocaleDateString()}
-                            </span>
-                          )}
+                        <DialogDescription className="flex items-center gap-6 text-sm">
+                          <div className="flex flex-wrap gap-2">
+                            {selectedPost?.project_tags && selectedPost.project_tags.length > 0 && selectedPost.project_tags.map((tag, index) => (
+                              <Badge key={index} variant="secondary" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/50 dark:to-purple-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 rounded-full">
+                                <Tag className="w-3 h-3 mr-1" />
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                          <span className="flex items-center text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {selectedPost && new Date(selectedPost.created_at).toLocaleDateString()}
+                          </span>
                         </DialogDescription>
                       </DialogHeader>
 
                       {selectedPost && (
                         <div className="space-y-8 py-6">
-                          {selectedPost.banner_url && (
+                          {selectedPost.featured_image && (
                             <div className="relative overflow-hidden rounded-xl">
                               <img
-                                src={selectedPost.banner_url}
+                                src={selectedPost.featured_image}
                                 alt={selectedPost.title}
                                 className="w-full max-h-96 object-cover"
                               />
                             </div>
                           )}
 
-                          {selectedPost.short_description && (
-                            <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base">
-                              {selectedPost.short_description}
-                            </p>
+                          <VideoPlayer 
+                            videoUrls={selectedPost.videos_url || []}
+                            title="Project Videos"
+                            showTitles={true}
+                          />
+
+                          <div
+                            className="prose prose-slate dark:prose-invert prose-sm max-w-none prose-headings:font-semibold prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline"
+                            dangerouslySetInnerHTML={{ __html: renderTipTapContent(selectedPost.content_json || {}) }}
+                          />
+
+                          {selectedPost.conclusion && (
+                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
+                              <h4 className="font-semibold mb-3 text-slate-900 dark:text-white">Conclusion</h4>
+                              <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{selectedPost.conclusion}</p>
+                            </div>
                           )}
 
-                          {/* Program Metadata */}
                           <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-                            <h4 className="font-semibold mb-4 text-slate-900 dark:text-white">Program Information</h4>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
+                            <h4 className="font-semibold mb-4 text-slate-900 dark:text-white">Project Information</h4>
+                            <div className="space-y-3 text-sm">
                               <div className="flex flex-col gap-1">
-                                <span className="font-medium text-slate-700 dark:text-slate-300">Slug:</span>
+                                <span className="font-medium text-slate-700 dark:text-slate-300">Meta Title:</span>
+                                <span className="text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                                  {selectedPost.meta_title || 'Not set'}
+                                </span>
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <span className="font-medium text-slate-700 dark:text-slate-300">Meta Description:</span>
+                                <span className="text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                                  {selectedPost.meta_description || 'Not set'}
+                                </span>
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <span className="font-medium text-slate-700 dark:text-slate-300">URL Slug:</span>
                                 <span className="text-blue-600 dark:text-blue-400 font-mono bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800">
-                                  /programs/{selectedPost.slug}
-                                </span>
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <span className="font-medium text-slate-700 dark:text-slate-300">Display Order:</span>
-                                <span className="text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
-                                  {selectedPost.display_order}
-                                </span>
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <span className="font-medium text-slate-700 dark:text-slate-300">Active:</span>
-                                <span className="text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
-                                  {selectedPost.is_active ? 'Yes' : 'No'}
-                                </span>
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <span className="font-medium text-slate-700 dark:text-slate-300">Created:</span>
-                                <span className="text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
-                                  {new Date(selectedPost.created_at).toLocaleDateString()}
+                                  /projects/{selectedPost.slug}
                                 </span>
                               </div>
                             </div>
                           </div>
 
-                          {/* Program Sections */}
-                          {selectedPost.sections.length > 0 && (
-                            <div className="space-y-4">
-                              <h4 className="font-semibold text-slate-900 dark:text-white">Sections</h4>
-                              {[...selectedPost.sections]
-                                .sort((a, b) => a.display_order - b.display_order)
-                                .map((section) => (
-                                  <div
-                                    key={section.id}
-                                    className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800"
-                                  >
-                                    <div className="flex items-center gap-2 mb-3">
-                                      <Badge variant="outline" className="text-xs">
-                                        {formatSectionKey(section.section_key)}
-                                      </Badge>
-                                    </div>
-                                    {section.title && (
-                                      <h5 className="font-semibold mb-2 text-slate-900 dark:text-white">
-                                        {section.title}
-                                      </h5>
-                                    )}
-                                    {section.content && (
-                                      <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
-                                        {section.content}
-                                      </p>
-                                    )}
-                                  </div>
-                                ))}
-                            </div>
-                          )}
-
                           <div className="flex gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
                             <Button
-                              onClick={() => onEditProgram(selectedPost)}
+                              onClick={() => onEditPost(selectedPost)}
                               className="flex-1 h-11 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
                             >
                               <Edit className="w-4 h-4 mr-2" />
-                              Edit Program
+                              Edit Project
                             </Button>
                             <Button
                               variant="destructive"
@@ -337,7 +350,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onEditProgram(program)}
+                    onClick={() => onEditPost(post)}
                     className="h-9 w-9 p-0 bg-white/50 dark:bg-slate-800/50 hover:bg-orange-50 dark:hover:bg-orange-900/20 border-slate-200 dark:border-slate-700 hover:border-orange-300 dark:hover:border-orange-600 rounded-xl transition-all duration-300 group/edit"
                   >
                     <Edit className="w-4 h-4 group-hover/edit:text-orange-600 dark:group-hover/edit:text-orange-400 transition-colors" />
@@ -356,18 +369,18 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                 <Search className="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto" />
               </div>
             </div>
-            <h3 className="text-xl font-semibold mb-3 text-slate-900 dark:text-white">No Programs Found</h3>
+            <h3 className="text-xl font-semibold mb-3 text-slate-900 dark:text-white">No Projects Found</h3>
             <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-md mx-auto leading-relaxed">
-              {programs.length === 0
-                ? "You haven't created any programs yet. Start by creating your first program!"
-                : "No programs match your current filters. Try adjusting your search criteria."}
+              {posts.length === 0
+                ? "You haven't created any projects yet. Start by creating your first project!"
+                : "No projects match your current filters. Try adjusting your search criteria."}
             </p>
-            {searchTerm || filterStatus !== 'all' ? (
+            {searchTerm || filterTag !== 'all' ? (
               <Button
                 variant="outline"
                 onClick={() => {
                   setSearchTerm('');
-                  setFilterStatus('all');
+                  setFilterTag('all');
                 }}
                 className="bg-white/50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 rounded-xl px-6 py-2 transition-all duration-300 shadow-lg hover:shadow-xl"
               >

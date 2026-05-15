@@ -1,19 +1,26 @@
-import { Program } from '../../../types/program';
+import { useEffect } from 'react';
+import { useProjects } from '../../../hooks/useProjects';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
-import { Edit, Trash2, Eye, Calendar, MapPin } from 'lucide-react';
+import { Skeleton } from '../../ui/skeleton';
+import { Edit, Trash2, ExternalLink, Calendar, Video, Tag } from 'lucide-react';
+import { ProjectPost } from '../../../types/project';
 
 interface ProjectListProps {
-  programs: Program[];
-  onEditProgram?: (program: Program) => void;
-  onDeleteProgram?: (programId: string) => void;
+  onEditProject?: (project: ProjectPost) => void;
 }
 
-const ProjectList = ({ programs, onEditProgram, onDeleteProgram }: ProjectListProps) => {
-  const handleDelete = (id: string, title: string) => {
-    if (window.confirm(`Are you sure you want to delete "${title}"?`)) {
-      onDeleteProgram?.(id);
+const ProjectList = ({ onEditProject }: ProjectListProps) => {
+  const { projects, loading, error, fetchProjects, deleteProject } = useProjects();
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this project?')) {
+      await deleteProject(id);
     }
   };
 
@@ -25,26 +32,55 @@ const ProjectList = ({ programs, onEditProgram, onDeleteProgram }: ProjectListPr
     });
   };
 
-  const getStatusColor = (status: string | null) => {
-    switch (status?.toLowerCase()) {
-      case 'active': return 'bg-green-50 text-green-700 border-green-200';
-      case 'completed': return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'in progress': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-      default: return 'bg-slate-50 text-slate-700 border-slate-200';
-    }
+  const truncateText = (text: string, maxLength: number) => {
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
 
-  if (programs.length === 0) {
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[...Array(6)].map((_, i) => (
+          <Card key={i} className="border-slate-200/50">
+            <CardHeader>
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-32 w-full mb-4" />
+              <Skeleton className="h-3 w-full mb-2" />
+              <Skeleton className="h-3 w-2/3" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-500 mb-4">Error loading projects: {error}</p>
+        <Button onClick={fetchProjects} variant="outline">
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
+  if (projects.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="bg-slate-50 rounded-2xl p-8 max-w-md mx-auto">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Eye className="w-8 h-8 text-blue-600" />
+            <Tag className="w-8 h-8 text-blue-600" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-2">No Programs Yet</h3>
-          <p className="text-slate-600">
-            Start by creating your first program to showcase your work.
+          <h3 className="text-lg font-semibold text-slate-800 mb-2">No Projects Yet</h3>
+          <p className="text-slate-600 mb-4">
+            Start by creating your first project to showcase your work.
           </p>
+          <Button onClick={() => window.location.hash = '#new-project'}>
+            Create Your First Project
+          </Button>
         </div>
       </div>
     );
@@ -52,90 +88,108 @@ const ProjectList = ({ programs, onEditProgram, onDeleteProgram }: ProjectListPr
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {programs.map((program) => (
-        <Card key={program.id} className="border-slate-200/50 shadow-sm hover:shadow-md transition-all duration-200 bg-white/80 backdrop-blur-sm">
+      {projects.map((project) => (
+        <Card key={project.id} className="border-slate-200/50 shadow-sm hover:shadow-md transition-all duration-200 bg-white/80 backdrop-blur-sm">
           <CardHeader className="pb-4">
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <CardTitle className="text-lg font-semibold text-slate-800 mb-2 line-clamp-2">
-                  {program.title}
+                  {project.title}
                 </CardTitle>
                 <CardDescription className="flex items-center gap-2 text-sm text-slate-500">
                   <Calendar className="w-4 h-4" />
-                  {formatDate(program.created_at)}
+                  {formatDate(project.created_at)}
                 </CardDescription>
               </div>
               <div className="flex gap-1 ml-2">
-                {onEditProgram && (
+                {onEditProject && (
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => onEditProgram(program)}
+                    onClick={() => onEditProject(project)}
                     className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
                 )}
-                {onDeleteProgram && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDelete(program.id, program.title)}
-                    className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleDelete(project.id)}
+                  className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
             </div>
           </CardHeader>
-
+          
           <CardContent className="space-y-4">
-            {/* Image */}
-            {program.image_url && (
+            {/* Featured Image */}
+            {project.featured_image && (
               <div className="aspect-video bg-slate-100 rounded-lg overflow-hidden">
                 <img
-                  src={program.image_url}
-                  alt={program.title}
+                  src={project.featured_image}
+                  alt={project.title}
                   className="w-full h-full object-cover"
                 />
               </div>
             )}
 
-            {/* Short Description */}
-            {program.short_description && (
-              <p className="text-sm text-slate-600 leading-relaxed line-clamp-3">
-                {program.short_description}
+            {/* Meta Description */}
+            {project.meta_description && (
+              <p className="text-sm text-slate-600 leading-relaxed">
+                {truncateText(project.meta_description, 120)}
               </p>
             )}
 
-            {/* Badges */}
-            <div className="flex flex-wrap gap-2">
-              {program.status && (
-                <Badge variant="secondary" className={`text-xs px-2 py-1 ${getStatusColor(program.status)}`}>
-                  {program.status}
-                </Badge>
-              )}
-              {program.program_type && (
-                <Badge variant="secondary" className="text-xs px-2 py-1 bg-purple-50 text-purple-700 border border-purple-200">
-                  {program.program_type}
-                </Badge>
-              )}
-              {program.location && (
-                <Badge variant="secondary" className="text-xs px-2 py-1 bg-slate-50 text-slate-600 border border-slate-200">
-                  <MapPin className="w-3 h-3 mr-1" />
-                  {program.location}
-                </Badge>
-              )}
-            </div>
+            {/* Video URLs */}
+            {project.videos_url && project.videos_url.length > 0 && (
+              <div className="flex items-center gap-2 text-sm text-purple-600">
+                <Video className="w-4 h-4" />
+                <span>Has {project.videos_url.length} Video{project.videos_url.length === 1 ? '' : 's'}</span>
+              </div>
+            )}
+
+            {/* Tags */}
+            {project.project_tags && project.project_tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {project.project_tags.slice(0, 3).map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="secondary"
+                    className="text-xs px-2 py-1 bg-blue-50 text-blue-700 border border-blue-200"
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+                {project.project_tags.length > 3 && (
+                  <Badge
+                    variant="secondary"
+                    className="text-xs px-2 py-1 bg-slate-50 text-slate-600 border border-slate-200"
+                  >
+                    +{project.project_tags.length - 3} more
+                  </Badge>
+                )}
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex gap-2 pt-2">
-              {onEditProgram && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 text-sm border-slate-200 hover:border-slate-300"
+                onClick={() => window.open(`/projects/${project.slug}`, '_blank')}
+              >
+                <ExternalLink className="w-3 h-3 mr-1" />
+                View
+              </Button>
+              {onEditProject && (
                 <Button
                   size="sm"
                   className="flex-1 text-sm bg-blue-600 hover:bg-blue-700"
-                  onClick={() => onEditProgram(program)}
+                  onClick={() => onEditProject(project)}
                 >
                   <Edit className="w-3 h-3 mr-1" />
                   Edit

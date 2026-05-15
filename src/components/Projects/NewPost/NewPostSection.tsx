@@ -1,145 +1,203 @@
-import { useState, useEffect } from 'react';
-import { Program, ProgramFormData, ProgramSectionFormData, SectionKeyType } from '../../../types/program';
-import { generateSlug } from '../../../hooks/usePrograms';
+import { useState, useEffect, useRef } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import { ProjectPost, ProjectSEOSettings, TipTapDocument } from '../../../types/project';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Textarea } from '../../ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../ui/select';
-import { Checkbox } from '../../ui/checkbox';
-import { Save, Sparkles, Settings, Plus, X, Layers } from 'lucide-react';
+import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Globe, Video } from 'lucide-react';
+import { useToast } from '../../../hooks/use-toast';
 
 interface NewPostSectionProps {
-  onProgramSaved: (data: ProgramFormData) => void;
-  editingProgram?: Program | null;
+  onPostSaved: (post: ProjectPost) => void;
+  editingPost?: ProjectPost | null;
 }
 
-const ALL_SECTION_KEYS: SectionKeyType[] = [
-  'introduction', 'about', 'modules', 'approaches', 'impact',
-  'strategic_alignment', 'conclusion', 'header', 'course_enrollment',
-  'programs', 'why', 'cloud_kitchen', 'agri_food', 'inventions',
-];
-
-const formatSectionKey = (key: string): string =>
-  key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-
-const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps) => {
+const NewPostSection = ({ onPostSaved, editingPost }: NewPostSectionProps) => {
   const [title, setTitle] = useState('');
-  const [slug, setSlug] = useState('');
-  const [shortDescription, setShortDescription] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [bannerUrl, setBannerUrl] = useState('');
-  const [programType, setProgramType] = useState('');
-  const [location, setLocation] = useState('');
-  const [date, setDate] = useState('');
-  const [status, setStatus] = useState('Active');
-  const [displayOrder, setDisplayOrder] = useState(0);
-  const [isActive, setIsActive] = useState(true);
-  const [sections, setSections] = useState<ProgramSectionFormData[]>([]);
-  const [errors, setErrors] = useState<{ title?: string; slug?: string }>({});
+  const [featuredImage, setFeaturedImage] = useState('');
+  const [videoUrls, setVideoUrls] = useState<string[]>([]);
+  const [videoInput, setVideoInput] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  const [conclusion, setConclusion] = useState('');
+  const [seo, setSeo] = useState<ProjectSEOSettings>({
+    meta_title: '',
+    meta_description: '',
+    slug: ''
+  });
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
-  // Pre-populate when editing
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+      }),
+      Link.configure({
+        openOnClick: false,
+      }),
+      Placeholder.configure({
+        placeholder: 'Start writing your amazing project content...',
+      }),
+    ],
+    content: '',
+    onUpdate: ({ editor }) => {
+      // Content is automatically stored as JSON when we call getJSON()
+    },
+    editorProps: {
+      attributes: {
+        class: 'prose prose-slate prose-lg max-w-none focus:outline-none min-h-[350px] p-6 text-slate-700 leading-relaxed',
+      },
+    },
+  });
+
   useEffect(() => {
-    if (editingProgram) {
-      setTitle(editingProgram.title);
-      setSlug(editingProgram.slug);
-      setShortDescription(editingProgram.short_description || '');
-      setImageUrl(editingProgram.image_url || '');
-      setBannerUrl(editingProgram.banner_url || '');
-      setProgramType(editingProgram.program_type || '');
-      setLocation(editingProgram.location || '');
-      setDate(editingProgram.date || '');
-      setStatus(editingProgram.status || 'Active');
-      setDisplayOrder(editingProgram.display_order);
-      setIsActive(editingProgram.is_active);
-      setSections(
-        editingProgram.sections.map((s) => ({
-          section_key: s.section_key,
-          title: s.title || '',
-          content: s.content || '',
-        }))
-      );
+    if (editingPost && editor) {
+      setTitle(editingPost.title);
+      setFeaturedImage(editingPost.featured_image || '');
+      setVideoUrls(editingPost.videos_url || []);
+      setTags(editingPost.project_tags || []);
+      setConclusion(editingPost.conclusion || '');
+      setSeo({
+        meta_title: editingPost.meta_title,
+        meta_description: editingPost.meta_description,
+        slug: editingPost.slug
+      });
+      
+      // Load content into editor from JSON
+      if (editingPost.content_json) {
+        editor.commands.setContent(editingPost.content_json);
+      }
     }
-  }, [editingProgram]);
+  }, [editingPost, editor]);
 
-  // Auto-generate slug from title
   useEffect(() => {
-    if (!editingProgram) {
-      setSlug(generateSlug(title));
+    if (title && !seo.meta_title) {
+      setSeo(prev => ({ ...prev, meta_title: title }));
     }
-  }, [title, editingProgram]);
+    if (title && !seo.slug) {
+      setSeo(prev => ({ ...prev, slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') }));
+    }
+  }, [title, seo.meta_title, seo.slug]);
 
-  const availableSectionKeys = ALL_SECTION_KEYS.filter(
-    (key) => !sections.some((s) => s.section_key === key)
-  );
-
-  const addSection = (key: SectionKeyType) => {
-    setSections((prev) => [...prev, { section_key: key, title: '', content: '' }]);
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setFeaturedImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  const removeSection = (index: number) => {
-    setSections((prev) => prev.filter((_, i) => i !== index));
+  const insertImage = () => {
+    const url = window.prompt('Enter image URL:');
+    if (url) {
+      editor?.chain().focus().setImage({ src: url }).run();
+    }
   };
 
-  const updateSection = (index: number, field: 'title' | 'content', value: string) => {
-    setSections((prev) =>
-      prev.map((s, i) => (i === index ? { ...s, [field]: value } : s))
-    );
+  const generateExcerpt = (text: string): string => {
+    const cleanText = text.replace(/[#*[]()]/g, '').replace(/\n+/g, ' ').trim();
+    return cleanText.length > 150 ? cleanText.substring(0, 150) + '...' : cleanText;
+  };
+
+  const addVideoUrl = () => {
+    const trimmedUrl = videoInput.trim();
+    if (trimmedUrl && !videoUrls.includes(trimmedUrl)) {
+      setVideoUrls([...videoUrls, trimmedUrl]);
+      setVideoInput('');
+    }
+  };
+
+  const removeVideoUrl = (urlToRemove: string) => {
+    setVideoUrls(videoUrls.filter(url => url !== urlToRemove));
+  };
+
+  const handleVideoKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addVideoUrl();
+    }
+  };
+
+  const addTag = () => {
+    const trimmedTag = tagInput.trim();
+    if (trimmedTag && !tags.includes(trimmedTag)) {
+      setTags([...tags, trimmedTag]);
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag();
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    const newErrors: { title?: string; slug?: string } = {};
-    if (!title.trim()) newErrors.title = 'Title is required';
-    if (!slug.trim()) newErrors.slug = 'Slug is required';
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    
+    if (!title || !editor?.getJSON()) {
+      toast({
+        title: "Missing Required Fields",
+        description: "Please fill in title and content.",
+        variant: "destructive"
+      });
       return;
     }
 
-    setErrors({});
-
-    const formData: ProgramFormData = {
-      title: title.trim(),
-      slug: slug.trim(),
-      program_type: programType,
-      location,
-      date,
-      status,
-      image_url: imageUrl,
-      banner_url: bannerUrl,
-      short_description: shortDescription,
-      display_order: displayOrder,
-      is_active: isActive,
-      sections,
+    const post: ProjectPost = {
+      id: editingPost?.id || `project-${Date.now()}`,
+      user_id: editingPost?.user_id || '', // This will be set by the hook
+      title,
+      featured_image: featuredImage || undefined,
+      meta_title: seo.meta_title,
+      meta_description: seo.meta_description,
+      slug: seo.slug,
+      videos_url: videoUrls.length > 0 ? videoUrls : undefined,
+      project_tags: tags,
+      content_json: editor?.getJSON() as unknown as TipTapDocument, // Save as JSON format
+      conclusion: conclusion || undefined,
+      created_at: editingPost?.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
 
-    onProgramSaved(formData);
-
-    if (!editingProgram) {
+    onPostSaved(post);
+    
+    if (!editingPost) {
+      editor?.commands.clearContent();
       setTitle('');
-      setSlug('');
-      setShortDescription('');
-      setImageUrl('');
-      setBannerUrl('');
-      setProgramType('');
-      setLocation('');
-      setDate('');
-      setStatus('Active');
-      setDisplayOrder(0);
-      setIsActive(true);
-      setSections([]);
+      setFeaturedImage('');
+      setVideoUrls([]);
+      setVideoInput('');
+      setTags([]);
+      setTagInput('');
+      setConclusion('');
+      setSeo({ meta_title: '', meta_description: '', slug: '' });
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
+        {/* Header Section with improved styling */}
         <div className="bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-2xl p-8 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="space-y-3">
@@ -148,287 +206,355 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
-                  {editingProgram ? 'Edit Program' : 'Create New Program'}
+                  {editingPost ? 'Edit Project' : 'Create New Project'}
                 </h1>
               </div>
               <p className="text-slate-600 text-lg">
-                {editingProgram ? 'Update your existing program' : 'Create and publish a new program'}
+                {editingPost ? 'Update your existing project post' : 'Write and publish your latest project'}
               </p>
             </div>
-            <Button
-              type="submit"
-              form="program-form"
-              className="h-11 px-6 bg-purple-600 hover:bg-purple-700 shadow-xl shadow-purple-600/10 hover:shadow-md transition-all duration-200"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {editingProgram ? 'Update Program' : 'Save Program'}
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsPreviewMode(!isPreviewMode)}
+                className="h-11 px-6 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200"
+              >
+                {isPreviewMode ? (
+                  <>
+                    <Edit3 className="w-4 h-4 mr-2" />
+                    Edit
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4 mr-2" />
+                    Preview
+                  </>
+                )}
+              </Button>
+              <Button 
+                type="submit"
+                form="project-form"
+                className="h-11 px-6 bg-purple-600 hover:bg-purple-700 shadow-xl shadow-purple-600/10 hover:shadow-md transition-all duration-200"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {editingPost ? 'Update Project' : 'Save Project'}
+              </Button>
+            </div>
           </div>
         </div>
 
-        <form id="program-form" onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          {/* Main Content - 3 columns */}
+        <form id="project-form" onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          {/* Main Content - Takes 3 columns */}
           <div className="xl:col-span-3 space-y-6">
+            {/* Post Content Card */}
             <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-slate-800">
                   <Sparkles className="w-5 h-5 text-purple-500" />
-                  Program Details
+                  Project Content
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Title */}
+                {/* Title Input */}
                 <div className="space-y-2">
                   <Label htmlFor="title" className="text-sm font-medium text-slate-700">
-                    Program Title *
+                    Project Title *
                   </Label>
                   <Input
                     id="title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Enter program title..."
+                    placeholder="Enter your project title..."
                     className="h-12 text-lg border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                    required
                   />
-                  {errors.title && <p className="text-sm text-red-500">{errors.title}</p>}
                 </div>
 
-                {/* Slug */}
-                <div className="space-y-2">
-                  <Label htmlFor="slug" className="text-sm font-medium text-slate-700">
-                    URL Slug *
+                {/* Featured Image */}
+                <div className="space-y-3">
+                  <Label htmlFor="featured-image" className="text-sm font-medium text-slate-700">
+                    Featured Image
                   </Label>
-                  <Input
-                    id="slug"
-                    value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
-                    placeholder="url-friendly-slug"
-                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                  />
-                  {errors.slug && <p className="text-sm text-red-500">{errors.slug}</p>}
-                  <p className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded border">
-                    URL: /programs/{slug || 'your-program-slug'}
-                  </p>
-                </div>
-
-                {/* Short Description */}
-                <div className="space-y-2">
-                  <Label htmlFor="short-description" className="text-sm font-medium text-slate-700">
-                    Short Description
-                  </Label>
-                  <Textarea
-                    id="short-description"
-                    value={shortDescription}
-                    onChange={(e) => setShortDescription(e.target.value)}
-                    placeholder="Brief summary of the program..."
-                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none transition-all duration-200"
-                    rows={3}
-                  />
-                </div>
-
-                {/* Image URL */}
-                <div className="space-y-2">
-                  <Label htmlFor="image-url" className="text-sm font-medium text-slate-700">
-                    Image URL
-                  </Label>
-                  <Input
-                    id="image-url"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                  />
-                </div>
-
-                {/* Banner URL */}
-                <div className="space-y-2">
-                  <Label htmlFor="banner-url" className="text-sm font-medium text-slate-700">
-                    Banner URL
-                  </Label>
-                  <Input
-                    id="banner-url"
-                    value={bannerUrl}
-                    onChange={(e) => setBannerUrl(e.target.value)}
-                    placeholder="https://example.com/banner.jpg"
-                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Dynamic Sections */}
-            <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-slate-800">
-                  <Layers className="w-5 h-5 text-purple-500" />
-                  Program Sections
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Add Section Dropdown */}
-                {availableSectionKeys.length > 0 && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-slate-700">Add Section</Label>
-                    <Select onValueChange={(value) => addSection(value as SectionKeyType)}>
-                      <SelectTrigger className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100">
-                        <SelectValue placeholder="Select a section to add..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableSectionKeys.map((key) => (
-                          <SelectItem key={key} value={key}>
-                            {formatSectionKey(key)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {/* Added Sections */}
-                {sections.map((section, index) => (
-                  <div
-                    key={section.section_key}
-                    className="border border-slate-200 rounded-xl p-4 space-y-4 bg-slate-50/50"
-                  >
-                    <div className="flex items-center justify-between">
-                      <Badge
-                        variant="secondary"
-                        className="bg-purple-50 text-purple-700 border border-purple-200"
-                      >
-                        {formatSectionKey(section.section_key)}
-                      </Badge>
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <Input
+                        value={featuredImage}
+                        onChange={(e) => setFeaturedImage(e.target.value)}
+                        placeholder="Image URL or upload a file..."
+                        className="flex-1 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                      />
                       <Button
                         type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeSection(index)}
-                        className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 transition-all duration-200"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="h-10 px-4 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200"
                       >
-                        <X className="w-4 h-4" />
+                        <Upload className="w-4 h-4" />
                       </Button>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-slate-700">Section Title</Label>
-                      <Input
-                        value={section.title}
-                        onChange={(e) => updateSection(index, 'title', e.target.value)}
-                        placeholder="Section title..."
-                        className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-slate-700">Content</Label>
-                      <Textarea
-                        value={section.content}
-                        onChange={(e) => updateSection(index, 'content', e.target.value)}
-                        placeholder="Section content..."
-                        className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none transition-all duration-200"
-                        rows={4}
-                      />
-                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    {featuredImage && (
+                      <div className="relative group">
+                        <img
+                          src={featuredImage}
+                          alt="Featured preview"
+                          className="w-full max-w-lg h-48 object-cover rounded-xl border border-slate-200 shadow-sm group-hover:shadow-md transition-all duration-300"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-xl transition-all duration-300" />
+                      </div>
+                    )}
                   </div>
-                ))}
+                </div>
 
-                {sections.length === 0 && (
-                  <div className="text-center py-8 text-slate-400">
-                    <Plus className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p>No sections added yet. Use the dropdown above to add sections.</p>
+                {/* Video URLs */}
+                <div className="space-y-3">
+                  <Label htmlFor="video-urls" className="text-sm font-medium text-slate-700">
+                    Video URLs (Optional)
+                  </Label>
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <Input
+                        id="video-urls"
+                        value={videoInput}
+                        onChange={(e) => setVideoInput(e.target.value)}
+                        onKeyDown={handleVideoKeyDown}
+                        placeholder="https://youtube.com/watch?v=... or video embed URL"
+                        className="flex-1 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                      />
+                      <Button
+                        type="button"
+                        onClick={addVideoUrl}
+                        variant="outline"
+                        className="h-10 px-4 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200"
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    {/* Display added video URLs */}
+                    {videoUrls.length > 0 && (
+                      <div className="space-y-2">
+                        {videoUrls.map((url, index) => (
+                          <div key={index} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                            <Video className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                            <span className="text-sm text-slate-700 flex-1 truncate" title={url}>
+                              {url}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeVideoUrl(url)}
+                              className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600 transition-all duration-200"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+
+                {/* Rich Text Editor */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="content" className="text-sm font-medium text-slate-700">
+                      Content *
+                    </Label>
+                    <div className="flex gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
+                      {[
+                        { icon: Bold, action: () => editor?.chain().focus().toggleBold().run(), isActive: editor?.isActive('bold'), title: 'Bold' },
+                        { icon: Italic, action: () => editor?.chain().focus().toggleItalic().run(), isActive: editor?.isActive('italic'), title: 'Italic' },
+                        { icon: Heading1, action: () => editor?.chain().focus().toggleHeading({ level: 1 }).run(), isActive: editor?.isActive('heading', { level: 1 }), title: 'H1' },
+                        { icon: Heading2, action: () => editor?.chain().focus().toggleHeading({ level: 2 }).run(), isActive: editor?.isActive('heading', { level: 2 }), title: 'H2' },
+                        { icon: List, action: () => editor?.chain().focus().toggleBulletList().run(), isActive: editor?.isActive('bulletList'), title: 'List' },
+                        { 
+                          icon: Link2, 
+                          action: () => {
+                            const url = window.prompt('Enter URL:');
+                            if (url) editor?.chain().focus().setLink({ href: url }).run();
+                          }, 
+                          isActive: editor?.isActive('link'), 
+                          title: 'Link' 
+                        },
+                        { icon: ImageIcon, action: insertImage, isActive: false, title: 'Image' }
+                      ].map(({ icon: Icon, action, isActive, title }) => (
+                        <Button
+                          key={title}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={action}
+                          className={`h-8 w-8 p-0 transition-all duration-200 ${
+                            isActive 
+                              ? 'bg-purple-100 text-purple-600 shadow-sm' 
+                              : 'hover:bg-white hover:shadow-sm text-slate-600'
+                          }`}
+                          title={title}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="border border-slate-200 rounded-xl min-h-[400px] prose prose-sm max-w-none p-6 bg-white focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-100 transition-all duration-200">
+                    <EditorContent editor={editor} />
+                  </div>
+                </div>
+
+                {/* Conclusion */}
+                <div className="space-y-2">
+                  <Label htmlFor="conclusion" className="text-sm font-medium text-slate-700">
+                    Conclusion (Optional)
+                  </Label>
+                  <Textarea
+                    id="conclusion"
+                    value={conclusion}
+                    onChange={(e) => setConclusion(e.target.value)}
+                    placeholder="Add a conclusion or final thoughts about this project..."
+                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none transition-all duration-200"
+                    rows={4}
+                  />
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Sidebar - 1 column */}
+          {/* Sidebar - Takes 1 column */}
           <div className="space-y-6">
+            {/* Post Settings */}
             <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-slate-800">
-                  <Settings className="w-4 h-4 text-green-500" />
-                  Program Settings
+                  <Hash className="w-4 h-4 text-green-500" />
+                  Project Settings
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
-                {/* Program Type */}
+                {/* Tags */}
+                <div className="space-y-3">
+                  <Label htmlFor="tags" className="text-sm font-medium text-slate-700">
+                    Project Tags
+                  </Label>
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <Input
+                        id="tags"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={handleTagKeyDown}
+                        placeholder="Add project tags..."
+                        className="flex-1 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addTag}
+                        disabled={!tagInput.trim()}
+                        className="border-slate-200 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50 transition-all duration-200"
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    
+                    {tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {tags.map((tag) => (
+                          <Badge
+                            key={tag}
+                            variant="secondary"
+                            className="flex items-center gap-1.5 px-3 py-1 bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-all duration-200"
+                          >
+                            {tag}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto p-0 text-purple-500 hover:text-purple-700 transition-colors duration-200"
+                              onClick={() => removeTag(tag)}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* SEO Settings */}
+            <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-slate-800">
+                  <Globe className="w-4 h-4 text-orange-500" />
+                  SEO Settings
+                </CardTitle>
+                <CardDescription className="text-slate-500">
+                  Optimize your project for search engines
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="program-type" className="text-sm font-medium text-slate-700">
-                    Program Type
+                  <Label htmlFor="meta-title" className="text-sm font-medium text-slate-700">
+                    Meta Title
                   </Label>
                   <Input
-                    id="program-type"
-                    value={programType}
-                    onChange={(e) => setProgramType(e.target.value)}
-                    placeholder="e.g., College, Government Body"
+                    id="meta-title"
+                    value={seo.meta_title}
+                    onChange={(e) => setSeo(prev => ({ ...prev, meta_title: e.target.value }))}
+                    placeholder="SEO title for search engines"
                     className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
                   />
+                  <p className={`text-xs transition-colors duration-200 ${
+                    seo.meta_title.length > 60 ? 'text-red-500' : 'text-slate-500'
+                  }`}>
+                    {seo.meta_title.length}/60 characters
+                  </p>
                 </div>
 
-                {/* Location */}
                 <div className="space-y-2">
-                  <Label htmlFor="location" className="text-sm font-medium text-slate-700">
-                    Location
+                  <Label htmlFor="meta-description" className="text-sm font-medium text-slate-700">
+                    Meta Description
+                  </Label>
+                  <Textarea
+                    id="meta-description"
+                    value={seo.meta_description}
+                    onChange={(e) => setSeo(prev => ({ ...prev, meta_description: e.target.value }))}
+                    placeholder="Brief description for search results"
+                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none transition-all duration-200"
+                    rows={3}
+                  />
+                  <p className={`text-xs transition-colors duration-200 ${
+                    seo.meta_description.length > 160 ? 'text-red-500' : 'text-slate-500'
+                  }`}>
+                    {seo.meta_description.length}/160 characters
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="slug" className="text-sm font-medium text-slate-700">
+                    URL Slug
                   </Label>
                   <Input
-                    id="location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="e.g., Chennai, Tamil Nadu"
+                    id="slug"
+                    value={seo.slug}
+                    onChange={(e) => setSeo(prev => ({ ...prev, slug: e.target.value }))}
+                    placeholder="url-friendly-slug"
                     className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
                   />
-                </div>
-
-                {/* Date */}
-                <div className="space-y-2">
-                  <Label htmlFor="date" className="text-sm font-medium text-slate-700">
-                    Date
-                  </Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                  />
-                </div>
-
-                {/* Status */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Status</Label>
-                  <Select value={status} onValueChange={setStatus}>
-                    <SelectTrigger className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Completed">Completed</SelectItem>
-                      <SelectItem value="In Progress">In Progress</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Display Order */}
-                <div className="space-y-2">
-                  <Label htmlFor="display-order" className="text-sm font-medium text-slate-700">
-                    Display Order
-                  </Label>
-                  <Input
-                    id="display-order"
-                    type="number"
-                    value={displayOrder}
-                    onChange={(e) => setDisplayOrder(parseInt(e.target.value, 10) || 0)}
-                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                  />
-                </div>
-
-                {/* Is Active */}
-                <div className="flex items-center gap-3 pt-2">
-                  <Checkbox
-                    id="is-active"
-                    checked={isActive}
-                    onCheckedChange={(checked) => setIsActive(checked === true)}
-                  />
-                  <Label htmlFor="is-active" className="text-sm font-medium text-slate-700 cursor-pointer">
-                    Active
-                  </Label>
+                  <p className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded border">
+                    URL: /projects/{seo.slug || 'your-project-slug'}
+                  </p>
                 </div>
               </CardContent>
             </Card>
