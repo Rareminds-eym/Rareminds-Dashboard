@@ -10,6 +10,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Edit, Trash2, Eye, Search, Calendar, MapPin, Filter, TrendingUp } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 
+// ─── Type Guards ─────────────────────────────────────────────────────────────
+function isPlainObject(val: unknown): val is Record<string, unknown> {
+  return val !== null && typeof val === 'object' && !Array.isArray(val);
+}
+interface SectionImageItem { id?: string; url: string; }
+function isImageItem(val: unknown): val is SectionImageItem {
+  return isPlainObject(val) && typeof val.url === 'string';
+}
+interface SectionCardItem { id?: string; title?: string; description?: string; }
+function isCardItem(val: unknown): val is SectionCardItem {
+  return isPlainObject(val);
+}
+interface SectionStatItem { id?: string; label?: string; value?: string; }
+function isStatItem(val: unknown): val is SectionStatItem {
+  return isPlainObject(val);
+}
+interface SectionUniversityItem { id?: string; name?: string; students?: number; }
+function isUniversityItem(val: unknown): val is SectionUniversityItem {
+  return isPlainObject(val);
+}
+interface SectionCourseItem {
+  id?: string; title?: string; name?: string; total?: number;
+  universities?: SectionUniversityItem[]; description?: string;
+}
+function isCourseItem(val: unknown): val is SectionCourseItem {
+   if (!isPlainObject(val)) return false;
+  if ('universities' in val && !Array.isArray(val['universities'])) return false;
+  return true;
+}
+
 interface PostedPostsSectionProps {
   programs: Program[];
   onEditProgram: (program: Program) => void;
@@ -23,7 +53,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
   const { toast } = useToast();
 
   // Get all unique statuses from programs
-  const allStatuses = [...new Set(programs.map(p => p.status).filter((s): s is string => s !== null))];
+  const allStatuses = [...new Set(programs.map(p => p.status).filter((s): s is string => typeof s === 'string' && s.length > 0))];
 
   const filteredPosts = programs.filter(program => {
     const matchesSearch =
@@ -39,8 +69,8 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
     }
   };
 
-  const getStatusColor = (status: string | null) => {
-    switch (status?.toLowerCase()) {
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
       case 'active': return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800';
       case 'completed': return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800';
       case 'in progress': return 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-800';
@@ -155,7 +185,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                       </Badge>
                     )}
                     {program.status && (
-                      <Badge variant="secondary" className={`rounded-full px-3 py-1 ${getStatusColor(program.status)}`}>
+                      <Badge variant="secondary" className={`rounded-full px-3 py-1 ${getStatusColor(program.status ?? '')}`}>
                         {program.status}
                       </Badge>
                     )}
@@ -214,7 +244,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                             </Badge>
                           )}
                           {selectedPost?.status && (
-                            <Badge variant="secondary" className={`rounded-full ${getStatusColor(selectedPost.status)}`}>
+                            <Badge variant="secondary" className={`rounded-full ${getStatusColor(selectedPost.status ?? '')}`}>
                               {selectedPost.status}
                             </Badge>
                           )}
@@ -311,14 +341,15 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                     {section.content && (
                                       <div className="text-slate-700 dark:text-slate-300 leading-relaxed">
                                         {/* Render based on content_type or section_key */}
-                                        {section.section_key === 'video' && typeof section.content.text === 'string' && section.content.text && (
+                                        {section.section_key === 'video' && typeof section.content?.text === 'string' && section.content.text && (
                                           <div className="space-y-4">
-                                            {(section.content.text as string)
-                                              .split(',')
-                                              .map((v) => v.trim())
-                                              .filter((v) => v.startsWith('http://') || v.startsWith('https://'))
-                                              .map((cleanUrl, idx) => {
-                                              return (
+                                            {(() => {
+                                              const videoText = section.content.text;
+                                              return videoText
+                                                .split(',')
+                                                .map((v) => v.trim())
+                                                .filter((v) => v.startsWith('http://') || v.startsWith('https://'))
+                                                .map((cleanUrl, idx) => (
                                                 <div key={idx} className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                                                   <video
                                                     controls
@@ -328,22 +359,22 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                                     Your browser does not support the video tag.
                                                   </video>
                                                 </div>
-                                              );
-                                            })}
+                                              ));
+                                            })()}
                                           </div>
                                         )}
                                         {section.content_type === 'text' && section.section_key !== 'video' && (
                                           <>
-                                            {section.content.text && (
-                                              <p className="whitespace-pre-wrap mb-4">{section.content.text as string}</p>
+                                            {section.content?.text && typeof section.content?.text === 'string' && (
+                                              <p className="whitespace-pre-wrap mb-4">{section.content.text}</p>
                                             )}
                                             {/* Handle images array (introduction sections) */}
-                                            {Array.isArray(section.content.images) && section.content.images.length > 0 && (
+                                            {Array.isArray(section.content?.images) && section.content.images.length > 0 && (
                                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                                                {(section.content.images as Array<{ id?: string; url: string }>).map((img, idx) => (
-                                                  <img 
-                                                    key={img.id ?? `img-${idx}`} 
-                                                    src={img.url} 
+                                                {section.content.images.filter(isImageItem).map((img, idx) => (
+                                                  <img
+                                                    key={img.id ?? `img-${idx}`}
+                                                    src={img.url}
                                                     alt={`${section.title || 'Section'} image ${idx + 1}`}
                                                     className="w-full h-48 object-cover rounded-lg"
                                                   />
@@ -351,13 +382,10 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                               </div>
                                             )}
                                             {/* Handle single image object (conclusion sections) */}
-                                            {section.content.image !== null &&
-                                              typeof section.content.image === 'object' &&
-                                              'url' in section.content.image &&
-                                              typeof (section.content.image as Record<string, unknown>).url === 'string' && (
+                                            {isImageItem(section.content?.image) && (
                                               <div className="mt-4">
                                                 <img
-                                                  src={(section.content.image as Record<string, string>).url}
+                                                  src={section.content?.image?.url}
                                                   alt={section.title || 'Section image'}
                                                   className="w-full max-w-2xl h-64 object-cover rounded-lg mx-auto"
                                                 />
@@ -365,9 +393,9 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                             )}
                                           </>
                                         )}
-                                        {section.content_type === 'cards' && Array.isArray(section.content.items) && (
+                                        {section.content_type === 'cards' && Array.isArray(section.content?.items) && (
                                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                            {(section.content.items as Array<{ id?: string; title?: string; description?: string }>).map((item, idx) => (
+                                            {section.content.items.filter(isCardItem).map((item, idx) => (
                                               <div key={item.id ?? `card-${idx}`} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
                                                 {item.title && <h6 className="font-semibold mb-1">{item.title}</h6>}
                                                 {item.description && <p className="text-sm">{item.description}</p>}
@@ -375,9 +403,9 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                             ))}
                                           </div>
                                         )}
-                                        {section.content_type === 'stats' && Array.isArray(section.content.items) && (
+                                        {section.content_type === 'stats' && Array.isArray(section.content?.items) && (
                                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                                            {(section.content.items as Array<{ id?: string; label?: string; value?: string }>).map((item, idx) => (
+                                            {section.content.items.filter(isStatItem).map((item, idx) => (
                                               <div key={item.id ?? `stat-${idx}`} className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
                                                 {item.value && <div className="text-2xl font-bold text-purple-600">{item.value}</div>}
                                                 {item.label && <div className="text-sm text-slate-600 dark:text-slate-400">{item.label}</div>}
@@ -385,16 +413,9 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                             ))}
                                           </div>
                                         )}
-                                        {section.content_type === 'courses' && Array.isArray(section.content.courses) && (
+                                        {section.content_type === 'courses' && Array.isArray(section.content?.courses) && (
                                           <div className="space-y-6 mt-4">
-                                            {(section.content.courses as Array<{
-                                              id?: string;
-                                              title?: string;
-                                              name?: string;
-                                              total?: number;
-                                              universities?: Array<{ id?: string; name?: string; students?: number }>;
-                                              description?: string;
-                                            }>).map((course, idx) => (
+                                            {section.content.courses.filter(isCourseItem).map((course, idx) => (
                                               <div key={course.id ?? `course-${idx}`} className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
                                                 {/* Course Header */}
                                                 <div className="bg-slate-100 dark:bg-slate-800 px-4 py-3 flex items-center justify-between">
@@ -410,7 +431,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                                 {/* Universities */}
                                                 {Array.isArray(course.universities) && course.universities.length > 0 && (
                                                   <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                                                    {course.universities.map((uni, uIdx) => (
+                                                    {course.universities.filter(isUniversityItem).map((uni, uIdx) => (
                                                       <div key={uni.id ?? `uni-${uIdx}`} className="flex items-center justify-between px-4 py-2">
                                                         <span className="text-sm text-slate-700 dark:text-slate-300">{uni.name}</span>
                                                         {uni.students && (

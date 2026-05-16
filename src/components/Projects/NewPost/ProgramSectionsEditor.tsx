@@ -8,30 +8,47 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../ui/select';
 import { Plus, X, Layers, Loader2 } from 'lucide-react';
+// ✅ ADD THESE TWO GUARDS HERE
+const hasStringError = (val: unknown): val is { error: string } => {
+  if (typeof val !== 'object' || val === null) return false;
+  const record = val as Record<string, unknown>;
+  return typeof record['error'] === 'string';
+};
 
+const hasStringUrl = (val: unknown): val is { url: string } => {
+  if (typeof val !== 'object' || val === null) return false;
+  const record = val as Record<string, unknown>;
+  return typeof record['url'] === 'string';
+};
 const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
   const res = await fetch('/upload', { method: 'POST', body: formData });
+
+  // Try to parse JSON regardless of status, so we can extract error messages
   let data: unknown;
   try {
     data = await res.json();
   } catch {
-    throw new Error('Upload failed: server returned an invalid response');
+    // Non-JSON response (e.g. HTML error page from a proxy/CDN)
+    throw new Error(`Upload failed (${res.status}): server returned an invalid response`);
   }
+
   if (!res.ok) {
-    const errMsg = data && typeof data === 'object' && 'error' in data && typeof (data as Record<string, unknown>).error === 'string'
-      ? (data as Record<string, unknown>).error as string
-      : `Upload failed (${res.status})`;
+    const errMsg = hasStringError(data) ? data.error : `Upload failed (${res.status})`;
     throw new Error(errMsg);
   }
-  if (!data || typeof data !== 'object' || !('url' in data) || typeof (data as Record<string, unknown>).url !== 'string') {
+
+  if (!hasStringUrl(data)) {
     throw new Error('Upload failed: no URL returned');
   }
-  return (data as Record<string, string>).url;
+
+  return data.url;
+
 };
 
 export type SectionItem = {
+  id?: string;
   section_key: SectionKeyType;
   content_type: ContentType;
   title: string;
@@ -526,7 +543,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
 
         {sections.map((section, index) => (
           <div
-            key={section.section_key}
+            key={section.id ?? section.section_key}
             className="border border-slate-200 rounded-xl p-4 space-y-4 bg-slate-50/50"
           >
             <div className="flex items-center justify-between">

@@ -14,6 +14,17 @@ import { Save, Sparkles, Settings, Loader2, ChevronsUpDown, Check } from 'lucide
 import { cn } from '../../../lib/utils';
 import ProgramSectionsEditor, { SectionItem } from './ProgramSectionsEditor';
 
+// ✅ Define the response shape clearly
+interface UploadResponse {
+  url?: string;
+  error?: string;
+}
+
+// ✅ One type guard — replaces all 4 'as' casts
+const isUploadResponse = (data: unknown): data is UploadResponse => {
+  return typeof data === 'object' && data !== null;
+};
+
 const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
@@ -24,16 +35,19 @@ const uploadFile = async (file: File): Promise<string> => {
   } catch {
     throw new Error('Upload failed: server returned an invalid response');
   }
-  if (!res.ok) {
-    const errMsg = data && typeof data === 'object' && 'error' in data && typeof (data as Record<string, unknown>).error === 'string'
-      ? (data as Record<string, unknown>).error as string
-      : 'Upload failed';
-    throw new Error(errMsg);
+  if (!isUploadResponse(data)) {
+    throw new Error('Upload failed: invalid response format');
   }
-  if (!data || typeof data !== 'object' || !('url' in data) || typeof (data as Record<string, unknown>).url !== 'string') {
+
+  if (!res.ok) {
+    throw new Error(data.error ?? 'Upload failed');
+  }
+
+  if (!data.url) {
     throw new Error('Upload failed: no URL returned');
   }
-  return (data as Record<string, string>).url;
+
+  return data.url;
 };
 
 interface NewPostSectionProps {
@@ -55,6 +69,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   const [isActive, setIsActive] = useState(true);
   const [sections, setSections] = useState<SectionItem[]>([]);
   const [errors, setErrors] = useState<{ title?: string; slug?: string }>({});
+  const [formLoadError, setFormLoadError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -81,7 +96,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
         .select('program_type, location, status');
 
       if (error) {
-        setUploadError('Failed to load form options. Please refresh and try again.');
+        setFormLoadError('Failed to load form options. Please refresh and try again.');
         // Fall back to defaults so the form remains usable
         setExistingStatuses(['Active', 'Completed', 'In Progress']);
         return;
@@ -154,11 +169,12 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
       setIsActive(editingProgram.is_active);
       setSections(
         editingProgram.sections.map((s) => ({
+          id: s.id,
           section_key: s.section_key,
           content_type: s.content_type || 'text',
           title: s.title || '',
           preamble: s.preamble || '',
-          content: removeIds(s.content as Record<string, unknown>),
+          content: removeIds(s.content),
         }))
       );
     }
@@ -378,9 +394,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                       <Loader2 className="w-4 h-4 animate-spin" /> Uploading banner...
                     </div>
                   )}
-                  {uploadError && (
-                    <p className="text-sm text-red-600 mt-1">{uploadError}</p>
-                  )}
+                  {formLoadError && <p className="text-sm text-red-600">{formLoadError}</p>}
                 </div>
               </CardContent>
             </Card>

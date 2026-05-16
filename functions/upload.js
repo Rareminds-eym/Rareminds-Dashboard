@@ -17,7 +17,7 @@ const ALLOWED_ORIGINS = [
 function getCorsHeaders(request, env) {
   const origin = request.headers.get('Origin') || '';
   const allowed = env.ALLOWED_ORIGIN
-    ? [env.ALLOWED_ORIGIN, 'http://localhost:5173', 'http://localhost:3000']
+    ? [env.ALLOWED_ORIGIN]
     : ALLOWED_ORIGINS;
   const allowedOrigin = allowed.includes(origin) ? origin : allowed[0];
   return {
@@ -86,7 +86,9 @@ export async function onRequestPost({ request, env }) {
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error('Upload handler error:', err);
+    const message = err instanceof Error ? err.message : 'An unexpected error occurred';
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     });

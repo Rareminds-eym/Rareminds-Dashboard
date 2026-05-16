@@ -9,6 +9,7 @@ import { Plus, X, Layers } from 'lucide-react';
 import { SectionKeyType, ContentType, CardItem, StatItem, CourseItem, ImageItem } from '../../../types/program';
 
 export interface ProgramSectionData {
+  id?: string;
   section_key: SectionKeyType;
   content_type: ContentType;
   title: string;
@@ -72,7 +73,6 @@ const ProgramSections = ({
       case 'text': {
         const textContent = typeof section.content.text === 'string' ? section.content.text : '';
         const rawImages = Array.isArray(section.content.images) ? section.content.images as ImageItem[] : [];
-        const images = rawImages.map((img) => (img && typeof img.url === 'string' ? img.url : ''));
         const rawImage = section.content.image !== null && typeof section.content.image === 'object'
           ? section.content.image as { url?: string; alt?: string }
           : undefined;
@@ -100,14 +100,14 @@ const ProgramSections = ({
             {!isVideo && isIntroduction && (
               <div className="space-y-3">
                 <Label className="text-sm font-medium text-slate-700">Images (Multiple)</Label>
-                {images.map((url, idx) => (
-                  <div key={idx} className="flex gap-2">
+                {rawImages.map((img, idx) => (
+                  <div key={img.id ?? `new-${idx}`} className="flex gap-2">
                     <Input
-                      value={url}
+                      value={img.url}
                       onChange={(e) => {
-                        const newImages = [...images];
-                        newImages[idx] = e.target.value;
-                        updateContentField(sectionIndex, 'images', newImages.map((u) => ({ url: u })));
+                        const newImages = [...rawImages];
+                        newImages[idx] = { ...newImages[idx], url: e.target.value };
+                        updateContentField(sectionIndex, 'images', newImages);
                       }}
                       placeholder="Image URL"
                       className="flex-1"
@@ -117,8 +117,8 @@ const ProgramSections = ({
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        const newImages = images.filter((_, i) => i !== idx);
-                        updateContentField(sectionIndex, 'images', newImages.map((u) => ({ url: u })));
+                        const newImages = rawImages.filter((_, i) => i !== idx);
+                        updateContentField(sectionIndex, 'images', newImages);
                       }}
                       className="hover:bg-red-100 hover:text-red-600"
                     >
@@ -130,7 +130,7 @@ const ProgramSections = ({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => updateContentField(sectionIndex, 'images', [...images, ''].map((u) => ({ url: u })))}
+                  onClick={() => updateContentField(sectionIndex, 'images', [...rawImages, { url: '' }])}
                   className="w-full"
                 >
                   <Plus className="w-4 h-4 mr-2" />
@@ -177,7 +177,7 @@ const ProgramSections = ({
 
             <Label className="text-sm font-medium text-slate-700">Cards</Label>
             {items.map((card, idx) => (
-              <div key={idx} className="border border-slate-300 rounded-lg p-4 space-y-3 bg-white">
+              <div key={card.id ?? `new-${idx}`} className="border border-slate-300 rounded-lg p-4 space-y-3 bg-white">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-600">Card {idx + 1}</span>
                   <Button
@@ -225,7 +225,7 @@ const ProgramSections = ({
           <div className="space-y-4">
             <Label className="text-sm font-medium text-slate-700">Statistics</Label>
             {items.map((stat, idx) => (
-              <div key={idx} className="border border-slate-300 rounded-lg p-4 space-y-3 bg-white">
+              <div key={stat.id ?? `new-${idx}`} className="border border-slate-300 rounded-lg p-4 space-y-3 bg-white">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-600">Stat {idx + 1}</span>
                   <Button
@@ -271,7 +271,7 @@ const ProgramSections = ({
           <div className="space-y-4">
             <Label className="text-sm font-medium text-slate-700">Courses</Label>
             {courses.map((course, courseIdx) => (
-              <div key={courseIdx} className="border border-slate-300 rounded-lg p-4 space-y-4 bg-white">
+              <div key={course.id ?? `new-${courseIdx}`} className="border border-slate-300 rounded-lg p-4 space-y-4 bg-white">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-600">Course {courseIdx + 1}</span>
                   <Button
@@ -299,7 +299,7 @@ const ProgramSections = ({
                 <div className="space-y-3 pl-4 border-l-2 border-purple-200">
                   <Label className="text-xs font-medium text-slate-600">Universities</Label>
                   {(Array.isArray(course.universities) ? course.universities : []).map((uni, uniIdx) => (
-                    <div key={uniIdx} className="flex gap-2 items-start">
+                    <div key={uni.id ?? `new-uni-${uniIdx}`} className="flex gap-2 items-start">
                       <Input
                         value={uni.name}
                         onChange={(e) => {
@@ -399,7 +399,7 @@ const ProgramSections = ({
 
         {sections.map((section, index) => (
           <div
-            key={section.section_key}
+            key={section.id ?? section.section_key}
             className="border border-slate-200 rounded-xl p-4 space-y-4 bg-slate-50/50"
           >
             <div className="flex items-center justify-between">

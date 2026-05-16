@@ -37,8 +37,8 @@ const ProjectPostManager = ({ editingProgram: externalEditingProgram, onProgramS
       }
       return false;
     } catch (error) {
-      console.error('Failed to save program:', error);
-      toast({ title: 'Error', description: 'Failed to save program. Please try again.', variant: 'destructive' });
+      const message = error instanceof Error ? error.message : 'Failed to save program. Please try again.';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
       return false;
     }
   };

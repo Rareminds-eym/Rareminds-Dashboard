@@ -29,17 +29,22 @@ export const usePrograms = () => {
     const { toast } = useToast();
 
     // Helper to map a database row + nested sections to a Program
-    const dbRowToProgram = (row: Record<string, unknown>): Program => {
+    const dbRowToProgram = (input: unknown): Program => {
+        const row = (input !== null && typeof input === 'object' && !Array.isArray(input))
+            ? input as Record<string, unknown>
+            : {} as Record<string, unknown>;
         const sections = Array.isArray(row.program_sections)
-            ? (row.program_sections as Record<string, unknown>[]).map(
+            ? row.program_sections
+                .filter((s): s is Record<string, unknown> => s !== null && typeof s === 'object' && !Array.isArray(s))
+                .map(
                 (s): ProgramSection => ({
                     id: s.id as string,
                     program_id: s.program_id as string,
                     section_key: s.section_key as SectionKeyType,
-                    content_type: (s.content_type as ContentType) ?? 'text', // NEW FIELD
+                    content_type: (s.content_type as ContentType) ?? 'text',
                     title: (s.title as string) ?? null,
-                    preamble: (s.preamble as string) ?? null, // NEW FIELD
-                    content: (s.content as Record<string, unknown>) ?? {}, // NOW JSONB instead of TEXT
+                    preamble: (s.preamble as string) ?? null,
+                    content: (s.content as Record<string, unknown>) ?? {},
                     display_order: (s.display_order as number) ?? 0,
                     created_at: s.created_at as string,
                     updated_at: s.updated_at as string,
@@ -79,7 +84,7 @@ export const usePrograms = () => {
 
             if (error) throw error;
 
-            const mapped = data?.map((row) => dbRowToProgram(row as unknown as Record<string, unknown>)) || [];
+            const mapped = data?.map((row) => dbRowToProgram(row)) || [];
             setPrograms(mapped);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to fetch programs';
@@ -235,8 +240,7 @@ export const usePrograms = () => {
                 .single();
 
             if (updateError) {
-                console.error('Update error:', updateError);
-                throw updateError;
+                throw new Error(updateError.message);
             }
             // Upsert sections that are in the form data
             const newSectionKeys = formData.sections.map((s) => s.section_key);
@@ -256,8 +260,7 @@ export const usePrograms = () => {
                     .upsert(sectionRows, { onConflict: 'program_id,section_key' });
 
                 if (upsertError) {
-                    console.error('Upsert error:', upsertError);
-                    throw upsertError;
+                    throw new Error(upsertError.message);
                 }
             }
 
@@ -433,7 +436,7 @@ export const usePrograms = () => {
 
             if (error) throw error;
 
-            return dbRowToProgram(data as unknown as Record<string, unknown>);
+            return dbRowToProgram(data);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to fetch program';
             setError(errorMessage);
