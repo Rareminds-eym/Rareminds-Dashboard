@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../integrations/supabase/client';
+import { Json } from '../integrations/supabase/types';
 import { Program, ProgramSection, ProgramFormData, SectionKeyType, ContentType } from '../types/program';
 import { useToast } from './use-toast';
 import { useAuth } from './useAuth';
-import { useUserRole } from './useUserRole';
+
 
 /**
  * Generate a URL-friendly slug from a title string.
@@ -25,7 +26,6 @@ export const usePrograms = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { user } = useAuth();
-    const { userRole } = useUserRole();
     const { toast } = useToast();
 
     // Helper to map a database row + nested sections to a Program
@@ -71,22 +71,15 @@ export const usePrograms = () => {
         try {
             setLoading(true);
             setError(null);
-
-            console.log('[usePrograms] Fetching programs from Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
-
             const { data, error } = await supabase
                 .from('programs')
                 .select('*, program_sections(*)')
                 .order('display_order', { ascending: true })
                 .order('created_at', { ascending: false });
 
-            console.log('[usePrograms] Response data:', data);
-            console.log('[usePrograms] Response error:', error);
-
             if (error) throw error;
 
             const mapped = data?.map((row) => dbRowToProgram(row as unknown as Record<string, unknown>)) || [];
-            console.log('[usePrograms] Mapped programs:', mapped.length);
             setPrograms(mapped);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to fetch programs';
@@ -144,16 +137,16 @@ export const usePrograms = () => {
                 const sectionRows = formData.sections.map((s, idx) => ({
                     program_id: data.id,
                     section_key: s.section_key,
-                    content_type: s.content_type || 'text', // NEW FIELD with default
+                    content_type: s.content_type || 'text',
                     title: s.title || null,
-                    preamble: s.preamble || null, // NEW FIELD
-                    content: s.content || {}, // NOW JSONB
+                    preamble: s.preamble || null,
+                    content: (s.content || {}) as Json,
                     display_order: idx,
                 }));
 
                 const { data: sectionData, error: sectionError } = await supabase
                     .from('program_sections')
-                    .insert(sectionRows as any) // Type assertion until Supabase types are regenerated
+                    .insert(sectionRows)
                     .select();
 
                 if (sectionError) throw sectionError;
@@ -163,10 +156,10 @@ export const usePrograms = () => {
                         id: s.id,
                         program_id: s.program_id,
                         section_key: s.section_key as SectionKeyType,
-                        content_type: (s as any).content_type ?? 'text', // NEW FIELD
+                        content_type: (s.content_type as ContentType) ?? 'text',
                         title: s.title,
-                        preamble: (s as any).preamble, // NEW FIELD
-                        content: ((s as any).content ?? {}) as Record<string, unknown>, // NOW JSONB
+                        preamble: s.preamble,
+                        content: (s.content as Record<string, unknown>) ?? {},
                         display_order: s.display_order,
                         created_at: s.created_at,
                         updated_at: s.updated_at,
@@ -220,10 +213,6 @@ export const usePrograms = () => {
         try {
             setLoading(true);
             setError(null);
-
-            console.log('Updating program with ID:', id);
-            console.log('Form data:', formData);
-
             // Update the program row
             const { data, error: updateError } = await supabase
                 .from('programs')
@@ -249,9 +238,6 @@ export const usePrograms = () => {
                 console.error('Update error:', updateError);
                 throw updateError;
             }
-
-            console.log('Program updated successfully:', data);
-
             // Upsert sections that are in the form data
             const newSectionKeys = formData.sections.map((s) => s.section_key);
 
@@ -262,15 +248,12 @@ export const usePrograms = () => {
                     content_type: s.content_type || 'text',
                     title: s.title || null,
                     preamble: s.preamble || null,
-                    content: s.content || {},
+                    content: (s.content || {}) as Json,
                     display_order: idx,
                 }));
-
-                console.log('Upserting sections:', sectionRows);
-
                 const { error: upsertError } = await supabase
                     .from('program_sections')
-                    .upsert(sectionRows as any, { onConflict: 'program_id,section_key' });
+                    .upsert(sectionRows, { onConflict: 'program_id,section_key' });
 
                 if (upsertError) {
                     console.error('Upsert error:', upsertError);
@@ -311,10 +294,10 @@ export const usePrograms = () => {
                     id: s.id,
                     program_id: s.program_id,
                     section_key: s.section_key as SectionKeyType,
-                    content_type: (s as any).content_type ?? 'text', // NEW FIELD
+                    content_type: (s.content_type as ContentType) ?? 'text',
                     title: s.title,
-                    preamble: (s as any).preamble, // NEW FIELD
-                    content: ((s as any).content ?? {}) as Record<string, unknown>, // NOW JSONB
+                    preamble: s.preamble,
+                    content: (s.content as Record<string, unknown>) ?? {},
                     display_order: s.display_order,
                     created_at: s.created_at,
                     updated_at: s.updated_at,

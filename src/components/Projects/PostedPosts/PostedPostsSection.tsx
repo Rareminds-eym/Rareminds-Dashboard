@@ -29,7 +29,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
     const matchesSearch =
       program.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (program.short_description || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || program.status === filterStatus;
+    const matchesStatus = filterStatus === 'all' || (program.status ?? '') === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
@@ -311,10 +311,13 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                     {section.content && (
                                       <div className="text-slate-700 dark:text-slate-300 leading-relaxed">
                                         {/* Render based on content_type or section_key */}
-                                        {section.section_key === 'video' && section.content.text && (
+                                        {section.section_key === 'video' && typeof section.content.text === 'string' && section.content.text && (
                                           <div className="space-y-4">
-                                            {(section.content.text as string).split(',').map((videoUrl, idx) => {
-                                              const cleanUrl = videoUrl.trim();
+                                            {(section.content.text as string)
+                                              .split(',')
+                                              .map((v) => v.trim())
+                                              .filter((v) => v.startsWith('http://') || v.startsWith('https://'))
+                                              .map((cleanUrl, idx) => {
                                               return (
                                                 <div key={idx} className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                                                   <video
@@ -337,9 +340,9 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                             {/* Handle images array (introduction sections) */}
                                             {Array.isArray(section.content.images) && section.content.images.length > 0 && (
                                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                                                {(section.content.images as Array<{ url: string }>).map((img, idx) => (
+                                                {(section.content.images as Array<{ id?: string; url: string }>).map((img, idx) => (
                                                   <img 
-                                                    key={idx} 
+                                                    key={img.id ?? `img-${idx}`} 
                                                     src={img.url} 
                                                     alt={`${section.title || 'Section'} image ${idx + 1}`}
                                                     className="w-full h-48 object-cover rounded-lg"
@@ -348,10 +351,13 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                               </div>
                                             )}
                                             {/* Handle single image object (conclusion sections) */}
-                                            {section.content.image && typeof section.content.image === 'object' && (section.content.image as { url?: string }).url && (
+                                            {section.content.image !== null &&
+                                              typeof section.content.image === 'object' &&
+                                              'url' in section.content.image &&
+                                              typeof (section.content.image as Record<string, unknown>).url === 'string' && (
                                               <div className="mt-4">
-                                                <img 
-                                                  src={(section.content.image as { url: string }).url} 
+                                                <img
+                                                  src={(section.content.image as Record<string, string>).url}
                                                   alt={section.title || 'Section image'}
                                                   className="w-full max-w-2xl h-64 object-cover rounded-lg mx-auto"
                                                 />
@@ -361,8 +367,8 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                         )}
                                         {section.content_type === 'cards' && Array.isArray(section.content.items) && (
                                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                            {(section.content.items as Array<{ title?: string; description?: string }>).map((item, idx) => (
-                                              <div key={idx} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                                            {(section.content.items as Array<{ id?: string; title?: string; description?: string }>).map((item, idx) => (
+                                              <div key={item.id ?? `card-${idx}`} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
                                                 {item.title && <h6 className="font-semibold mb-1">{item.title}</h6>}
                                                 {item.description && <p className="text-sm">{item.description}</p>}
                                               </div>
@@ -371,8 +377,8 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                         )}
                                         {section.content_type === 'stats' && Array.isArray(section.content.items) && (
                                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                                            {(section.content.items as Array<{ label?: string; value?: string }>).map((item, idx) => (
-                                              <div key={idx} className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                                            {(section.content.items as Array<{ id?: string; label?: string; value?: string }>).map((item, idx) => (
+                                              <div key={item.id ?? `stat-${idx}`} className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
                                                 {item.value && <div className="text-2xl font-bold text-purple-600">{item.value}</div>}
                                                 {item.label && <div className="text-sm text-slate-600 dark:text-slate-400">{item.label}</div>}
                                               </div>
@@ -389,7 +395,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                               universities?: Array<{ id?: string; name?: string; students?: number }>;
                                               description?: string;
                                             }>).map((course, idx) => (
-                                              <div key={idx} className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                                              <div key={course.id ?? `course-${idx}`} className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
                                                 {/* Course Header */}
                                                 <div className="bg-slate-100 dark:bg-slate-800 px-4 py-3 flex items-center justify-between">
                                                   <h6 className="font-semibold text-slate-900 dark:text-white">
@@ -405,7 +411,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                                 {Array.isArray(course.universities) && course.universities.length > 0 && (
                                                   <div className="divide-y divide-slate-100 dark:divide-slate-700">
                                                     {course.universities.map((uni, uIdx) => (
-                                                      <div key={uIdx} className="flex items-center justify-between px-4 py-2">
+                                                      <div key={uni.id ?? `uni-${uIdx}`} className="flex items-center justify-between px-4 py-2">
                                                         <span className="text-sm text-slate-700 dark:text-slate-300">{uni.name}</span>
                                                         {uni.students && (
                                                           <span className="text-sm font-medium text-slate-600 dark:text-slate-400">

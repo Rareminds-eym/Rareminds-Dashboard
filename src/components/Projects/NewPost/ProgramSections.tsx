@@ -70,10 +70,12 @@ const ProgramSections = ({
 
     switch (contentType) {
       case 'text': {
-        const textContent = (section.content.text as string) || '';
-        const rawImages = (section.content.images as ImageItem[]) || [];
-        const images = rawImages.map((img) => img?.url || '');
-        const rawImage = section.content.image as { url?: string; alt?: string } | undefined;
+        const textContent = typeof section.content.text === 'string' ? section.content.text : '';
+        const rawImages = Array.isArray(section.content.images) ? section.content.images as ImageItem[] : [];
+        const images = rawImages.map((img) => (img && typeof img.url === 'string' ? img.url : ''));
+        const rawImage = section.content.image !== null && typeof section.content.image === 'object'
+          ? section.content.image as { url?: string; alt?: string }
+          : undefined;
         const image = { url: rawImage?.url || '', alt: rawImage?.alt || '' };
 
         const isVideo = section.section_key === 'video';
@@ -157,8 +159,8 @@ const ProgramSections = ({
       }
 
       case 'cards': {
-        const items = (section.content.items as CardItem[]) || [];
-        const description = (section.content.description as string) || '';
+        const items = Array.isArray(section.content.items) ? section.content.items as CardItem[] : [];
+        const description = typeof section.content.description === 'string' ? section.content.description : '';
 
         return (
           <div className="space-y-4">
@@ -217,7 +219,7 @@ const ProgramSections = ({
       }
 
       case 'stats': {
-        const items = (section.content.items as StatItem[]) || [];
+        const items = Array.isArray(section.content.items) ? section.content.items as StatItem[] : [];
 
         return (
           <div className="space-y-4">
@@ -263,7 +265,7 @@ const ProgramSections = ({
       }
 
       case 'courses': {
-        const courses = (section.content.courses as CourseItem[]) || [];
+        const courses = Array.isArray(section.content.courses) ? section.content.courses as CourseItem[] : [];
 
         return (
           <div className="space-y-4">
@@ -296,12 +298,12 @@ const ProgramSections = ({
 
                 <div className="space-y-3 pl-4 border-l-2 border-purple-200">
                   <Label className="text-xs font-medium text-slate-600">Universities</Label>
-                  {(course.universities || []).map((uni, uniIdx) => (
+                  {(Array.isArray(course.universities) ? course.universities : []).map((uni, uniIdx) => (
                     <div key={uniIdx} className="flex gap-2 items-start">
                       <Input
                         value={uni.name}
                         onChange={(e) => {
-                          const newUniversities = [...(course.universities || [])];
+                          const newUniversities = [...(Array.isArray(course.universities) ? course.universities : [])];
                           newUniversities[uniIdx] = { ...uni, name: e.target.value };
                           updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities', newUniversities);
                         }}
@@ -312,7 +314,7 @@ const ProgramSections = ({
                         type="number"
                         value={uni.students}
                         onChange={(e) => {
-                          const newUniversities = [...(course.universities || [])];
+                          const newUniversities = [...(Array.isArray(course.universities) ? course.universities : [])];
                           newUniversities[uniIdx] = { ...uni, students: parseInt(e.target.value) || 0 };
                           updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities', newUniversities);
                         }}
@@ -324,7 +326,7 @@ const ProgramSections = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          const newUniversities = (course.universities || []).filter((_, i) => i !== uniIdx);
+                          const newUniversities = (Array.isArray(course.universities) ? course.universities : []).filter((_, i) => i !== uniIdx);
                           updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities', newUniversities);
                         }}
                         className="h-9 w-9 p-0 hover:bg-red-100 hover:text-red-600"

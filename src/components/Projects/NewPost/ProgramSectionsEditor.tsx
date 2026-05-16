@@ -13,9 +13,22 @@ const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
   const res = await fetch('/upload', { method: 'POST', body: formData });
-  if (!res.ok) throw new Error('Upload failed');
-  const { url } = await res.json();
-  return url;
+  let data: unknown;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error('Upload failed: server returned an invalid response');
+  }
+  if (!res.ok) {
+    const errMsg = data && typeof data === 'object' && 'error' in data && typeof (data as Record<string, unknown>).error === 'string'
+      ? (data as Record<string, unknown>).error as string
+      : `Upload failed (${res.status})`;
+    throw new Error(errMsg);
+  }
+  if (!data || typeof data !== 'object' || !('url' in data) || typeof (data as Record<string, unknown>).url !== 'string') {
+    throw new Error('Upload failed: no URL returned');
+  }
+  return (data as Record<string, string>).url;
 };
 
 export type SectionItem = {
@@ -42,6 +55,7 @@ const formatSectionKey = (key: string): string =>
 
 const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProps) => {
   const [uploadingStates, setUploadingStates] = useState<Record<string, boolean>>({});
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const setUploading = (key: string, val: boolean) =>
     setUploadingStates((prev) => ({ ...prev, [key]: val }));
@@ -116,7 +130,9 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
       case 'text': {
         const textContent = (section.content.text as string) || '';
         const rawImages = (section.content.images as ImageItem[]) || [];
-        const images = rawImages.map((img) => (typeof img === 'string' ? img : img?.url || ''));
+        const images: ImageItem[] = rawImages.map((img) =>
+          typeof img === 'string' ? { url: img } : { id: img?.id, url: img?.url || '' }
+        );
         const rawImage = section.content.image as { url?: string; alt?: string } | undefined;
         const image = { url: rawImage?.url || '', alt: rawImage?.alt || '' };
         const isVideo = section.section_key === 'video';
@@ -143,7 +159,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                         const url = await uploadFile(file);
                         updateContentField(sectionIndex, 'text', url);
                       } catch (err) {
-                        console.error('Video upload failed:', err);
+                        setUploadError(err instanceof Error ? err.message : 'Video upload failed');
                       } finally {
                         setUploading(`video-${sectionIndex}`, false);
                       }
@@ -170,9 +186,9 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
             {!isVideo && isIntroduction && (
               <div className="space-y-3">
                 <Label className="text-sm font-medium text-slate-700">Images (Multiple)</Label>
-                {images.map((url, idx) => (
-                  <div key={idx} className="space-y-1">
-                    {url && <img src={url} alt={`Image ${idx + 1}`} className="w-24 h-16 object-cover rounded border border-slate-200" />}
+                {images.map((img, idx) => (
+                  <div key={img.id ?? `new-${idx}`} className="space-y-1">
+                    {img.url && <img src={img.url} alt={`Image ${idx + 1}`} className="w-24 h-16 object-cover rounded border border-slate-200" />}
                     <div className="flex gap-2 items-center">
                       <input
                         type="file"
@@ -185,10 +201,10 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                           try {
                             const url = await uploadFile(file);
                             const newImages = [...images];
-                            newImages[idx] = url;
-                            updateContentField(sectionIndex, 'images', newImages.map((u) => ({ url: u })));
+                            newImages[idx] = { ...newImages[idx], url };
+                            updateContentField(sectionIndex, 'images', newImages);
                           } catch (err) {
-                            console.error('Image upload failed:', err);
+                            setUploadError(err instanceof Error ? err.message : 'Image upload failed');
                           } finally {
                             setUploading(`intro-img-${sectionIndex}-${idx}`, false);
                           }
@@ -204,7 +220,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                         size="sm"
                         onClick={() => {
                           const newImages = images.filter((_, i) => i !== idx);
-                          updateContentField(sectionIndex, 'images', newImages.map((u) => ({ url: u })));
+                          updateContentField(sectionIndex, 'images', newImages);
                         }}
                         className="hover:bg-red-100 hover:text-red-600"
                       >
@@ -218,7 +234,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    updateContentField(sectionIndex, 'images', [...images, ''].map((u) => ({ url: u })))
+                    updateContentField(sectionIndex, 'images', [...images, { url: '' }])
                   }
                   className="w-full"
                 >
@@ -244,7 +260,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                       const url = await uploadFile(file);
                       updateContentField(sectionIndex, 'image', { url, alt: image.alt });
                     } catch (err) {
-                      console.error('Image upload failed:', err);
+                      setUploadError(err instanceof Error ? err.message : 'Image upload failed');
                     } finally {
                       setUploading(`conclusion-img-${sectionIndex}`, false);
                     }
@@ -287,7 +303,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
             </div>
             <Label className="text-sm font-medium text-slate-700">Cards</Label>
             {items.map((card, idx) => (
-              <div key={idx} className="border border-slate-300 rounded-lg p-4 space-y-3 bg-white">
+              <div key={card.id ?? `new-${idx}`} className="border border-slate-300 rounded-lg p-4 space-y-3 bg-white">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-600">Card {idx + 1}</span>
                   <Button
@@ -335,7 +351,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
           <div className="space-y-4">
             <Label className="text-sm font-medium text-slate-700">Statistics</Label>
             {items.map((stat, idx) => (
-              <div key={idx} className="border border-slate-300 rounded-lg p-4 space-y-3 bg-white">
+              <div key={stat.id ?? `new-${idx}`} className="border border-slate-300 rounded-lg p-4 space-y-3 bg-white">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-600">Stat {idx + 1}</span>
                   <Button
@@ -381,7 +397,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
           <div className="space-y-4">
             <Label className="text-sm font-medium text-slate-700">Courses</Label>
             {courses.map((course, courseIdx) => (
-              <div key={courseIdx} className="border border-slate-300 rounded-lg p-4 space-y-4 bg-white">
+              <div key={course.id ?? `new-${courseIdx}`} className="border border-slate-300 rounded-lg p-4 space-y-4 bg-white">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-600">Course {courseIdx + 1}</span>
                   <Button
@@ -410,7 +426,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                 <div className="space-y-3 pl-4 border-l-2 border-purple-200">
                   <Label className="text-xs font-medium text-slate-600">Universities</Label>
                   {(course.universities || []).map((uni, uniIdx) => (
-                    <div key={uniIdx} className="flex gap-2 items-start">
+                    <div key={uni.id ?? `new-uni-${uniIdx}`} className="flex gap-2 items-start">
                       <Input
                         value={uni.name}
                         onChange={(e) => {
@@ -578,6 +594,9 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
             <Plus className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p>No sections added yet. Use the dropdown above to add sections.</p>
           </div>
+        )}
+        {uploadError && (
+          <p className="text-sm text-red-600 mt-1">{uploadError}</p>
         )}
       </CardContent>
     </Card>

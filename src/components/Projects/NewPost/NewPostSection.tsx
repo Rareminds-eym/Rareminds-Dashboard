@@ -18,9 +18,22 @@ const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
   const res = await fetch('/upload', { method: 'POST', body: formData });
-  if (!res.ok) throw new Error('Upload failed');
-  const { url } = await res.json();
-  return url;
+  let data: unknown;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error('Upload failed: server returned an invalid response');
+  }
+  if (!res.ok) {
+    const errMsg = data && typeof data === 'object' && 'error' in data && typeof (data as Record<string, unknown>).error === 'string'
+      ? (data as Record<string, unknown>).error as string
+      : 'Upload failed';
+    throw new Error(errMsg);
+  }
+  if (!data || typeof data !== 'object' || !('url' in data) || typeof (data as Record<string, unknown>).url !== 'string') {
+    throw new Error('Upload failed: no URL returned');
+  }
+  return (data as Record<string, string>).url;
 };
 
 interface NewPostSectionProps {
@@ -42,8 +55,12 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   const [isActive, setIsActive] = useState(true);
   const [sections, setSections] = useState<SectionItem[]>([]);
   const [errors, setErrors] = useState<{ title?: string; slug?: string }>({});
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  // Tracks whether the user has manually edited the slug field.
+  // When true, title changes no longer auto-regenerate the slug.
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
 
   // Get unique values from existing programs
   const [existingProgramTypes, setExistingProgramTypes] = useState<string[]>(
@@ -59,9 +76,16 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   // Fetch existing programs to populate dropdowns
   useEffect(() => {
     const fetchExistingValues = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('programs')
         .select('program_type, location, status');
+
+      if (error) {
+        setUploadError('Failed to load form options. Please refresh and try again.');
+        // Fall back to defaults so the form remains usable
+        setExistingStatuses(['Active', 'Completed', 'In Progress']);
+        return;
+      }
 
       if (data) {
         const types = [...new Set(data.map((p) => p.program_type).filter(Boolean))];
@@ -118,6 +142,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
     if (editingProgram) {
       setTitle(editingProgram.title);
       setSlug(editingProgram.slug);
+      setSlugManuallyEdited(false);
       setShortDescription(editingProgram.short_description || '');
       setImageUrl(editingProgram.image_url || '');
       setBannerUrl(editingProgram.banner_url || '');
@@ -139,12 +164,12 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
     }
   }, [editingProgram]);
 
-  // Auto-generate slug from title
+  // Auto-generate slug from title only when creating new and user hasn't manually edited the slug
   useEffect(() => {
-    if (!editingProgram) {
+    if (!editingProgram && !slugManuallyEdited) {
       setSlug(generateSlug(title));
     }
-  }, [title, editingProgram]);
+  }, [title, editingProgram, slugManuallyEdited]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,7 +283,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                   <Input
                     id="slug"
                     value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
+                    onChange={(e) => { setSlug(e.target.value); setSlugManuallyEdited(true); }}
                     placeholder="url-friendly-slug"
                     className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
                   />
@@ -300,11 +325,12 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                       const file = e.target.files?.[0];
                       if (!file) return;
                       setUploadingImage(true);
+                      setUploadError(null);
                       try {
                         const url = await uploadFile(file);
                         setImageUrl(url);
                       } catch (err) {
-                        console.error('Image upload failed:', err);
+                        setUploadError(err instanceof Error ? err.message : 'Image upload failed');
                       } finally {
                         setUploadingImage(false);
                       }
@@ -335,11 +361,12 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                       const file = e.target.files?.[0];
                       if (!file) return;
                       setUploadingBanner(true);
+                      setUploadError(null);
                       try {
                         const url = await uploadFile(file);
                         setBannerUrl(url);
                       } catch (err) {
-                        console.error('Banner upload failed:', err);
+                        setUploadError(err instanceof Error ? err.message : 'Banner upload failed');
                       } finally {
                         setUploadingBanner(false);
                       }
@@ -350,6 +377,9 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     <div className="flex items-center gap-2 text-sm text-slate-500">
                       <Loader2 className="w-4 h-4 animate-spin" /> Uploading banner...
                     </div>
+                  )}
+                  {uploadError && (
+                    <p className="text-sm text-red-600 mt-1">{uploadError}</p>
                   )}
                 </div>
               </CardContent>
