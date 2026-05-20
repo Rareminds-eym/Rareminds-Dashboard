@@ -21,7 +21,7 @@ interface ProgramSectionsProps {
   sections: ProgramSectionData[];
   addSection: (key: SectionKeyType) => void;
   removeSection: (index: number) => void;
-  updateSection: (index: number, field: 'title' | 'content_type' | 'preamble', value: string) => void;
+  updateSection: (index: number, field: 'title' | 'content_type' | 'preamble', value: string | ContentType) => void;
   updateContentField: (sectionIndex: number, field: string, value: unknown) => void;
   addArrayItem: (sectionIndex: number, arrayKey: string, newItem: CardItem | StatItem | CourseItem | ImageItem) => void;
   removeArrayItem: (sectionIndex: number, arrayKey: string, itemIndex: number) => void;
@@ -66,6 +66,39 @@ const ProgramSections = ({
 
   const getUniversities = (course: CourseItem) =>
     Array.isArray(course.universities) ? course.universities : [];
+
+  const normalizeImageItem = (val: unknown): ImageItem => {
+    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+      const obj = val as Record<string, unknown>;
+      return { id: typeof obj.id === 'string' ? obj.id : undefined, url: typeof obj.url === 'string' ? obj.url : '' };
+    }
+    return { url: '' };
+  };
+
+  const normalizeCardItem = (val: unknown): CardItem | null => {
+    if (val === null || typeof val !== 'object' || Array.isArray(val)) return null;
+    const obj = val as Record<string, unknown>;
+    return { id: typeof obj.id === 'string' ? obj.id : undefined, title: typeof obj.title === 'string' ? obj.title : '', description: typeof obj.description === 'string' ? obj.description : '' };
+  };
+
+  const normalizeStatItem = (val: unknown): StatItem | null => {
+    if (val === null || typeof val !== 'object' || Array.isArray(val)) return null;
+    const obj = val as Record<string, unknown>;
+    return { id: typeof obj.id === 'string' ? obj.id : undefined, value: typeof obj.value === 'string' ? obj.value : '', label: typeof obj.label === 'string' ? obj.label : '' };
+  };
+
+  const normalizeCourseItem = (val: unknown): CourseItem | null => {
+    if (val === null || typeof val !== 'object' || Array.isArray(val)) return null;
+    const obj = val as Record<string, unknown>;
+    const universities = Array.isArray(obj.universities)
+      ? obj.universities.map((u: unknown) => {
+          if (u === null || typeof u !== 'object' || Array.isArray(u)) return null;
+          const uni = u as Record<string, unknown>;
+          return { id: typeof uni.id === 'string' ? uni.id : undefined, name: typeof uni.name === 'string' ? uni.name : '', students: typeof uni.students === 'number' ? uni.students : 0 };
+        }).filter((u): u is NonNullable<typeof u> => u !== null)
+      : [];
+    return { id: typeof obj.id === 'string' ? obj.id : undefined, title: typeof obj.title === 'string' ? obj.title : '', total: typeof obj.total === 'number' ? obj.total : 0, universities };
+  };
   const availableSectionKeys = ALL_SECTION_KEYS.filter(
     (key) => !sections.some((s) => s.section_key === key)
   );
@@ -76,7 +109,9 @@ const ProgramSections = ({
     switch (contentType) {
       case 'text': {
         const textContent = typeof section.content.text === 'string' ? section.content.text : '';
-        const rawImages = Array.isArray(section.content.images) ? section.content.images as ImageItem[] : [];
+        const rawImages: ImageItem[] = Array.isArray(section.content.images)
+          ? section.content.images.map(normalizeImageItem)
+          : [];
         const rawImage = isImageObject(section.content.image)
           ? section.content.image
           : undefined;
@@ -156,7 +191,9 @@ const ProgramSections = ({
       }
 
       case 'cards': {
-        const items = Array.isArray(section.content.items) ? section.content.items as CardItem[] : [];
+        const items: CardItem[] = Array.isArray(section.content.items)
+          ? section.content.items.map(normalizeCardItem).filter((c): c is CardItem => c !== null)
+          : [];
         const description = typeof section.content.description === 'string' ? section.content.description : '';
 
         return (
@@ -216,7 +253,9 @@ const ProgramSections = ({
       }
 
       case 'stats': {
-        const items = Array.isArray(section.content.items) ? section.content.items as StatItem[] : [];
+        const items: StatItem[] = Array.isArray(section.content.items)
+          ? section.content.items.map(normalizeStatItem).filter((s): s is StatItem => s !== null)
+          : [];
 
         return (
           <div className="space-y-4">
@@ -262,7 +301,9 @@ const ProgramSections = ({
       }
 
       case 'courses': {
-        const courses = Array.isArray(section.content.courses) ? section.content.courses as CourseItem[] : [];
+        const courses: CourseItem[] = Array.isArray(section.content.courses)
+          ? section.content.courses.map(normalizeCourseItem).filter((c): c is CourseItem => c !== null)
+          : [];
 
         return (
           <div className="space-y-4">

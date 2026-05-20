@@ -36,6 +36,28 @@ const toRecord = (val: unknown): Record<string, unknown> =>
         ? (val as Record<string, unknown>)
         : {};
 
+const VALID_SECTION_KEYS: readonly SectionKeyType[] = [
+    'introduction', 'about', 'modules', 'approaches', 'impact',
+    'strategic_alignment', 'conclusion', 'header', 'course_enrollment',
+    'program_delivery', 'intervention', 'video',
+] as const;
+
+const VALID_CONTENT_TYPES: readonly ContentType[] = ['text', 'cards', 'stats', 'courses'] as const;
+
+const toSectionKey = (val: unknown): SectionKeyType => {
+    const str = asString(val);
+    return (VALID_SECTION_KEYS as readonly string[]).includes(str)
+        ? str as SectionKeyType
+        : 'introduction';
+};
+
+const toContentType = (val: unknown): ContentType => {
+    const str = asString(val);
+    return (VALID_CONTENT_TYPES as readonly string[]).includes(str)
+        ? str as ContentType
+        : 'text';
+};
+
 export const usePrograms = () => {
     const [programs, setPrograms] = useState<Program[]>([]);
     const [loading, setLoading] = useState(false);
@@ -55,8 +77,8 @@ export const usePrograms = () => {
                 (s): ProgramSection => ({
                     id: asString(s.id),
                     program_id: asString(s.program_id),
-                    section_key: asString(s.section_key) as SectionKeyType,
-                    content_type: (asString(s.content_type) as ContentType) || 'text',
+                    section_key: toSectionKey(s.section_key),
+                    content_type: toContentType(s.content_type),
                     title: typeof s.title === 'string' ? s.title : null,
                     preamble: typeof s.preamble === 'string' ? s.preamble : null,
                     content: toRecord(s.content),
@@ -175,11 +197,11 @@ export const usePrograms = () => {
                     (s): ProgramSection => ({
                         id: s.id,
                         program_id: s.program_id,
-                        section_key: s.section_key as SectionKeyType,
-                        content_type: (s.content_type as ContentType) ?? 'text',
+                        section_key: toSectionKey(s.section_key),
+                        content_type: toContentType(s.content_type),
                         title: s.title,
                         preamble: s.preamble,
-                        content: (s.content as Record<string, unknown>) ?? {},
+                        content: toRecord(s.content),
                         display_order: s.display_order,
                         created_at: s.created_at,
                         updated_at: s.updated_at,
@@ -311,11 +333,11 @@ export const usePrograms = () => {
                 (s): ProgramSection => ({
                     id: s.id,
                     program_id: s.program_id,
-                    section_key: s.section_key as SectionKeyType,
-                    content_type: (s.content_type as ContentType) ?? 'text',
+                    section_key: toSectionKey(s.section_key),
+                    content_type: toContentType(s.content_type),
                     title: s.title,
                     preamble: s.preamble,
-                    content: (s.content as Record<string, unknown>) ?? {},
+                    content: toRecord(s.content),
                     display_order: s.display_order,
                     created_at: s.created_at,
                     updated_at: s.updated_at,

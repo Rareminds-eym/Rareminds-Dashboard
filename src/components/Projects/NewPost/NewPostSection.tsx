@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Program, ProgramFormData } from '../../../types/program';
 import { generateSlug } from '../../../hooks/usePrograms';
 import { supabase } from '../../../integrations/supabase/client';
@@ -23,11 +23,9 @@ interface UploadResponse {
 // ✅ One type guard — replaces all 4 'as' casts
 const isUploadResponse = (data: unknown): data is UploadResponse => {
   if (typeof data !== 'object' || data === null) return false;
-
-  const hasUrl = 'url' in data && typeof (data as { url: unknown }).url === 'string' &&
-    (data as { url: string }).url.length > 0;
-  const hasError = 'error' in data && typeof (data as { error: unknown }).error === 'string';
-
+  const obj = data as Record<string, unknown>;
+  const hasUrl = typeof obj.url === 'string' && obj.url.length > 0;
+  const hasError = typeof obj.error === 'string';
   return hasUrl || hasError;
 };
 
@@ -63,7 +61,7 @@ const uploadFile = async (file: File): Promise<string> => {
 const removeIds = (obj: Record<string, unknown>): Record<string, unknown> => {
   const process = (val: unknown): unknown => {
     if (Array.isArray(val)) return val.map(process);
-    if (val !== null && typeof val === 'object') {
+    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
       return Object.fromEntries(
         Object.entries(val as Record<string, unknown>)
           .filter(([k]) => k !== 'id')
@@ -98,6 +96,8 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   const [bannerUploadError, setBannerUploadError] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
   // Tracks whether the user has manually edited the slug field.
   // When true, title changes no longer auto-regenerate the slug.
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
@@ -114,15 +114,18 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   );
 
   // Fetch existing programs to populate dropdowns
+  const editingProgramRef = useRef(editingProgram);
+  editingProgramRef.current = editingProgram;
+
   useEffect(() => {
     const fetchExistingValues = async () => {
+      const current = editingProgramRef.current;
       const { data, error } = await supabase
         .from('programs')
         .select('program_type, location, status');
 
       if (error) {
         setFormLoadError('Failed to load form options. Please refresh and try again.');
-        // Fall back to defaults so the form remains usable
         setExistingStatuses(['Active', 'Completed', 'In Progress']);
         return;
       }
@@ -132,15 +135,14 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
         const locations = [...new Set(data.map((p) => p.location).filter(Boolean))];
         const statuses = [...new Set(data.map((p) => p.status).filter(Boolean))];
 
-        // Ensure the editing program's values are always present in the lists
-        if (editingProgram?.program_type && !types.includes(editingProgram.program_type)) {
-          types.unshift(editingProgram.program_type);
+        if (current?.program_type && !types.includes(current.program_type)) {
+          types.unshift(current.program_type);
         }
-        if (editingProgram?.location && !locations.includes(editingProgram.location)) {
-          locations.unshift(editingProgram.location);
+        if (current?.location && !locations.includes(current.location)) {
+          locations.unshift(current.location);
         }
-        if (editingProgram?.status && !statuses.includes(editingProgram.status)) {
-          statuses.unshift(editingProgram.status);
+        if (current?.status && !statuses.includes(current.status)) {
+          statuses.unshift(current.status);
         }
 
         const finalStatuses = statuses.length > 0 ? statuses : ['Active', 'Completed', 'In Progress'];
@@ -244,9 +246,9 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
     setImageUploadError(null);
     uploadFile(file)
       .then((url) => setImageUrl(url))
-      .catch((err) => {
+      .catch((err: unknown) => {
         setImageUploadError(err instanceof Error ? err.message : 'Image upload failed');
-        e.target.value = '';
+        if (imageInputRef.current) imageInputRef.current.value = '';
       })
       .finally(() => setUploadingImage(false));
   };
@@ -258,9 +260,9 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
     setBannerUploadError(null);
     uploadFile(file)
       .then((url) => setBannerUrl(url))
-      .catch((err) => {
+      .catch((err: unknown) => {
         setBannerUploadError(err instanceof Error ? err.message : 'Banner upload failed');
-        e.target.value = '';
+        if (bannerInputRef.current) bannerInputRef.current.value = '';
       })
       .finally(() => setUploadingBanner(false));
   };
@@ -369,6 +371,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     accept="image/*"
                     disabled={uploadingImage}
                     onChange={handleImageUpload}
+                    ref={imageInputRef}
                     className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                   />
                   {uploadingImage && (
@@ -394,6 +397,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     accept="image/*"
                     disabled={uploadingBanner}
                     onChange={handleBannerUpload}
+                    ref={bannerInputRef}
                     className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                   />
                   {uploadingBanner && (

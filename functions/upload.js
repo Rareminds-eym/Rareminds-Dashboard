@@ -7,7 +7,7 @@ import { AwsClient } from 'aws4fetch';
 /**
  * @param {Request} request
  * @param {{ ALLOWED_ORIGIN?: string, ALLOWED_ORIGINS?: string }} env
- * @returns {Record<string, string>}
+ * @returns {Record<string, string> | null}
  */
 function getCorsHeaders(request, env) {
   const origin = request.headers.get('Origin') || '';

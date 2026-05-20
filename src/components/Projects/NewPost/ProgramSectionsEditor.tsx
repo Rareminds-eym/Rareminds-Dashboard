@@ -26,6 +26,62 @@ const hasStringUrl = (val: unknown): val is { url: string } => {
     typeof (val as { url: unknown }).url === 'string'
   );
 };
+
+// ── Runtime normalisers — validate each element from unknown DB data ──────────
+
+const normalizeImageItem = (val: unknown): ImageItem => {
+  if (typeof val === 'string') return { url: val };
+  if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+    const obj = val as Record<string, unknown>;
+    return {
+      id: typeof obj.id === 'string' ? obj.id : undefined,
+      url: typeof obj.url === 'string' ? obj.url : '',
+    };
+  }
+  return { url: '' };
+};
+
+const normalizeCardItem = (val: unknown): CardItem | null => {
+  if (val === null || typeof val !== 'object' || Array.isArray(val)) return null;
+  const obj = val as Record<string, unknown>;
+  return {
+    id: typeof obj.id === 'string' ? obj.id : undefined,
+    title: typeof obj.title === 'string' ? obj.title : '',
+    description: typeof obj.description === 'string' ? obj.description : '',
+  };
+};
+
+const normalizeStatItem = (val: unknown): StatItem | null => {
+  if (val === null || typeof val !== 'object' || Array.isArray(val)) return null;
+  const obj = val as Record<string, unknown>;
+  return {
+    id: typeof obj.id === 'string' ? obj.id : undefined,
+    value: typeof obj.value === 'string' ? obj.value : '',
+    label: typeof obj.label === 'string' ? obj.label : '',
+  };
+};
+
+const normalizeCourseItem = (val: unknown): CourseItem | null => {
+  if (val === null || typeof val !== 'object' || Array.isArray(val)) return null;
+  const obj = val as Record<string, unknown>;
+  const universities = Array.isArray(obj.universities)
+    ? obj.universities.map((u: unknown) => {
+        if (u === null || typeof u !== 'object' || Array.isArray(u)) return null;
+        const uni = u as Record<string, unknown>;
+        return {
+          id: typeof uni.id === 'string' ? uni.id : undefined,
+          name: typeof uni.name === 'string' ? uni.name : '',
+          students: typeof uni.students === 'number' ? uni.students : 0,
+        };
+      }).filter((u): u is NonNullable<typeof u> => u !== null)
+    : [];
+  return {
+    id: typeof obj.id === 'string' ? obj.id : undefined,
+    title: typeof obj.title === 'string' ? obj.title : '',
+    total: typeof obj.total === 'number' ? obj.total : 0,
+    universities,
+  };
+};
 const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
@@ -116,7 +172,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
     onChange(
       sections.map((s, i) => {
         if (i !== sectionIndex) return s;
-        const current = Array.isArray(s.content[arrayKey]) ? (s.content[arrayKey] as (CardItem | StatItem | CourseItem | ImageItem)[]) : [];
+        const current = Array.isArray(s.content[arrayKey]) ? (s.content[arrayKey] as unknown[]) : [];
         return { ...s, content: { ...s.content, [arrayKey]: [...current, newItem] } };
       })
     );
@@ -126,7 +182,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
     onChange(
       sections.map((s, i) => {
         if (i !== sectionIndex) return s;
-        const current = (s.content[arrayKey] as unknown[]) || [];
+        const current = Array.isArray(s.content[arrayKey]) ? s.content[arrayKey] as unknown[] : [];
         return { ...s, content: { ...s.content, [arrayKey]: current.filter((_, idx) => idx !== itemIndex) } };
       })
     );
@@ -142,7 +198,12 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
     onChange(
       sections.map((s, i) => {
         if (i !== sectionIndex) return s;
-        const current = Array.isArray(s.content[arrayKey]) ? (s.content[arrayKey] as Record<string, unknown>[]) : [];
+        const current = Array.isArray(s.content[arrayKey])
+          ? (s.content[arrayKey] as unknown[]).filter(
+              (item): item is Record<string, unknown> =>
+                item !== null && typeof item === 'object' && !Array.isArray(item)
+            )
+          : [];
         return {
           ...s,
           content: {
@@ -158,10 +219,9 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
     switch (section.content_type) {
       case 'text': {
         const textContent = typeof section.content.text === 'string' ? section.content.text : '';
-        const rawImages = Array.isArray(section.content.images) ? section.content.images as ImageItem[] : [];
-        const images: ImageItem[] = rawImages.map((img) =>
-          typeof img === 'string' ? { url: img } : { id: img?.id, url: img?.url || '' }
-        );
+        const images: ImageItem[] = Array.isArray(section.content.images)
+          ? section.content.images.map(normalizeImageItem)
+          : [];
         const rawImage = isImageObject(section.content.image) ? section.content.image : undefined;
         const image = { url: rawImage?.url || '', alt: rawImage?.alt || '' };
         const isVideo = section.section_key === 'video';
@@ -317,7 +377,9 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
       }
 
       case 'cards': {
-        const items = Array.isArray(section.content.items) ? section.content.items as CardItem[] : [];
+        const items: CardItem[] = Array.isArray(section.content.items)
+          ? section.content.items.map(normalizeCardItem).filter((c): c is CardItem => c !== null)
+          : [];
         const description = typeof section.content.description === 'string' ? section.content.description : '';
 
         return (
@@ -376,7 +438,9 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
       }
 
       case 'stats': {
-        const items = Array.isArray(section.content.items) ? section.content.items as StatItem[] : [];
+        const items: StatItem[] = Array.isArray(section.content.items)
+          ? section.content.items.map(normalizeStatItem).filter((s): s is StatItem => s !== null)
+          : [];
 
         return (
           <div className="space-y-4">
@@ -422,7 +486,9 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
       }
 
       case 'courses': {
-        const courses = Array.isArray(section.content.courses) ? section.content.courses as CourseItem[] : [];
+        const courses: CourseItem[] = Array.isArray(section.content.courses)
+          ? section.content.courses.map(normalizeCourseItem).filter((c): c is CourseItem => c !== null)
+          : [];
 
         return (
           <div className="space-y-4">
