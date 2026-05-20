@@ -24,8 +24,8 @@ interface UploadResponse {
 const isUploadResponse = (data: unknown): data is UploadResponse => {
   if (typeof data !== 'object' || data === null) return false;
 
-  const hasUrl = 'url' in data && typeof (data as { url: unknown }).url === 'string'&&
-  (data as { url: string }).url.length > 0; ;
+  const hasUrl = 'url' in data && typeof (data as { url: unknown }).url === 'string' &&
+    (data as { url: string }).url.length > 0;
   const hasError = 'error' in data && typeof (data as { error: unknown }).error === 'string';
 
   return hasUrl || hasError;
@@ -148,13 +148,6 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
         setExistingProgramTypes(types);
         setExistingLocations(locations);
         setExistingStatuses(finalStatuses);
-
-        // Re-apply editing values AFTER options are loaded so Radix Select can match them
-        if (editingProgram) {
-          setProgramType(editingProgram.program_type || '');
-          setLocation(editingProgram.location || '');
-          setStatus(editingProgram.status || 'Active');
-        }
       }
     };
 
@@ -177,7 +170,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
       setDisplayOrder(editingProgram.display_order);
       setIsActive(editingProgram.is_active);
       setSections(
-        editingProgram.sections.map((s) => ({
+        (editingProgram.sections ?? []).map((s) => ({
           id: s.id,
           section_key: s.section_key,
           content_type: s.content_type || 'text',
@@ -242,6 +235,34 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
       setIsActive(true);
       setSections([]);
     }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || uploadingImage) return;
+    setUploadingImage(true);
+    setImageUploadError(null);
+    uploadFile(file)
+      .then((url) => setImageUrl(url))
+      .catch((err) => {
+        setImageUploadError(err instanceof Error ? err.message : 'Image upload failed');
+        e.target.value = '';
+      })
+      .finally(() => setUploadingImage(false));
+  };
+
+  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || uploadingBanner) return;
+    setUploadingBanner(true);
+    setBannerUploadError(null);
+    uploadFile(file)
+      .then((url) => setBannerUrl(url))
+      .catch((err) => {
+        setBannerUploadError(err instanceof Error ? err.message : 'Banner upload failed');
+        e.target.value = '';
+      })
+      .finally(() => setUploadingBanner(false));
   };
 
   return (
@@ -343,24 +364,11 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                   )}
                   <input
                     id="image-url"
+                    name="image"
                     type="file"
                     accept="image/*"
                     disabled={uploadingImage}
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      setUploadingImage(true);
-                      setImageUploadError(null);
-                      try {
-                        const url = await uploadFile(file);
-                        setImageUrl(url);
-                      } catch (err) {
-                        setImageUploadError(err instanceof Error ? err.message : 'Image upload failed');
-                        e.target.value = '';
-                      } finally {
-                        setUploadingImage(false);
-                      }
-                    }}
+                    onChange={handleImageUpload}
                     className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                   />
                   {uploadingImage && (
@@ -381,24 +389,11 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                   )}
                   <input
                     id="banner-url"
+                    name="banner"
                     type="file"
                     accept="image/*"
                     disabled={uploadingBanner}
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      setUploadingBanner(true);
-                      setBannerUploadError(null);
-                      try {
-                        const url = await uploadFile(file);
-                        setBannerUrl(url);
-                      } catch (err) {
-                        setBannerUploadError(err instanceof Error ? err.message : 'Banner upload failed');
-                        e.target.value = '';
-                      } finally {
-                        setUploadingBanner(false);
-                      }
-                    }}
+                    onChange={handleBannerUpload}
                     className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                   />
                   {uploadingBanner && (
