@@ -572,7 +572,6 @@ export const Constants = {
         "conclusion",
         "header",
         "course_enrollment",
-        "programs",
         "program_delivery",
         "intervention",
         "video"

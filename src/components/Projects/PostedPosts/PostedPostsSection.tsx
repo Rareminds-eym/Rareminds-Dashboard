@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from '../../ui/badge';
 import { Input } from '../../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { Edit, Trash2, Eye, Search, Calendar, MapPin, Filter, TrendingUp } from 'lucide-react';
+import { Edit, Trash2, Eye, Search, Calendar, MapPin, ImageIcon, TrendingUp } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 
 // ─── Type Guards ─────────────────────────────────────────────────────────────
@@ -35,8 +35,11 @@ interface SectionCourseItem {
   universities?: SectionUniversityItem[]; description?: string;
 }
 function isCourseItem(val: unknown): val is SectionCourseItem {
-   if (!isPlainObject(val)) return false;
-  if ('universities' in val && !Array.isArray(val['universities'])) return false;
+  if (!isPlainObject(val)) return false;
+  if ('universities' in val) {
+    if (!Array.isArray(val['universities'])) return false;
+    if (!val['universities'].every(isUniversityItem)) return false;
+  }
   return true;
 }
 
@@ -80,7 +83,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
 
   const formatSectionKey = (key: string) =>
     key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
+  const sections = selectedPost?.sections ?? [];
   return (
     <div className="space-y-8 p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 min-h-screen">
       {/* Header Section */}
@@ -149,7 +152,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                 ) : (
                   <div className="h-48 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center">
                     <div className="text-slate-400 dark:text-slate-500">
-                      <Filter className="w-12 h-12" />
+                      <ImageIcon className="w-12 h-12" />
                     </div>
                   </div>
                 )}
@@ -366,7 +369,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                         {section.content_type === 'text' && section.section_key !== 'video' && (
                                           <>
                                             {section.content?.text && typeof section.content?.text === 'string' && (
-                                              <p className="whitespace-pre-wrap mb-4">{section.content.text}</p>
+                                              <p className="whitespace-pre-wrap mb-4">{section.content?.text}</p>
                                             )}
                                             {/* Handle images array (introduction sections) */}
                                             {Array.isArray(section.content?.images) && section.content.images.length > 0 && (
@@ -395,7 +398,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                         )}
                                         {section.content_type === 'cards' && Array.isArray(section.content?.items) && (
                                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                            {section.content.items.filter(isCardItem).map((item, idx) => (
+                                            {section.content?.items?.filter(isCardItem).map((item, idx) => (
                                               <div key={item.id ?? `card-${idx}`} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
                                                 {item.title && <h6 className="font-semibold mb-1">{item.title}</h6>}
                                                 {item.description && <p className="text-sm">{item.description}</p>}
@@ -405,7 +408,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                         )}
                                         {section.content_type === 'stats' && Array.isArray(section.content?.items) && (
                                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                                            {section.content.items.filter(isStatItem).map((item, idx) => (
+                                            {section.content?.items?.filter(isStatItem).map((item, idx) => (
                                               <div key={item.id ?? `stat-${idx}`} className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
                                                 {item.value && <div className="text-2xl font-bold text-purple-600">{item.value}</div>}
                                                 {item.label && <div className="text-sm text-slate-600 dark:text-slate-400">{item.label}</div>}
@@ -415,7 +418,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                         )}
                                         {section.content_type === 'courses' && Array.isArray(section.content?.courses) && (
                                           <div className="space-y-6 mt-4">
-                                            {section.content.courses.filter(isCourseItem).map((course, idx) => (
+                                            {section.content?.courses?.filter(isCourseItem).map((course, idx) => (
                                               <div key={course.id ?? `course-${idx}`} className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
                                                 {/* Course Header */}
                                                 <div className="bg-slate-100 dark:bg-slate-800 px-4 py-3 flex items-center justify-between">
@@ -431,7 +434,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                                 {/* Universities */}
                                                 {Array.isArray(course.universities) && course.universities.length > 0 && (
                                                   <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                                                    {course.universities.filter(isUniversityItem).map((uni, uIdx) => (
+                                                    {course.universities?.filter(isUniversityItem).map((uni, uIdx) => (
                                                       <div key={uni.id ?? `uni-${uIdx}`} className="flex items-center justify-between px-4 py-2">
                                                         <span className="text-sm text-slate-700 dark:text-slate-300">{uni.name}</span>
                                                         {uni.students && (

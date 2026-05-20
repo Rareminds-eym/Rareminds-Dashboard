@@ -21,6 +21,16 @@ export const generateSlug = (title: string): string => {
         .replace(/^-|-$/g, '');
 };
 
+// Runtime-safe coercion helpers for unknown DB values
+const asString = (val: unknown, fallback = ''): string =>
+    typeof val === 'string' ? val : fallback;
+
+const asNumber = (val: unknown, fallback = 0): number =>
+    typeof val === 'number' ? val : fallback;
+
+const asBool = (val: unknown, fallback = true): boolean =>
+    typeof val === 'boolean' ? val : fallback;
+
 export const usePrograms = () => {
     const [programs, setPrograms] = useState<Program[]>([]);
     const [loading, setLoading] = useState(false);
@@ -38,35 +48,37 @@ export const usePrograms = () => {
                 .filter((s): s is Record<string, unknown> => s !== null && typeof s === 'object' && !Array.isArray(s))
                 .map(
                 (s): ProgramSection => ({
-                    id: s.id as string,
-                    program_id: s.program_id as string,
-                    section_key: s.section_key as SectionKeyType,
-                    content_type: (s.content_type as ContentType) ?? 'text',
-                    title: (s.title as string) ?? null,
-                    preamble: (s.preamble as string) ?? null,
-                    content: (s.content as Record<string, unknown>) ?? {},
-                    display_order: (s.display_order as number) ?? 0,
-                    created_at: s.created_at as string,
-                    updated_at: s.updated_at as string,
+                    id: asString(s.id),
+                    program_id: asString(s.program_id),
+                    section_key: asString(s.section_key) as SectionKeyType,
+                    content_type: (asString(s.content_type) as ContentType) || 'text',
+                    title: typeof s.title === 'string' ? s.title : null,
+                    preamble: typeof s.preamble === 'string' ? s.preamble : null,
+                    content: (s.content !== null && typeof s.content === 'object' && !Array.isArray(s.content))
+                        ? s.content as Record<string, unknown>
+                        : {},
+                    display_order: asNumber(s.display_order),
+                    created_at: asString(s.created_at),
+                    updated_at: asString(s.updated_at),
                 }),
             )
             : [];
 
         return {
-            id: row.id as string,
-            title: row.title as string,
-            slug: row.slug as string,
-            program_type: row.program_type as string, // NOW REQUIRED
-            location: row.location as string, // NOW REQUIRED
-            date: row.date as string, // NOW REQUIRED
-            status: row.status as string, // NOW REQUIRED
-            image_url: row.image_url as string, // NOW REQUIRED
-            banner_url: (row.banner_url as string) ?? null,
-            short_description: row.short_description as string, // NOW REQUIRED
-            display_order: (row.display_order as number) ?? 0,
-            is_active: (row.is_active as boolean) ?? true,
-            created_at: row.created_at as string,
-            updated_at: row.updated_at as string,
+            id: asString(row.id),
+            title: asString(row.title),
+            slug: asString(row.slug),
+            program_type: asString(row.program_type),
+            location: asString(row.location),
+            date: asString(row.date),
+            status: asString(row.status),
+            image_url: asString(row.image_url),
+            banner_url: typeof row.banner_url === 'string' ? row.banner_url : null,
+            short_description: asString(row.short_description),
+            display_order: asNumber(row.display_order),
+            is_active: asBool(row.is_active),
+            created_at: asString(row.created_at),
+            updated_at: asString(row.updated_at),
             sections,
         };
     };
@@ -264,23 +276,25 @@ export const usePrograms = () => {
                 }
             }
 
-            // Delete sections that were removed
-            if (newSectionKeys.length > 0) {
+            // Delete sections that were removed — safe parameterized approach
+            const { data: existingSections, error: fetchSectionsError } = await supabase
+                .from('program_sections')
+                .select('id, section_key')
+                .eq('program_id', id);
+
+            if (fetchSectionsError) throw fetchSectionsError;
+
+            const idsToDelete = (existingSections || [])
+                .filter((s) => !newSectionKeys.includes(s.section_key))
+                .map((s) => s.id);
+
+            if (idsToDelete.length > 0) {
                 const { error: deleteError } = await supabase
                     .from('program_sections')
                     .delete()
-                    .eq('program_id', id)
-                    .not('section_key', 'in', `(${newSectionKeys.join(',')})`);
+                    .in('id', idsToDelete);
 
                 if (deleteError) throw deleteError;
-            } else {
-                // All sections removed
-                const { error: deleteAllError } = await supabase
-                    .from('program_sections')
-                    .delete()
-                    .eq('program_id', id);
-
-                if (deleteAllError) throw deleteAllError;
             }
 
             // Re-fetch sections for the updated program

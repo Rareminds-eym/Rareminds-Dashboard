@@ -8,17 +8,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../ui/select';
 import { Plus, X, Layers, Loader2 } from 'lucide-react';
-// ✅ ADD THESE TWO GUARDS HERE
+
+// Add this near the top of ProgramSectionsEditor.tsx
+function isImageObject(val: unknown): val is { url?: string; alt?: string } {
+  return val !== null && typeof val === 'object' && !Array.isArray(val);
+}
+
 const hasStringError = (val: unknown): val is { error: string } => {
-  if (typeof val !== 'object' || val === null) return false;
-  const record = val as Record<string, unknown>;
-  return typeof record['error'] === 'string';
+  return (
+    typeof val === 'object' &&
+    val !== null &&
+    'error' in val &&
+    typeof (val as { error: unknown }).error === 'string'
+  );
 };
 
 const hasStringUrl = (val: unknown): val is { url: string } => {
-  if (typeof val !== 'object' || val === null) return false;
-  const record = val as Record<string, unknown>;
-  return typeof record['url'] === 'string';
+  return (
+    typeof val === 'object' &&
+    val !== null &&
+    'url' in val &&
+    typeof (val as { url: unknown }).url === 'string'
+  );
 };
 const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData();
@@ -150,7 +161,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
         const images: ImageItem[] = rawImages.map((img) =>
           typeof img === 'string' ? { url: img } : { id: img?.id, url: img?.url || '' }
         );
-        const rawImage = section.content.image as { url?: string; alt?: string } | undefined;
+        const rawImage = isImageObject(section.content.image)  ? section.content.image: undefined;
         const image = { url: rawImage?.url || '', alt: rawImage?.alt || '' };
         const isVideo = section.section_key === 'video';
         const isIntroduction = section.section_key === 'introduction';
@@ -217,9 +228,11 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                           setUploading(`intro-img-${sectionIndex}-${idx}`, true);
                           try {
                             const url = await uploadFile(file);
-                            const newImages = [...images];
-                            newImages[idx] = { ...newImages[idx], url };
-                            updateContentField(sectionIndex, 'images', newImages);
+                            updateContentField(
+                              sectionIndex,
+                              'images',
+                              images.map((img, i) => i === idx ? { ...img, url } : img)
+                            );
                           } catch (err) {
                             setUploadError(err instanceof Error ? err.message : 'Image upload failed');
                           } finally {
@@ -447,9 +460,9 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                       <Input
                         value={uni.name}
                         onChange={(e) => {
-                          const newUnis = [...(course.universities || [])];
-                          newUnis[uniIdx] = { ...uni, name: e.target.value };
-                          updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities', newUnis);
+                          updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities',
+                            (course.universities || []).map((u, i) => i === uniIdx ? { ...u, name: e.target.value } : u)
+                          );
                         }}
                         placeholder="University name"
                         className="flex-1"
@@ -458,9 +471,9 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                         type="number"
                         value={uni.students}
                         onChange={(e) => {
-                          const newUnis = [...(course.universities || [])];
-                          newUnis[uniIdx] = { ...uni, students: parseInt(e.target.value) || 0 };
-                          updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities', newUnis);
+                          updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities',
+                            (course.universities || []).map((u, i) => i === uniIdx ? { ...u, students: parseInt(e.target.value) || 0 } : u)
+                          );
                         }}
                         placeholder="Students"
                         className="w-24"

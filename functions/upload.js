@@ -1,24 +1,22 @@
 import { AwsClient } from 'aws4fetch';
 
 // Domains allowed to call this endpoint.
-// Set ALLOWED_ORIGIN in your Cloudflare Pages environment variables for production.
-// Falls back to localhost for local dev.
-const ALLOWED_ORIGINS = [
-  'https://rareminds.in',
-  'http://localhost:5173',
-  'http://localhost:3000',
-];
+// Set ALLOWED_ORIGINS (comma-separated) in your env for multiple origins,
+// or ALLOWED_ORIGIN for a single origin. No fallback — must be explicitly configured.
 
 /**
  * @param {Request} request
- * @param {{ ALLOWED_ORIGIN?: string }} env
+ * @param {{ ALLOWED_ORIGIN?: string, ALLOWED_ORIGINS?: string }} env
  * @returns {Record<string, string>}
  */
 function getCorsHeaders(request, env) {
   const origin = request.headers.get('Origin') || '';
-  const allowed = env.ALLOWED_ORIGIN
-    ? [env.ALLOWED_ORIGIN]
-    : ALLOWED_ORIGINS;
+  let allowed = [];
+  if (env.ALLOWED_ORIGINS) {
+    allowed = env.ALLOWED_ORIGINS.split(',').map(o => o.trim());
+  } else if (env.ALLOWED_ORIGIN) {
+    allowed = [env.ALLOWED_ORIGIN];
+  }
   const allowedOrigin = allowed.includes(origin) ? origin : allowed[0];
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
@@ -29,7 +27,7 @@ function getCorsHeaders(request, env) {
 }
 
 /**
- * @param {{ request: Request, env: { R2_ACCESS_KEY: string, R2_SECRET_KEY: string, R2_ACCOUNT_ID: string, R2_BUCKET_NAME: string, R2_PUBLIC_URL: string, ALLOWED_ORIGIN?: string } }} context
+ * @param {{ request: Request, env: { R2_ACCESS_KEY: string, R2_SECRET_KEY: string, R2_ACCOUNT_ID: string, R2_BUCKET_NAME: string, R2_PUBLIC_URL: string, ALLOWED_ORIGIN?: string, ALLOWED_ORIGINS?: string } }} context
  * @returns {Promise<Response>}
  */
 export async function onRequestPost({ request, env }) {

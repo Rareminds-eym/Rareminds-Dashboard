@@ -33,7 +33,9 @@ interface ProgramSectionsProps {
     value: unknown
   ) => void;
 }
-
+function isImageObject(val: unknown): val is { url?: string; alt?: string } {
+  return val !== null && typeof val === 'object' && !Array.isArray(val);
+}
 const ALL_SECTION_KEYS: SectionKeyType[] = [
   'introduction',
   'about',
@@ -73,8 +75,8 @@ const ProgramSections = ({
       case 'text': {
         const textContent = typeof section.content.text === 'string' ? section.content.text : '';
         const rawImages = Array.isArray(section.content.images) ? section.content.images as ImageItem[] : [];
-        const rawImage = section.content.image !== null && typeof section.content.image === 'object'
-          ? section.content.image as { url?: string; alt?: string }
+        const rawImage = isImageObject(section.content.image)
+          ? section.content.image
           : undefined;
         const image = { url: rawImage?.url || '', alt: rawImage?.alt || '' };
 

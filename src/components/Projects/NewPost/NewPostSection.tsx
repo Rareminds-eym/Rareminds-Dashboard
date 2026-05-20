@@ -22,13 +22,27 @@ interface UploadResponse {
 
 // ✅ One type guard — replaces all 4 'as' casts
 const isUploadResponse = (data: unknown): data is UploadResponse => {
-  return typeof data === 'object' && data !== null;
+  if (typeof data !== 'object' || data === null) return false;
+
+  const hasUrl = 'url' in data && typeof (data as { url: unknown }).url === 'string'&&
+  (data as { url: string }).url.length > 0; ;
+  const hasError = 'error' in data && typeof (data as { error: unknown }).error === 'string';
+
+  return hasUrl || hasError;
 };
 
 const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
-  const res = await fetch('/upload', { method: 'POST', body: formData });
+  let res: Response;
+  try {
+    res = await fetch('/upload', { method: 'POST', body: formData });
+  } catch {
+    throw new Error('Network error during upload');
+  }
+  if (!res.ok) {
+    throw new Error(`Upload failed: server error ${res.status}`);
+  }
   let data: unknown;
   try {
     data = await res.json();
@@ -38,11 +52,6 @@ const uploadFile = async (file: File): Promise<string> => {
   if (!isUploadResponse(data)) {
     throw new Error('Upload failed: invalid response format');
   }
-
-  if (!res.ok) {
-    throw new Error(data.error ?? 'Upload failed');
-  }
-
   if (!data.url) {
     throw new Error('Upload failed: no URL returned');
   }
@@ -50,11 +59,26 @@ const uploadFile = async (file: File): Promise<string> => {
   return data.url;
 };
 
+// Helper function to remove IDs from content recursively
+const removeIds = (obj: Record<string, unknown>): Record<string, unknown> => {
+  const process = (val: unknown): unknown => {
+    if (Array.isArray(val)) return val.map(process);
+    if (val !== null && typeof val === 'object') {
+      return Object.fromEntries(
+        Object.entries(val as Record<string, unknown>)
+          .filter(([k]) => k !== 'id')
+          .map(([k, v]) => [k, process(v)])
+      );
+    }
+    return val;
+  };
+  return process(obj) as Record<string, unknown>;
+};
+
 interface NewPostSectionProps {
   onProgramSaved: (data: ProgramFormData) => Promise<boolean>;
   editingProgram?: Program | null;
 }
-
 const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps) => {
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
@@ -70,7 +94,8 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   const [sections, setSections] = useState<SectionItem[]>([]);
   const [errors, setErrors] = useState<{ title?: string; slug?: string }>({});
   const [formLoadError, setFormLoadError] = useState<string | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+  const [bannerUploadError, setBannerUploadError] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   // Tracks whether the user has manually edited the slug field.
@@ -135,22 +160,6 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
 
     fetchExistingValues();
   }, [editingProgram]);
-
-  // Helper function to remove IDs from content recursively
-  const removeIds = (obj: Record<string, unknown>): Record<string, unknown> => {
-    const process = (val: unknown): unknown => {
-      if (Array.isArray(val)) return val.map(process);
-      if (val !== null && typeof val === 'object') {
-        return Object.fromEntries(
-          Object.entries(val as Record<string, unknown>)
-            .filter(([k]) => k !== 'id')
-            .map(([k, v]) => [k, process(v)])
-        );
-      }
-      return val;
-    };
-    return process(obj) as Record<string, unknown>;
-  };
 
   // Pre-populate when editing
   useEffect(() => {
@@ -341,12 +350,13 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                       const file = e.target.files?.[0];
                       if (!file) return;
                       setUploadingImage(true);
-                      setUploadError(null);
+                      setImageUploadError(null);
                       try {
                         const url = await uploadFile(file);
                         setImageUrl(url);
                       } catch (err) {
-                        setUploadError(err instanceof Error ? err.message : 'Image upload failed');
+                        setImageUploadError(err instanceof Error ? err.message : 'Image upload failed');
+                        e.target.value = '';
                       } finally {
                         setUploadingImage(false);
                       }
@@ -358,6 +368,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                       <Loader2 className="w-4 h-4 animate-spin" /> Uploading image...
                     </div>
                   )}
+                  {imageUploadError && <p className="text-sm text-red-600">{imageUploadError}</p>}
                 </div>
 
                 {/* Banner Upload */}
@@ -377,12 +388,13 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                       const file = e.target.files?.[0];
                       if (!file) return;
                       setUploadingBanner(true);
-                      setUploadError(null);
+                      setBannerUploadError(null);
                       try {
                         const url = await uploadFile(file);
                         setBannerUrl(url);
                       } catch (err) {
-                        setUploadError(err instanceof Error ? err.message : 'Banner upload failed');
+                        setBannerUploadError(err instanceof Error ? err.message : 'Banner upload failed');
+                        e.target.value = '';
                       } finally {
                         setUploadingBanner(false);
                       }
@@ -394,6 +406,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                       <Loader2 className="w-4 h-4 animate-spin" /> Uploading banner...
                     </div>
                   )}
+                  {bannerUploadError && <p className="text-sm text-red-600">{bannerUploadError}</p>}
                   {formLoadError && <p className="text-sm text-red-600">{formLoadError}</p>}
                 </div>
               </CardContent>
@@ -437,10 +450,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                           onValueChange={setProgramType}
                         />
                         <CommandList>
-                          <CommandEmpty
-                            className="py-2 px-3 text-sm cursor-pointer hover:bg-purple-50 text-slate-700"
-                            onClick={() => {/* keep typed value */}}
-                          >
+                          <CommandEmpty className="py-2 px-3 text-sm cursor-pointer hover:bg-purple-50 text-slate-700">
                             Press Enter to use &quot;{programType}&quot;
                           </CommandEmpty>
                           <CommandGroup>
