@@ -20,15 +20,11 @@ function isImageItem(val: unknown): val is SectionImageItem {
 }
 interface SectionCardItem { id?: string; title?: string; description?: string; }
 function isCardItem(val: unknown): val is SectionCardItem {
-  return isPlainObject(val) &&
-    (val.title === undefined || typeof val.title === 'string') &&
-    (val.description === undefined || typeof val.description === 'string');
+  return isPlainObject(val);
 }
 interface SectionStatItem { id?: string; label?: string; value?: string; }
 function isStatItem(val: unknown): val is SectionStatItem {
-  return isPlainObject(val) &&
-    (val.label === undefined || typeof val.label === 'string') &&
-    (val.value === undefined || typeof val.value === 'string');
+  return isPlainObject(val);
 }
 interface SectionUniversityItem { id?: string; name?: string; students?: number; }
 function isUniversityItem(val: unknown): val is SectionUniversityItem {
@@ -87,6 +83,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
 
   const formatSectionKey = (key: string) =>
     key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const sections = selectedPost?.sections ?? [];
   return (
     <div className="space-y-8 p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 min-h-screen">
       {/* Header Section */}
@@ -354,28 +351,18 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                               return videoText
                                                 .split(',')
                                                 .map((v) => v.trim())
-                                                .filter((v) => {
-                                                  try {
-                                                    const parsed = new URL(v);
-                                                    return (
-                                                      parsed.protocol === 'http:' ||
-                                                      parsed.protocol === 'https:'
-                                                    );
-                                                  } catch {
-                                                    return false;
-                                                  }
-                                                })
+                                                .filter((v) => v.startsWith('http://') || v.startsWith('https://'))
                                                 .map((cleanUrl, idx) => (
-                                                  <div key={idx} className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                                                    <video
-                                                      controls
-                                                      className="absolute top-0 left-0 w-full h-full rounded-lg"
-                                                      src={cleanUrl}
-                                                    >
-                                                      Your browser does not support the video tag.
-                                                    </video>
-                                                  </div>
-                                                ));
+                                                <div key={idx} className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                                                  <video
+                                                    controls
+                                                    className="absolute top-0 left-0 w-full h-full rounded-lg"
+                                                    src={cleanUrl}
+                                                  >
+                                                    Your browser does not support the video tag.
+                                                  </video>
+                                                </div>
+                                              ));
                                             })()}
                                           </div>
                                         )}

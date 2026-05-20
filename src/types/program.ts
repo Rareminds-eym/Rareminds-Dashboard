@@ -106,7 +106,7 @@ export interface ProgramFormData {
     date: string; // NOW REQUIRED
     status: string; // NOW REQUIRED
     image_url: string; // NOW REQUIRED
-    banner_url: string | null;
+    banner_url: string;
     short_description: string; // NOW REQUIRED
     display_order: number;
     is_active: boolean;

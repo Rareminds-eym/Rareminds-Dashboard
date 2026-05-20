@@ -9,6 +9,11 @@ import { Badge } from '../../ui/badge';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../ui/select';
 import { Plus, X, Layers, Loader2 } from 'lucide-react';
 
+// Add this near the top of ProgramSectionsEditor.tsx
+function isImageObject(val: unknown): val is { url?: string; alt?: string } {
+  return val !== null && typeof val === 'object' && !Array.isArray(val);
+}
+
 const hasStringError = (val: unknown): val is { error: string } => {
   return (
     typeof val === 'object' &&
@@ -80,12 +85,6 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
   const [uploadingStates, setUploadingStates] = useState<Record<string, boolean>>({});
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const isImageObject = (val: unknown): val is { url?: string; alt?: string } =>
-    val !== null && typeof val === 'object' && !Array.isArray(val);
-
-  const getUniversities = (course: CourseItem) =>
-    Array.isArray(course.universities) ? course.universities : [];
-
   const setUploading = (key: string, val: boolean) =>
     setUploadingStates((prev) => ({ ...prev, [key]: val }));
   const availableSectionKeys = ALL_SECTION_KEYS.filter(
@@ -116,7 +115,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
     onChange(
       sections.map((s, i) => {
         if (i !== sectionIndex) return s;
-        const current = Array.isArray(s.content[arrayKey]) ? (s.content[arrayKey] as (CardItem | StatItem | CourseItem | ImageItem)[]) : [];
+        const current = (s.content[arrayKey] as (CardItem | StatItem | CourseItem | ImageItem)[]) || [];
         return { ...s, content: { ...s.content, [arrayKey]: [...current, newItem] } };
       })
     );
@@ -142,7 +141,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
     onChange(
       sections.map((s, i) => {
         if (i !== sectionIndex) return s;
-        const current = Array.isArray(s.content[arrayKey]) ? (s.content[arrayKey] as Record<string, unknown>[]) : [];
+        const current = (s.content[arrayKey] as Record<string, unknown>[]) || [];
         return {
           ...s,
           content: {
@@ -157,12 +156,12 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
   const renderContentForm = (section: SectionItem, sectionIndex: number) => {
     switch (section.content_type) {
       case 'text': {
-        const textContent = typeof section.content.text === 'string' ? section.content.text : '';
-        const rawImages = Array.isArray(section.content.images) ? section.content.images as ImageItem[] : [];
+        const textContent = (section.content.text as string) || '';
+        const rawImages = (section.content.images as ImageItem[]) || [];
         const images: ImageItem[] = rawImages.map((img) =>
           typeof img === 'string' ? { url: img } : { id: img?.id, url: img?.url || '' }
         );
-        const rawImage = isImageObject(section.content.image) ? section.content.image : undefined;
+        const rawImage = isImageObject(section.content.image)  ? section.content.image: undefined;
         const image = { url: rawImage?.url || '', alt: rawImage?.alt || '' };
         const isVideo = section.section_key === 'video';
         const isIntroduction = section.section_key === 'introduction';
@@ -317,8 +316,8 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
       }
 
       case 'cards': {
-        const items = Array.isArray(section.content.items) ? section.content.items as CardItem[] : [];
-        const description = typeof section.content.description === 'string' ? section.content.description : '';
+        const items = (section.content.items as CardItem[]) || [];
+        const description = (section.content.description as string) || '';
 
         return (
           <div className="space-y-4">
@@ -376,7 +375,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
       }
 
       case 'stats': {
-        const items = Array.isArray(section.content.items) ? section.content.items as StatItem[] : [];
+        const items = (section.content.items as StatItem[]) || [];
 
         return (
           <div className="space-y-4">
@@ -422,7 +421,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
       }
 
       case 'courses': {
-        const courses = Array.isArray(section.content.courses) ? section.content.courses as CourseItem[] : [];
+        const courses = (section.content.courses as CourseItem[]) || [];
 
         return (
           <div className="space-y-4">
@@ -456,13 +455,13 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                 />
                 <div className="space-y-3 pl-4 border-l-2 border-purple-200">
                   <Label className="text-xs font-medium text-slate-600">Universities</Label>
-                  {getUniversities(course).map((uni, uniIdx) => (
+                  {(course.universities || []).map((uni, uniIdx) => (
                     <div key={uni.id ?? `new-uni-${uniIdx}`} className="flex gap-2 items-start">
                       <Input
                         value={uni.name}
                         onChange={(e) => {
                           updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities',
-                            getUniversities(course).map((u, i) => i === uniIdx ? { ...u, name: e.target.value } : u)
+                            (course.universities || []).map((u, i) => i === uniIdx ? { ...u, name: e.target.value } : u)
                           );
                         }}
                         placeholder="University name"
@@ -473,7 +472,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                         value={uni.students}
                         onChange={(e) => {
                           updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities',
-                            getUniversities(course).map((u, i) => i === uniIdx ? { ...u, students: parseInt(e.target.value) || 0 } : u)
+                            (course.universities || []).map((u, i) => i === uniIdx ? { ...u, students: parseInt(e.target.value) || 0 } : u)
                           );
                         }}
                         placeholder="Students"
@@ -484,9 +483,8 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities',
-                            getUniversities(course).filter((_, i) => i !== uniIdx)
-                          );
+                          const newUnis = (course.universities || []).filter((_, i) => i !== uniIdx);
+                          updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities', newUnis);
                         }}
                         className="h-9 w-9 p-0 hover:bg-red-100 hover:text-red-600"
                       >
@@ -499,9 +497,8 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities',
-                        [...getUniversities(course), { name: '', students: 0 }]
-                      );
+                      const newUnis = [...(course.universities || []), { name: '', students: 0 }];
+                      updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities', newUnis);
                     }}
                     className="w-full"
                   >

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { Json } from '../integrations/supabase/types';
 import { Program, ProgramSection, ProgramFormData, SectionKeyType, ContentType } from '../types/program';
@@ -31,23 +31,18 @@ const asNumber = (val: unknown, fallback = 0): number =>
 const asBool = (val: unknown, fallback = true): boolean =>
     typeof val === 'boolean' ? val : fallback;
 
-const toRecord = (val: unknown): Record<string, unknown> =>
-    (val !== null && typeof val === 'object' && !Array.isArray(val))
-        ? (val as Record<string, unknown>)
-        : {};
-
 export const usePrograms = () => {
     const [programs, setPrograms] = useState<Program[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { user } = useAuth();
     const { toast } = useToast();
-    const toastRef = useRef(toast);
-    toastRef.current = toast;
 
     // Helper to map a database row + nested sections to a Program
     const dbRowToProgram = (input: unknown): Program => {
-        const row = toRecord(input);
+        const row = (input !== null && typeof input === 'object' && !Array.isArray(input))
+            ? input as Record<string, unknown>
+            : {} as Record<string, unknown>;
         const sections = Array.isArray(row.program_sections)
             ? row.program_sections
                 .filter((s): s is Record<string, unknown> => s !== null && typeof s === 'object' && !Array.isArray(s))
@@ -59,7 +54,9 @@ export const usePrograms = () => {
                     content_type: (asString(s.content_type) as ContentType) || 'text',
                     title: typeof s.title === 'string' ? s.title : null,
                     preamble: typeof s.preamble === 'string' ? s.preamble : null,
-                    content: toRecord(s.content),
+                    content: (s.content !== null && typeof s.content === 'object' && !Array.isArray(s.content))
+                        ? s.content as Record<string, unknown>
+                        : {},
                     display_order: asNumber(s.display_order),
                     created_at: asString(s.created_at),
                     updated_at: asString(s.updated_at),
@@ -104,7 +101,7 @@ export const usePrograms = () => {
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to fetch programs';
             setError(errorMessage);
-            toastRef.current({
+            toast({
                 title: 'Error',
                 description: errorMessage,
                 variant: 'destructive',
@@ -112,7 +109,7 @@ export const usePrograms = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [toast]);
 
     // Create a new program with sections
     const createProgram = async (formData: ProgramFormData): Promise<Program | null> => {
@@ -149,7 +146,7 @@ export const usePrograms = () => {
                 .select()
                 .single();
 
-            if (insertError || !data) throw insertError || new Error('No data returned');
+            if (insertError) throw insertError;
 
             // Batch-insert sections if any
             let sections: ProgramSection[] = [];
@@ -254,7 +251,9 @@ export const usePrograms = () => {
                 .select()
                 .single();
 
-            if (updateError || !data) throw updateError || new Error('No data returned');
+            if (updateError) {
+                throw new Error(updateError.message);
+            }
             // Upsert sections that are in the form data
             const newSectionKeys = formData.sections.map((s) => s.section_key);
 
