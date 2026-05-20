@@ -33,9 +33,6 @@ interface ProgramSectionsProps {
     value: unknown
   ) => void;
 }
-function isImageObject(val: unknown): val is { url?: string; alt?: string } {
-  return val !== null && typeof val === 'object' && !Array.isArray(val);
-}
 const ALL_SECTION_KEYS: SectionKeyType[] = [
   'introduction',
   'about',
@@ -64,6 +61,11 @@ const ProgramSections = ({
   removeArrayItem,
   updateArrayItem,
 }: ProgramSectionsProps) => {
+  const isImageObject = (val: unknown): val is { url?: string; alt?: string } =>
+    val !== null && typeof val === 'object' && !Array.isArray(val);
+
+  const getUniversities = (course: CourseItem) =>
+    Array.isArray(course.universities) ? course.universities : [];
   const availableSectionKeys = ALL_SECTION_KEYS.filter(
     (key) => !sections.some((s) => s.section_key === key)
   );
@@ -106,11 +108,7 @@ const ProgramSections = ({
                   <div key={img.id ?? `new-${idx}`} className="flex gap-2">
                     <Input
                       value={img.url}
-                      onChange={(e) => {
-                        const newImages = [...rawImages];
-                        newImages[idx] = { ...newImages[idx], url: e.target.value };
-                        updateContentField(sectionIndex, 'images', newImages);
-                      }}
+                      onChange={(e) => updateArrayItem(sectionIndex, 'images', idx, 'url', e.target.value)}
                       placeholder="Image URL"
                       className="flex-1"
                     />
@@ -118,10 +116,7 @@ const ProgramSections = ({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        const newImages = rawImages.filter((_, i) => i !== idx);
-                        updateContentField(sectionIndex, 'images', newImages);
-                      }}
+                      onClick={() => removeArrayItem(sectionIndex, 'images', idx)}
                       className="hover:bg-red-100 hover:text-red-600"
                     >
                       <X className="w-4 h-4" />
@@ -300,26 +295,26 @@ const ProgramSections = ({
 
                 <div className="space-y-3 pl-4 border-l-2 border-purple-200">
                   <Label className="text-xs font-medium text-slate-600">Universities</Label>
-                  {(Array.isArray(course.universities) ? course.universities : []).map((uni, uniIdx) => (
+                  {getUniversities(course).map((uni, uniIdx) => (
                     <div key={uni.id ?? `new-uni-${uniIdx}`} className="flex gap-2 items-start">
                       <Input
                         value={uni.name}
-                        onChange={(e) => {
-                          const newUniversities = [...(Array.isArray(course.universities) ? course.universities : [])];
-                          newUniversities[uniIdx] = { ...uni, name: e.target.value };
-                          updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities', newUniversities);
-                        }}
+                        onChange={(e) =>
+                          updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities',
+                            getUniversities(course).map((u, i) => i === uniIdx ? { ...u, name: e.target.value } : u)
+                          )
+                        }
                         placeholder="University name"
                         className="flex-1"
                       />
                       <Input
                         type="number"
                         value={uni.students}
-                        onChange={(e) => {
-                          const newUniversities = [...(Array.isArray(course.universities) ? course.universities : [])];
-                          newUniversities[uniIdx] = { ...uni, students: parseInt(e.target.value) || 0 };
-                          updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities', newUniversities);
-                        }}
+                        onChange={(e) =>
+                          updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities',
+                            getUniversities(course).map((u, i) => i === uniIdx ? { ...u, students: parseInt(e.target.value) || 0 } : u)
+                          )
+                        }
                         placeholder="Students"
                         className="w-24"
                       />
@@ -327,10 +322,11 @@ const ProgramSections = ({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          const newUniversities = (Array.isArray(course.universities) ? course.universities : []).filter((_, i) => i !== uniIdx);
-                          updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities', newUniversities);
-                        }}
+                        onClick={() =>
+                          updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities',
+                            getUniversities(course).filter((_, i) => i !== uniIdx)
+                          )
+                        }
                         className="h-9 w-9 p-0 hover:bg-red-100 hover:text-red-600"
                       >
                         <X className="w-4 h-4" />
@@ -341,10 +337,11 @@ const ProgramSections = ({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      const newUniversities = [...(course.universities || []), { name: '', students: 0 }];
-                      updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities', newUniversities);
-                    }}
+                    onClick={() =>
+                      updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities',
+                        [...getUniversities(course), { name: '', students: 0 }]
+                      )
+                    }
                     className="w-full"
                   >
                     <Plus className="w-3 h-3 mr-2" />

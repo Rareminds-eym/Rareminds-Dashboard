@@ -17,9 +17,11 @@ function getCorsHeaders(request, env) {
   } else if (env.ALLOWED_ORIGIN) {
     allowed = [env.ALLOWED_ORIGIN];
   }
-  const allowedOrigin = allowed.includes(origin) ? origin : allowed[0];
+  if (allowed.length === 0 || !allowed.includes(origin)) {
+    return null;
+  }
   return {
-    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Vary': 'Origin',
@@ -32,6 +34,9 @@ function getCorsHeaders(request, env) {
  */
 export async function onRequestPost({ request, env }) {
   const corsHeaders = getCorsHeaders(request, env);
+  if (!corsHeaders) {
+    return new Response(JSON.stringify({ error: 'Origin not allowed' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+  }
   try {
     const formData = await request.formData();
     const file = formData.get('file');
@@ -84,7 +89,6 @@ export async function onRequestPost({ request, env }) {
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     });
   } catch (err) {
-    console.error('Upload handler error:', err);
     const message = err instanceof Error ? err.message : 'An unexpected error occurred';
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
@@ -99,5 +103,8 @@ export async function onRequestPost({ request, env }) {
  */
 export async function onRequestOptions({ request, env }) {
   const corsHeaders = getCorsHeaders(request, env);
+  if (!corsHeaders) {
+    return new Response(null, { status: 403 });
+  }
   return new Response(null, { headers: corsHeaders });
 }
