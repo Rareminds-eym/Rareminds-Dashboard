@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Program, ProgramFormData } from '../../../types/program';
 import { generateSlug } from '../../../hooks/usePrograms';
 import { supabase } from '../../../integrations/supabase/client';
@@ -24,10 +24,8 @@ interface UploadResponse {
 const isUploadResponse = (data: unknown): data is UploadResponse => {
   if (typeof data !== 'object' || data === null) return false;
 
-  const hasUrl = 'url' in data && typeof (data as { url: unknown }).url === 'string' &&
-    (data as { url: string }).url.length > 0;
+  const hasUrl = 'url' in data && typeof (data as { url: unknown }).url === 'string' && (data as { url: string }).url.length > 0;
   const hasError = 'error' in data && typeof (data as { error: unknown }).error === 'string';
-
   return hasUrl || hasError;
 };
 
@@ -65,7 +63,7 @@ const removeIds = (obj: Record<string, unknown>): Record<string, unknown> => {
     if (Array.isArray(val)) return val.map(process);
     if (val !== null && typeof val === 'object') {
       return Object.fromEntries(
-        Object.entries(val as Record<string, unknown>)
+        Object.entries(val)
           .filter(([k]) => k !== 'id')
           .map(([k, v]) => [k, process(v)])
       );
@@ -98,6 +96,9 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   const [bannerUploadError, setBannerUploadError] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  // ADD THESE two lines after your useState declarations
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
   // Tracks whether the user has manually edited the slug field.
   // When true, title changes no longer auto-regenerate the slug.
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
@@ -219,7 +220,9 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
     };
 
     const success = await onProgramSaved(formData);
-
+    // Reset form only on successful creation.
+    // editingProgram being null/undefined is the source of truth
+    // for whether this was a create vs update operation.
     // Only reset form on successful creation (not editing)
     if (success && !editingProgram) {
       setTitle('');
@@ -246,7 +249,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
       .then((url) => setImageUrl(url))
       .catch((err) => {
         setImageUploadError(err instanceof Error ? err.message : 'Image upload failed');
-        e.target.value = '';
+        if (imageInputRef.current) imageInputRef.current.value = '';
       })
       .finally(() => setUploadingImage(false));
   };
@@ -260,7 +263,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
       .then((url) => setBannerUrl(url))
       .catch((err) => {
         setBannerUploadError(err instanceof Error ? err.message : 'Banner upload failed');
-        e.target.value = '';
+        if (bannerInputRef.current) bannerInputRef.current.value = '';
       })
       .finally(() => setUploadingBanner(false));
   };
@@ -360,9 +363,10 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     Image
                   </Label>
                   {imageUrl && (
-                    <img src={imageUrl} alt="Program image" className="w-32 h-20 object-cover rounded-lg border border-slate-200" />
+                    <img src={imageUrl} alt={title ? `${title} program image` : 'Program image preview'} className="w-32 h-20 object-cover rounded-lg border border-slate-200" />
                   )}
                   <input
+                    ref={imageInputRef}
                     id="image-url"
                     name="image"
                     type="file"
@@ -385,9 +389,10 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     Banner
                   </Label>
                   {bannerUrl && (
-                    <img src={bannerUrl} alt="Program banner" className="w-full h-24 object-cover rounded-lg border border-slate-200" />
+                    <img src={bannerUrl} alt={title ? `${title} program banner` : 'Program banner preview'} className="w-full h-24 object-cover rounded-lg border border-slate-200" />
                   )}
                   <input
+                    ref={bannerInputRef}
                     id="banner-url"
                     name="banner"
                     type="file"

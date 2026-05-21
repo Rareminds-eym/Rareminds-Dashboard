@@ -55,7 +55,7 @@ export const usePrograms = () => {
                 (s): ProgramSection => ({
                     id: asString(s.id),
                     program_id: asString(s.program_id),
-                    section_key: asString(s.section_key) as SectionKeyType,
+                    section_key: (asString(s.section_key) as SectionKeyType),
                     content_type: (asString(s.content_type) as ContentType) || 'text',
                     title: typeof s.title === 'string' ? s.title : null,
                     preamble: typeof s.preamble === 'string' ? s.preamble : null,

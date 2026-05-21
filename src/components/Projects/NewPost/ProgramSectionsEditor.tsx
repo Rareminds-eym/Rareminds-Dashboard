@@ -26,6 +26,10 @@ const hasStringUrl = (val: unknown): val is { url: string } => {
     typeof (val as { url: unknown }).url === 'string'
   );
 };
+
+const isImageLike = (val: unknown): val is { id?: string; url?: string } =>
+  typeof val === 'object' && val !== null && !Array.isArray(val);
+
 const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
@@ -81,7 +85,25 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const isImageObject = (val: unknown): val is { url?: string; alt?: string } =>
-    val !== null && typeof val === 'object' && !Array.isArray(val);
+    val !== null && typeof val === 'object' && !Array.isArray(val) && 
+  ('url' in val ? typeof (val as { url: unknown }).url === 'string' : true) &&
+  ('alt' in val ? typeof (val as { alt: unknown }).alt === 'string' : true);;
+
+  const isCardItem = (item: unknown): item is CardItem =>
+  typeof item === 'object' && item !== null &&
+  typeof (item as { title?: unknown }).title === 'string' &&
+  typeof (item as { description?: unknown }).description === 'string';
+
+const isStatItem = (item: unknown): item is StatItem =>
+  typeof item === 'object' && item !== null &&
+  typeof (item as { value?: unknown }).value === 'string' &&
+  typeof (item as { label?: unknown }).label === 'string';
+
+const isCourseItem = (item: unknown): item is CourseItem =>
+  typeof item === 'object' && item !== null &&
+  typeof (item as { title?: unknown }).title === 'string' &&
+  typeof (item as { total?: unknown }).total === 'number' &&
+  Array.isArray((item as { universities?: unknown }).universities);
 
   const getUniversities = (course: CourseItem) =>
     Array.isArray(course.universities) ? course.universities : [];
@@ -116,7 +138,12 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
     onChange(
       sections.map((s, i) => {
         if (i !== sectionIndex) return s;
-        const current = Array.isArray(s.content[arrayKey]) ? (s.content[arrayKey] as (CardItem | StatItem | CourseItem | ImageItem)[]) : [];
+        const raw = s.content[arrayKey];
+        const current = Array.isArray(raw)
+        ? raw.filter((item): item is CardItem | StatItem | CourseItem | ImageItem =>
+        typeof item === 'object' && item !== null && !Array.isArray(item)
+    )
+  : [];
         return { ...s, content: { ...s.content, [arrayKey]: [...current, newItem] } };
       })
     );
@@ -126,7 +153,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
     onChange(
       sections.map((s, i) => {
         if (i !== sectionIndex) return s;
-        const current = (s.content[arrayKey] as unknown[]) || [];
+        const current = Array.isArray(s.content[arrayKey]) ? (s.content[arrayKey] as unknown[]) : [];
         return { ...s, content: { ...s.content, [arrayKey]: current.filter((_, idx) => idx !== itemIndex) } };
       })
     );
@@ -142,7 +169,12 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
     onChange(
       sections.map((s, i) => {
         if (i !== sectionIndex) return s;
-        const current = Array.isArray(s.content[arrayKey]) ? (s.content[arrayKey] as Record<string, unknown>[]) : [];
+        const raw = s.content[arrayKey];
+        const current = Array.isArray(raw)
+        ? raw.filter((item): item is Record<string, unknown> =>
+        typeof item === 'object' && item !== null && !Array.isArray(item)
+    )
+  : [];
         return {
           ...s,
           content: {
@@ -155,14 +187,18 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
   };
 
   const renderContentForm = (section: SectionItem, sectionIndex: number) => {
+    const content = section.content ?? {};
     switch (section.content_type) {
       case 'text': {
-        const textContent = typeof section.content.text === 'string' ? section.content.text : '';
-        const rawImages = Array.isArray(section.content.images) ? section.content.images as ImageItem[] : [];
-        const images: ImageItem[] = rawImages.map((img) =>
-          typeof img === 'string' ? { url: img } : { id: img?.id, url: img?.url || '' }
+        const textContent = typeof content.text === 'string' ? content.text : '';
+        const rawImages = Array.isArray(content.images) ? content.images as unknown[] : [];
+        const images: ImageItem[] = rawImages.map((img) => {
+          if (typeof img === 'string') return { url: img };
+          if (isImageLike(img)) return { id: img.id, url: img.url || '' };
+          return { url: '' };
+        }
         );
-        const rawImage = isImageObject(section.content.image) ? section.content.image : undefined;
+        const rawImage = isImageObject(content.image) ? content.image : undefined;
         const image = { url: rawImage?.url || '', alt: rawImage?.alt || '' };
         const isVideo = section.section_key === 'video';
         const isIntroduction = section.section_key === 'introduction';
@@ -317,8 +353,8 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
       }
 
       case 'cards': {
-        const items = Array.isArray(section.content.items) ? section.content.items as CardItem[] : [];
-        const description = typeof section.content.description === 'string' ? section.content.description : '';
+        const items = Array.isArray(content.items) ? content.items .filter(isCardItem) : [];
+        const description = typeof content.description === 'string' ? content.description : '';
 
         return (
           <div className="space-y-4">
@@ -376,7 +412,8 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
       }
 
       case 'stats': {
-        const items = Array.isArray(section.content.items) ? section.content.items as StatItem[] : [];
+        const items = Array.isArray(content.items) ? content.items .filter(isStatItem) : [];
+
 
         return (
           <div className="space-y-4">
@@ -422,7 +459,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
       }
 
       case 'courses': {
-        const courses = Array.isArray(section.content.courses) ? section.content.courses as CourseItem[] : [];
+        const courses = Array.isArray(content.courses) ? content.courses .filter(isCourseItem) : [];
 
         return (
           <div className="space-y-4">
@@ -591,7 +628,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
               <Label className="text-sm font-medium text-slate-700">Content Type</Label>
               <Select
                 value={section.content_type}
-                onValueChange={(value) => updateSection(index, 'content_type', value as ContentType)}
+                onValueChange={(value) => updateSection(index, 'content_type', value )}
               >
                 <SelectTrigger className="border-slate-200">
                   <SelectValue />

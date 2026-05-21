@@ -32,7 +32,12 @@ function isStatItem(val: unknown): val is SectionStatItem {
 }
 interface SectionUniversityItem { id?: string; name?: string; students?: number; }
 function isUniversityItem(val: unknown): val is SectionUniversityItem {
-  return isPlainObject(val);
+  return (
+    isPlainObject(val) &&
+    (val.id === undefined || typeof val.id === 'string') &&
+    (val.name === undefined || typeof val.name === 'string') &&
+    (val.students === undefined || typeof val.students === 'number')
+  );
 }
 interface SectionCourseItem {
   id?: string; title?: string; name?: string; total?: number;
@@ -66,7 +71,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
     const matchesSearch =
       program.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (program.short_description || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || (program.status ?? '') === filterStatus;
+    const matchesStatus = filterStatus === 'all' ||  (program.status !== null && program.status !== undefined && program.status === filterStatus);
     return matchesSearch && matchesStatus;
   });
 
@@ -319,7 +324,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                           </div>
 
                           {/* Program Sections */}
-                          {selectedPost.sections.length > 0 && (
+                          {selectedPost.sections && selectedPost.sections.length > 0 && (
                             <div className="space-y-4">
                               <h4 className="font-semibold text-slate-900 dark:text-white">Sections</h4>
                               {[...selectedPost.sections]
@@ -379,94 +384,107 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                             })()}
                                           </div>
                                         )}
-                                        {section.content_type === 'text' && section.section_key !== 'video' && (
-                                          <>
-                                            {section.content?.text && typeof section.content?.text === 'string' && (
-                                              <p className="whitespace-pre-wrap mb-4">{section.content?.text}</p>
-                                            )}
-                                            {/* Handle images array (introduction sections) */}
-                                            {Array.isArray(section.content?.images) && section.content.images.length > 0 && (
-                                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                                                {section.content.images.filter(isImageItem).map((img, idx) => (
-                                                  <img
-                                                    key={img.id ?? `img-${idx}`}
-                                                    src={img.url}
-                                                    alt={`${section.title || 'Section'} image ${idx + 1}`}
-                                                    className="w-full h-48 object-cover rounded-lg"
+                                        {section.content_type === 'text' && section.section_key !== 'video' && (() => {
+                                          const sectionText = typeof section.content?.text === 'string'
+                                            ? section.content.text  // ✅ confirmed string, no ?. needed
+                                            : null;
+
+                                          return (
+                                            <>
+                                              {sectionText && (
+                                                <p className="whitespace-pre-wrap mb-4">{sectionText}</p>
+                                                //                                       ^^^ clean, no ?. needed
+                                              )}
+                                              {/* images array */}
+                                              {Array.isArray(section.content?.images) && section.content.images.length > 0 && (
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                                                  {section.content.images.filter(isImageItem).map((img, idx) => (
+                                                    <img key={img.id ?? `img-${idx}`} src={img.url}
+                                                      alt={`${section.title || 'Section'} image ${idx + 1}`}
+                                                      className="w-full h-48 object-cover rounded-lg"
+                                                    />
+                                                  ))}
+                                                </div>
+                                              )}
+                                              {/* single image */}
+                                              {isImageItem(section.content?.image) && (
+                                                <div className="mt-4">
+                                                  <img src={section.content.image.url}
+                                                    alt={section.title || 'Section image'}
+                                                    className="w-full max-w-2xl h-64 object-cover rounded-lg mx-auto"
                                                   />
-                                                ))}
-                                              </div>
-                                            )}
-                                            {/* Handle single image object (conclusion sections) */}
-                                            {isImageItem(section.content?.image) && (
-                                              <div className="mt-4">
-                                                <img
-                                                  src={section.content?.image?.url}
-                                                  alt={section.title || 'Section image'}
-                                                  className="w-full max-w-2xl h-64 object-cover rounded-lg mx-auto"
-                                                />
-                                              </div>
-                                            )}
-                                          </>
-                                        )}
-                                        {section.content_type === 'cards' && Array.isArray(section.content?.items) && (
-                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                            {section.content?.items?.filter(isCardItem).map((item, idx) => (
-                                              <div key={item.id ?? `card-${idx}`} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                                                {item.title && <h6 className="font-semibold mb-1">{item.title}</h6>}
-                                                {item.description && <p className="text-sm">{item.description}</p>}
-                                              </div>
-                                            ))}
-                                          </div>
-                                        )}
-                                        {section.content_type === 'stats' && Array.isArray(section.content?.items) && (
-                                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                                            {section.content?.items?.filter(isStatItem).map((item, idx) => (
-                                              <div key={item.id ?? `stat-${idx}`} className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                                                {item.value && <div className="text-2xl font-bold text-purple-600">{item.value}</div>}
-                                                {item.label && <div className="text-sm text-slate-600 dark:text-slate-400">{item.label}</div>}
-                                              </div>
-                                            ))}
-                                          </div>
-                                        )}
-                                        {section.content_type === 'courses' && Array.isArray(section.content?.courses) && (
-                                          <div className="space-y-6 mt-4">
-                                            {section.content?.courses?.filter(isCourseItem).map((course, idx) => (
-                                              <div key={course.id ?? `course-${idx}`} className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-                                                {/* Course Header */}
-                                                <div className="bg-slate-100 dark:bg-slate-800 px-4 py-3 flex items-center justify-between">
-                                                  <h6 className="font-semibold text-slate-900 dark:text-white">
-                                                    {course.title || course.name}
-                                                  </h6>
-                                                  {course.total && (
-                                                    <span className="text-sm font-bold text-purple-600 bg-purple-50 dark:bg-purple-900/30 px-3 py-1 rounded-full">
-                                                      {course.total.toLocaleString()} students
-                                                    </span>
+                                                </div>
+                                              )}
+                                            </>
+                                          );
+                                        })()}
+                                        {section.content_type === 'cards' && Array.isArray(section.content?.items) && (() => {
+                                          const items = section.content.items.filter(isCardItem);
+                                          return (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                              {items.map((item, idx) => (
+                                                <div key={item.id ?? `card-${idx}`} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                                                  {item.title && <h6 className="font-semibold mb-1">{item.title}</h6>}
+                                                  {item.description && <p className="text-sm">{item.description}</p>}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          );
+                                        })()}
+                                        {section.content_type === 'stats' && Array.isArray(section.content?.items) && (() => {
+                                          const items = section.content.items.filter(isStatItem);
+                                          return (
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                                              {items.map((item, idx) => (
+                                                <div key={item.id ?? `stat-${idx}`} className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                                                  {item.value && <div className="text-2xl font-bold text-purple-600">{item.value}</div>}
+                                                  {item.label && <div className="text-sm text-slate-600 dark:text-slate-400">{item.label}</div>}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          );
+                                        })()}
+                                        {section.content_type === 'courses' && Array.isArray(section.content?.courses) && (() => {
+                                          const courses = section.content.courses.filter(isCourseItem);
+                                          return (
+                                            <div className="space-y-6 mt-4">
+                                              {courses.map((course, idx) => (
+                                                <div key={course.id ?? `course-${idx}`} className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                                                  <div className="bg-slate-100 dark:bg-slate-800 px-4 py-3 flex items-center justify-between">
+                                                    <h6 className="font-semibold text-slate-900 dark:text-white">
+                                                      {course.title || course.name}
+                                                    </h6>
+                                                    {course.total && (
+                                                      <span className="text-sm font-bold text-purple-600 bg-purple-50 dark:bg-purple-900/30 px-3 py-1 rounded-full">
+                                                        {course.total.toLocaleString()} students
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                  {Array.isArray(course.universities) && course.universities.length > 0 && (() => {
+                                                    const universities = course.universities.filter(isUniversityItem); // ✅ no ?. needed
+                                                    return (
+                                                      <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                                                        {universities.map((uni, uIdx) => (
+                                                          <div key={uni.id ?? `uni-${uIdx}`} className="flex items-center justify-between px-4 py-2">
+                                                            <span className="text-sm text-slate-700 dark:text-slate-300">{uni.name}</span>
+                                                            {uni.students && (
+                                                              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                                                                {uni.students.toLocaleString()}
+                                                              </span>
+                                                            )}
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    );
+                                                  })()}
+                                                  {course.description && (
+                                                    <p className="text-sm px-4 py-2">{course.description}</p>
                                                   )}
                                                 </div>
-                                                {/* Universities */}
-                                                {Array.isArray(course.universities) && course.universities.length > 0 && (
-                                                  <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                                                    {course.universities?.filter(isUniversityItem).map((uni, uIdx) => (
-                                                      <div key={uni.id ?? `uni-${uIdx}`} className="flex items-center justify-between px-4 py-2">
-                                                        <span className="text-sm text-slate-700 dark:text-slate-300">{uni.name}</span>
-                                                        {uni.students && (
-                                                          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                                                            {uni.students.toLocaleString()}
-                                                          </span>
-                                                        )}
-                                                      </div>
-                                                    ))}
-                                                  </div>
-                                                )}
-                                                {/* Fallback description */}
-                                                {course.description && (
-                                                  <p className="text-sm px-4 py-2">{course.description}</p>
-                                                )}
-                                              </div>
-                                            ))}
-                                          </div>
-                                        )}
+                                              ))}
+                                            </div>
+                                          );
+                                        })()}
                                       </div>
                                     )}
                                   </div>

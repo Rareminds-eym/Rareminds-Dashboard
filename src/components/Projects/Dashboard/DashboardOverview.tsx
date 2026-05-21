@@ -13,7 +13,7 @@ interface DashboardOverviewProps {
 const DashboardOverview = ({ programs, onNewProgram, onViewPrograms }: DashboardOverviewProps) => {
   const recentPrograms = programs.slice(0, 3);
   const totalPrograms = programs.length;
-  const activePrograms = programs.filter(p => p.is_active === true).length;
+  const activePrograms = programs.filter(p => p.is_active).length;
   const thisMonthPrograms = programs.filter(program => {
     const programDate = new Date(program.created_at);
     const now = new Date();

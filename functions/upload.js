@@ -4,10 +4,16 @@ import { AwsClient } from 'aws4fetch';
 // Set ALLOWED_ORIGINS (comma-separated) in your env for multiple origins,
 // or ALLOWED_ORIGIN for a single origin. No fallback — must be explicitly configured.
 
+// Supported media types for upload
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime'];
+
+// 100 MB — supports video uploads while staying within Cloudflare Workers request body hard limit
+const MAX_SIZE_BYTES = 100 * 1024 * 1024;
+
 /**
  * @param {Request} request
  * @param {{ ALLOWED_ORIGIN?: string, ALLOWED_ORIGINS?: string }} env
- * @returns {Record<string, string>}
+ * @returns {Record<string, string> | null}
  */
 function getCorsHeaders(request, env) {
   const origin = request.headers.get('Origin') || '';
@@ -35,8 +41,9 @@ function getCorsHeaders(request, env) {
 export async function onRequestPost({ request, env }) {
   const corsHeaders = getCorsHeaders(request, env);
   if (!corsHeaders) {
-    return new Response(JSON.stringify({ error: 'Origin not allowed' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: 'Origin not allowed' }), { status: 403, headers: { 'Content-Type': 'application/json', 'Vary': 'Origin' } });
   }
+  // corsHeaders is now guaranteed to be non-null for subsequent uses
   try {
     const formData = await request.formData();
     const file = formData.get('file');
@@ -47,9 +54,6 @@ export async function onRequestPost({ request, env }) {
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       });
     }
-
-    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime'];
-    const MAX_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB (increased for video)
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       return new Response(JSON.stringify({ error: `File type "${file.type}" is not allowed` }), {
@@ -65,6 +69,13 @@ export async function onRequestPost({ request, env }) {
       });
     }
 
+    if (!env.R2_ACCESS_KEY || !env.R2_SECRET_KEY || !env.R2_ACCOUNT_ID || !env.R2_BUCKET_NAME || !env.R2_PUBLIC_URL) {
+      return new Response(JSON.stringify({ error: 'Server misconfiguration' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
     const r2 = new AwsClient({
       accessKeyId: env.R2_ACCESS_KEY,
       secretAccessKey: env.R2_SECRET_KEY,
@@ -76,11 +87,26 @@ export async function onRequestPost({ request, env }) {
     const uploadUrl = `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${env.R2_BUCKET_NAME}/${filename}`;
     const arrayBuffer = await file.arrayBuffer();
 
-    await r2.fetch(uploadUrl, {
-      method: 'PUT',
-      body: arrayBuffer,
-      headers: { 'Content-Type': file.type },
-    });
+    let uploadResponse;
+    try {
+      uploadResponse = await r2.fetch(uploadUrl, {
+        method: 'PUT',
+        body: arrayBuffer,
+        headers: { 'Content-Type': file.type },
+      });
+    } catch (uploadErr) {
+      return new Response(JSON.stringify({ error: 'Failed to reach storage' }), {
+        status: 502,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
+    if (!uploadResponse.ok) {
+      return new Response(JSON.stringify({ error: `Storage rejected the upload (${uploadResponse.status})` }), {
+        status: 502,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
 
     const publicUrl = `${env.R2_PUBLIC_URL}/${filename}`;
 

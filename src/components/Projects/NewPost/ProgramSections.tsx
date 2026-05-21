@@ -69,6 +69,25 @@ const ProgramSections = ({
   const availableSectionKeys = ALL_SECTION_KEYS.filter(
     (key) => !sections.some((s) => s.section_key === key)
   );
+  const isImageItem = (val: unknown): val is ImageItem =>
+  typeof val === 'object' && val !== null && 
+  typeof (val as ImageItem).url === 'string';
+
+  const isCardItem = (item: unknown): item is CardItem =>
+  typeof item === 'object' && item !== null &&
+  typeof (item as { title?: unknown }).title === 'string' &&
+  typeof (item as { description?: unknown }).description === 'string'; 
+
+  const isStatItem = (item: unknown): item is StatItem =>
+  typeof item === 'object' && item !== null &&
+  typeof (item as { value?: unknown }).value === 'string' &&
+  typeof (item as { label?: unknown }).label === 'string';
+
+  const isCourseItem = (item: unknown): item is CourseItem =>
+  typeof item === 'object' && item !== null &&
+  typeof (item as { title?: unknown }).title === 'string' &&
+  typeof (item as { total?: unknown }).total === 'number' &&
+  Array.isArray((item as { universities?: unknown }).universities); 
 
   const renderContentForm = (section: ProgramSectionData, sectionIndex: number) => {
     const contentType = section.content_type;
@@ -76,7 +95,8 @@ const ProgramSections = ({
     switch (contentType) {
       case 'text': {
         const textContent = typeof section.content.text === 'string' ? section.content.text : '';
-        const rawImages = Array.isArray(section.content.images) ? section.content.images as ImageItem[] : [];
+        const rawImages = Array.isArray(section.content.images) ? section.content.images .filter(isImageItem) 
+        : [];
         const rawImage = isImageObject(section.content.image)
           ? section.content.image
           : undefined;
@@ -156,7 +176,7 @@ const ProgramSections = ({
       }
 
       case 'cards': {
-        const items = Array.isArray(section.content.items) ? section.content.items as CardItem[] : [];
+        const items = Array.isArray(section.content.items) ? section.content.items .filter(isCardItem) : [];
         const description = typeof section.content.description === 'string' ? section.content.description : '';
 
         return (
@@ -216,7 +236,7 @@ const ProgramSections = ({
       }
 
       case 'stats': {
-        const items = Array.isArray(section.content.items) ? section.content.items as StatItem[] : [];
+        const items = Array.isArray(section.content.items) ? section.content.items .filter(isStatItem) : [];
 
         return (
           <div className="space-y-4">
@@ -262,7 +282,7 @@ const ProgramSections = ({
       }
 
       case 'courses': {
-        const courses = Array.isArray(section.content.courses) ? section.content.courses as CourseItem[] : [];
+        const courses = Array.isArray(section.content.courses) ? section.content.courses .filter(isCourseItem) : [];
 
         return (
           <div className="space-y-4">
@@ -432,7 +452,7 @@ const ProgramSections = ({
               <Label className="text-sm font-medium text-slate-700">Content Type</Label>
               <Select
                 value={section.content_type}
-                onValueChange={(value) => updateSection(index, 'content_type', value as ContentType)}
+                onValueChange={(value) => updateSection(index, 'content_type', value)}
               >
                 <SelectTrigger className="border-slate-200">
                   <SelectValue />
