@@ -94,7 +94,7 @@ export async function onRequestPost({ request, env }) {
         body: arrayBuffer,
         headers: { 'Content-Type': file.type },
       });
-    } catch (uploadErr) {
+    } catch {
       return new Response(JSON.stringify({ error: 'Failed to reach storage' }), {
         status: 502,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },

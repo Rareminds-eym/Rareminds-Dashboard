@@ -1,5 +1,5 @@
 import { ProjectPost, ProjectDraft, ProjectSEOSettings } from '../../../types/project';
-import { Program } from '../../../types/program';
+import { Program,ProgramFormData } from '../../../types/program';
 
 export interface ProjectFormData {
   title: string;
@@ -52,7 +52,7 @@ export const commonProjectTags = [
 
 // Program form types
 export interface ProgramFormProps {
-  onProgramSaved: (program: Program) => void | Promise<void>;
+  onProgramSaved: (data: ProgramFormData) => void | Promise<void>;
   editingProgram?: Program | null;
 }
 

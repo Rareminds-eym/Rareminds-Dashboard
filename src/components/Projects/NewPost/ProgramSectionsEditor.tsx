@@ -9,6 +9,8 @@ import { Badge } from '../../ui/badge';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../ui/select';
 import { Plus, X, Layers, Loader2 } from 'lucide-react';
 
+const UPLOAD_ENDPOINT = '/upload';
+
 const hasStringError = (val: unknown): val is { error: string } => {
   return (
     typeof val === 'object' &&
@@ -30,10 +32,24 @@ const hasStringUrl = (val: unknown): val is { url: string } => {
 const isImageLike = (val: unknown): val is { id?: string; url?: string } =>
   typeof val === 'object' && val !== null && !Array.isArray(val);
 
+const isSafeUrl = (url: string): boolean => {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+};
+
 const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
-  const res = await fetch('/upload', { method: 'POST', body: formData });
+  let res: Response;
+  try {
+    res = await fetch(UPLOAD_ENDPOINT, { method: 'POST', body: formData });
+  } catch {
+    throw new Error('Network error: unable to reach upload server');
+  }
 
   // Try to parse JSON regardless of status, so we can extract error messages
   let data: unknown;
@@ -86,8 +102,8 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
 
   const isImageObject = (val: unknown): val is { url?: string; alt?: string } =>
     val !== null && typeof val === 'object' && !Array.isArray(val) && 
-  ('url' in val ? typeof (val as { url: unknown }).url === 'string' : true) &&
-  ('alt' in val ? typeof (val as { alt: unknown }).alt === 'string' : true);;
+    (!('url' in val) || typeof (val as { url: unknown }).url === 'string') &&
+    (!('alt' in val) || typeof (val as { alt: unknown }).alt === 'string');
 
   const isCardItem = (item: unknown): item is CardItem =>
   typeof item === 'object' && item !== null &&
@@ -223,6 +239,7 @@ const isCourseItem = (item: unknown): item is CourseItem =>
                       try {
                         const url = await uploadFile(file);
                         updateContentField(sectionIndex, 'text', url);
+                        setUploadError(null);
                       } catch (err) {
                         setUploadError(err instanceof Error ? err.message : 'Video upload failed');
                       } finally {
@@ -253,7 +270,7 @@ const isCourseItem = (item: unknown): item is CourseItem =>
                 <Label className="text-sm font-medium text-slate-700">Images (Multiple)</Label>
                 {images.map((img, idx) => (
                   <div key={img.id ?? `new-${idx}`} className="space-y-1">
-                    {img.url && <img src={img.url} alt={`Image ${idx + 1}`} className="w-24 h-16 object-cover rounded border border-slate-200" />}
+                    {img.url && isSafeUrl(img.url) && <img src={img.url} alt={`Image ${idx + 1}`} className="w-24 h-16 object-cover rounded border border-slate-200" />}
                     <div className="flex gap-2 items-center">
                       <input
                         type="file"
@@ -270,6 +287,7 @@ const isCourseItem = (item: unknown): item is CourseItem =>
                               'images',
                               images.map((img, i) => i === idx ? { ...img, url } : img)
                             );
+                            setUploadError(null);
                           } catch (err) {
                             setUploadError(err instanceof Error ? err.message : 'Image upload failed');
                           } finally {
@@ -314,7 +332,7 @@ const isCourseItem = (item: unknown): item is CourseItem =>
             {!isVideo && isConclusion && (
               <div className="space-y-3">
                 <Label className="text-sm font-medium text-slate-700">Single Image</Label>
-                {image.url && <img src={image.url} alt="Conclusion image" className="w-32 h-20 object-cover rounded-lg border border-slate-200" />}
+                {image.url && isSafeUrl(image.url) && <img src={image.url} alt="Conclusion image" className="w-32 h-20 object-cover rounded-lg border border-slate-200" />}
                 <input
                   type="file"
                   accept="image/*"
@@ -326,6 +344,7 @@ const isCourseItem = (item: unknown): item is CourseItem =>
                     try {
                       const url = await uploadFile(file);
                       updateContentField(sectionIndex, 'image', { url, alt: image.alt });
+                      setUploadError(null);
                     } catch (err) {
                       setUploadError(err instanceof Error ? err.message : 'Image upload failed');
                     } finally {

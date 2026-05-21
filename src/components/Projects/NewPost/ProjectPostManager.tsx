@@ -9,7 +9,7 @@ interface ProgramPostManagerProps {
   onProgramSaved?: () => void;
 }
 
-const ProjectPostManager = ({ editingProgram: externalEditingProgram, onProgramSaved }: ProgramPostManagerProps) => {
+const ProgramPostManager = ({ editingProgram: externalEditingProgram, onProgramSaved }: ProgramPostManagerProps) => {
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
   const { createProgram, updateProgram } = usePrograms();
   const { toast } = useToast();
@@ -51,4 +51,4 @@ const ProjectPostManager = ({ editingProgram: externalEditingProgram, onProgramS
   );
 };
 
-export default ProjectPostManager;
+export default ProgramPostManager

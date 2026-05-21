@@ -31,6 +31,23 @@ const asNumber = (val: unknown, fallback = 0): number =>
 const asBool = (val: unknown, fallback = true): boolean =>
     typeof val === 'boolean' ? val : fallback;
 
+const VALID_SECTION_KEYS: SectionKeyType[] = [
+    'introduction', 'about', 'modules', 'approaches', 'impact',
+    'strategic_alignment', 'conclusion', 'header', 'course_enrollment',
+    'program_delivery', 'intervention', 'video',
+];
+const VALID_CONTENT_TYPES: ContentType[] = ['text', 'cards', 'stats', 'courses'];
+
+const asSectionKey = (val: unknown): SectionKeyType => {
+    const str = asString(val);
+    return (VALID_SECTION_KEYS as string[]).includes(str) ? str as SectionKeyType : 'introduction';
+};
+
+const asContentType = (val: unknown): ContentType => {
+    const str = asString(val);
+    return (VALID_CONTENT_TYPES as string[]).includes(str) ? str as ContentType : 'text';
+};
+
 const toRecord = (val: unknown): Record<string, unknown> =>
     (val !== null && typeof val === 'object' && !Array.isArray(val))
         ? (val as Record<string, unknown>)
@@ -43,7 +60,9 @@ export const usePrograms = () => {
     const { user } = useAuth();
     const { toast } = useToast();
     const toastRef = useRef(toast);
-    toastRef.current = toast;
+    useEffect(() => {
+        toastRef.current = toast;
+    });
 
     // Helper to map a database row + nested sections to a Program
     const dbRowToProgram = (input: unknown): Program => {
@@ -55,8 +74,8 @@ export const usePrograms = () => {
                 (s): ProgramSection => ({
                     id: asString(s.id),
                     program_id: asString(s.program_id),
-                    section_key: (asString(s.section_key) as SectionKeyType),
-                    content_type: (asString(s.content_type) as ContentType) || 'text',
+                    section_key: asSectionKey(s.section_key),
+                    content_type: asContentType(s.content_type),
                     title: typeof s.title === 'string' ? s.title : null,
                     preamble: typeof s.preamble === 'string' ? s.preamble : null,
                     content: toRecord(s.content),
@@ -175,11 +194,11 @@ export const usePrograms = () => {
                     (s): ProgramSection => ({
                         id: s.id,
                         program_id: s.program_id,
-                        section_key: s.section_key as SectionKeyType,
-                        content_type: (s.content_type as ContentType) ?? 'text',
+                        section_key: asSectionKey(s.section_key),
+                        content_type: asContentType(s.content_type),
                         title: s.title,
                         preamble: s.preamble,
-                        content: (s.content as Record<string, unknown>) ?? {},
+                        content: toRecord(s.content),
                         display_order: s.display_order,
                         created_at: s.created_at,
                         updated_at: s.updated_at,
@@ -311,11 +330,11 @@ export const usePrograms = () => {
                 (s): ProgramSection => ({
                     id: s.id,
                     program_id: s.program_id,
-                    section_key: s.section_key as SectionKeyType,
-                    content_type: (s.content_type as ContentType) ?? 'text',
+                    section_key: asSectionKey(s.section_key),
+                    content_type: asContentType(s.content_type),
                     title: s.title,
                     preamble: s.preamble,
-                    content: (s.content as Record<string, unknown>) ?? {},
+                    content: toRecord(s.content),
                     display_order: s.display_order,
                     created_at: s.created_at,
                     updated_at: s.updated_at,

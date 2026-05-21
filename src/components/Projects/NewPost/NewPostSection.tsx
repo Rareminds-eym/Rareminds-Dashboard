@@ -14,18 +14,16 @@ import { Save, Sparkles, Settings, Loader2, ChevronsUpDown, Check } from 'lucide
 import { cn } from '../../../lib/utils';
 import ProgramSectionsEditor, { SectionItem } from './ProgramSectionsEditor';
 
-// ✅ Define the response shape clearly
 interface UploadResponse {
   url?: string;
   error?: string;
 }
 
-// ✅ One type guard — replaces all 4 'as' casts
 const isUploadResponse = (data: unknown): data is UploadResponse => {
   if (typeof data !== 'object' || data === null) return false;
-
-  const hasUrl = 'url' in data && typeof (data as { url: unknown }).url === 'string' && (data as { url: string }).url.length > 0;
-  const hasError = 'error' in data && typeof (data as { error: unknown }).error === 'string';
+  const obj = data as Record<string, unknown>;
+  const hasUrl = 'url' in obj && typeof obj.url === 'string' && obj.url.length > 0;
+  const hasError = 'error' in obj && typeof obj.error === 'string';
   return hasUrl || hasError;
 };
 
@@ -99,8 +97,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   // ADD THESE two lines after your useState declarations
   const imageInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
-  // Tracks whether the user has manually edited the slug field.
-  // When true, title changes no longer auto-regenerate the slug.
+  // prevents auto-slug regeneration after manual edit
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
 
   // Get unique values from existing programs
@@ -125,6 +122,13 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
         setFormLoadError('Failed to load form options. Please refresh and try again.');
         // Fall back to defaults so the form remains usable
         setExistingStatuses(['Active', 'Completed', 'In Progress']);
+        if (editingProgram) {
+          setExistingProgramTypes([editingProgram.program_type]);
+          setExistingLocations([editingProgram.location]);
+        } else {
+          setExistingProgramTypes([]);
+          setExistingLocations([]);
+        }
         return;
       }
 
@@ -240,32 +244,36 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || uploadingImage) return;
     setUploadingImage(true);
     setImageUploadError(null);
-    uploadFile(file)
-      .then((url) => setImageUrl(url))
-      .catch((err) => {
-        setImageUploadError(err instanceof Error ? err.message : 'Image upload failed');
-        if (imageInputRef.current) imageInputRef.current.value = '';
-      })
-      .finally(() => setUploadingImage(false));
+    try {
+      const url = await uploadFile(file);
+      setImageUrl(url);
+    } catch (err) {
+      setImageUploadError(err instanceof Error ? err.message : 'Image upload failed');
+      if (imageInputRef.current) imageInputRef.current.value = '';
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
-  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || uploadingBanner) return;
     setUploadingBanner(true);
     setBannerUploadError(null);
-    uploadFile(file)
-      .then((url) => setBannerUrl(url))
-      .catch((err) => {
-        setBannerUploadError(err instanceof Error ? err.message : 'Banner upload failed');
-        if (bannerInputRef.current) bannerInputRef.current.value = '';
-      })
-      .finally(() => setUploadingBanner(false));
+    try {
+      const url = await uploadFile(file);
+      setBannerUrl(url);
+    } catch (err) {
+      setBannerUploadError(err instanceof Error ? err.message : 'Banner upload failed');
+      if (bannerInputRef.current) bannerInputRef.current.value = '';
+    } finally {
+      setUploadingBanner(false);
+    }
   };
 
   return (
@@ -371,6 +379,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     name="image"
                     type="file"
                     accept="image/*"
+                    aria-label="Upload program image"
                     disabled={uploadingImage}
                     onChange={handleImageUpload}
                     className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
@@ -397,6 +406,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     name="banner"
                     type="file"
                     accept="image/*"
+                    aria-label="Upload program banner"
                     disabled={uploadingBanner}
                     onChange={handleBannerUpload}
                     className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
@@ -560,6 +570,20 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     value={displayOrder}
                     onChange={(e) => setDisplayOrder(parseInt(e.target.value, 10) || 0)}
                     className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                  />
+                </div>
+
+                {/* Active */}
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="is-active" className="text-sm font-medium text-slate-700">
+                    Active
+                  </Label>
+                  <input
+                    id="is-active"
+                    type="checkbox"
+                    checked={isActive}
+                    onChange={(e) => setIsActive(e.target.checked)}
+                    className="w-4 h-4 accent-purple-600 cursor-pointer"
                   />
                 </div>
               </CardContent>

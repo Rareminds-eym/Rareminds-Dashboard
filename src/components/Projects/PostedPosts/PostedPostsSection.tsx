@@ -10,46 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Edit, Trash2, Eye, Search, Calendar, MapPin, ImageIcon, TrendingUp } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 
-// ─── Type Guards ─────────────────────────────────────────────────────────────
-function isPlainObject(val: unknown): val is Record<string, unknown> {
-  return val !== null && typeof val === 'object' && !Array.isArray(val);
-}
+// ─── Type Guard Interfaces ────────────────────────────────────────────────────
 interface SectionImageItem { id?: string; url: string; }
-function isImageItem(val: unknown): val is SectionImageItem {
-  return isPlainObject(val) && typeof val.url === 'string';
-}
 interface SectionCardItem { id?: string; title?: string; description?: string; }
-function isCardItem(val: unknown): val is SectionCardItem {
-  return isPlainObject(val) &&
-    (val.title === undefined || typeof val.title === 'string') &&
-    (val.description === undefined || typeof val.description === 'string');
-}
 interface SectionStatItem { id?: string; label?: string; value?: string; }
-function isStatItem(val: unknown): val is SectionStatItem {
-  return isPlainObject(val) &&
-    (val.label === undefined || typeof val.label === 'string') &&
-    (val.value === undefined || typeof val.value === 'string');
-}
 interface SectionUniversityItem { id?: string; name?: string; students?: number; }
-function isUniversityItem(val: unknown): val is SectionUniversityItem {
-  return (
-    isPlainObject(val) &&
-    (val.id === undefined || typeof val.id === 'string') &&
-    (val.name === undefined || typeof val.name === 'string') &&
-    (val.students === undefined || typeof val.students === 'number')
-  );
-}
 interface SectionCourseItem {
   id?: string; title?: string; name?: string; total?: number;
   universities?: SectionUniversityItem[]; description?: string;
-}
-function isCourseItem(val: unknown): val is SectionCourseItem {
-  if (!isPlainObject(val)) return false;
-  if ('universities' in val) {
-    if (!Array.isArray(val['universities'])) return false;
-    if (!val['universities'].every(isUniversityItem)) return false;
-  }
-  return true;
 }
 
 interface PostedPostsSectionProps {
@@ -64,6 +32,33 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
   const [selectedPost, setSelectedPost] = useState<Program | null>(null);
   const { toast } = useToast();
 
+  // ─── Type Guards (component-specific) ──────────────────────────────────────
+  const isPlainObject = (val: unknown): val is Record<string, unknown> =>
+    val !== null && typeof val === 'object' && !Array.isArray(val);
+  const isImageItem = (val: unknown): val is SectionImageItem =>
+    isPlainObject(val) && typeof val.url === 'string';
+  const isCardItem = (val: unknown): val is SectionCardItem =>
+    isPlainObject(val) &&
+    (val.title === undefined || typeof val.title === 'string') &&
+    (val.description === undefined || typeof val.description === 'string');
+  const isStatItem = (val: unknown): val is SectionStatItem =>
+    isPlainObject(val) &&
+    (val.label === undefined || typeof val.label === 'string') &&
+    (val.value === undefined || typeof val.value === 'string');
+  const isUniversityItem = (val: unknown): val is SectionUniversityItem =>
+    isPlainObject(val) &&
+    (val.id === undefined || typeof val.id === 'string') &&
+    (val.name === undefined || typeof val.name === 'string') &&
+    (val.students === undefined || typeof val.students === 'number');
+  const isCourseItem = (val: unknown): val is SectionCourseItem => {
+    if (!isPlainObject(val)) return false;
+    if ('universities' in val) {
+      if (!Array.isArray(val['universities'])) return false;
+      if (!val['universities'].every(isUniversityItem)) return false;
+    }
+    return true;
+  };
+
   // Get all unique statuses from programs
   const allStatuses = [...new Set(programs.map(p => p.status).filter((s): s is string => typeof s === 'string' && s.length > 0))];
 
@@ -71,7 +66,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
     const matchesSearch =
       program.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (program.short_description || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' ||  (program.status !== null && program.status !== undefined && program.status === filterStatus);
+    const matchesStatus = filterStatus === 'all' || program.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
@@ -362,10 +357,9 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                                 .filter((v) => {
                                                   try {
                                                     const parsed = new URL(v);
-                                                    return (
-                                                      parsed.protocol === 'http:' ||
-                                                      parsed.protocol === 'https:'
-                                                    );
+                                                    const isHttps = parsed.protocol === 'http:' || parsed.protocol === 'https:';
+                                                    const isAllowedDomain = parsed.hostname.endsWith('.r2.dev');
+                                                    return isHttps && isAllowedDomain;
                                                   } catch {
                                                     return false;
                                                   }
@@ -386,14 +380,14 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                         )}
                                         {section.content_type === 'text' && section.section_key !== 'video' && (() => {
                                           const sectionText = typeof section.content?.text === 'string'
-                                            ? section.content.text  // ✅ confirmed string, no ?. needed
+                                            ? section.content.text  
                                             : null;
 
                                           return (
                                             <>
                                               {sectionText && (
                                                 <p className="whitespace-pre-wrap mb-4">{sectionText}</p>
-                                                //                                       ^^^ clean, no ?. needed
+                                                //                                       
                                               )}
                                               {/* images array */}
                                               {Array.isArray(section.content?.images) && section.content.images.length > 0 && (
