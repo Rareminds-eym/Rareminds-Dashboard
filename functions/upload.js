@@ -55,6 +55,13 @@ export async function onRequestPost({ request, env }) {
       });
     }
 
+    if (!(file instanceof File)) {
+      return new Response(JSON.stringify({ error: 'Invalid file upload' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
     if (!ALLOWED_TYPES.includes(file.type)) {
       return new Response(JSON.stringify({ error: `File type "${file.type}" is not allowed` }), {
         status: 415,

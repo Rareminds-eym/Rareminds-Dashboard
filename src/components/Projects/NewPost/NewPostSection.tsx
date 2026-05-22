@@ -27,6 +27,12 @@ const isUploadResponse = (data: unknown): data is UploadResponse => {
   return hasUrl || hasError;
 };
 
+const isSuccessResponse = (data: unknown): data is { url: string } => {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return typeof obj.url === 'string' && obj.url.length > 0;
+};
+
 const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
@@ -48,7 +54,7 @@ const uploadFile = async (file: File): Promise<string> => {
   if (!isUploadResponse(data)) {
     throw new Error('Upload failed: invalid response format');
   }
-  if (!data.url) {
+  if (!isSuccessResponse(data)) {
     throw new Error('Upload failed: no URL returned');
   }
 
@@ -57,18 +63,32 @@ const uploadFile = async (file: File): Promise<string> => {
 
 // Helper function to remove IDs from content recursively
 const removeIds = (obj: Record<string, unknown>): Record<string, unknown> => {
-  const process = (val: unknown): unknown => {
-    if (Array.isArray(val)) return val.map(process);
+  const processValue = (val: unknown): unknown => {
+    if (Array.isArray(val)) return val.map(processValue);
     if (val !== null && typeof val === 'object') {
-      return Object.fromEntries(
-        Object.entries(val)
-          .filter(([k]) => k !== 'id')
-          .map(([k, v]) => [k, process(v)])
-      );
+      const result: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(val)) {
+        if (k !== 'id') result[k] = processValue(v);
+      }
+      return result;
     }
     return val;
   };
-  return process(obj) as Record<string, unknown>;
+
+  return Object.fromEntries(
+    Object.entries(obj)
+      .filter(([k]) => k !== 'id')
+      .map(([k, v]) => [k, processValue(v)])
+  );
+};
+const resetFileInput = (ref: React.RefObject<HTMLInputElement>) => {
+  if (ref.current) {
+    ref.current.value = '';
+    if (ref.current.value) {
+      ref.current.type = 'text';
+      ref.current.type = 'file';
+    }
+  }
 };
 
 interface NewPostSectionProps {
@@ -94,7 +114,6 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   const [bannerUploadError, setBannerUploadError] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
-  // ADD THESE two lines after your useState declarations
   const imageInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   // prevents auto-slug regeneration after manual edit
@@ -113,14 +132,17 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
 
   // Fetch existing programs to populate dropdowns
   useEffect(() => {
+    let isCancelled = false;
     const fetchExistingValues = async () => {
       const { data, error } = await supabase
         .from('programs')
         .select('program_type, location, status');
+      if (isCancelled) return;
 
       if (error) {
-        setFormLoadError('Failed to load form options. Please refresh and try again.');
-        // Fall back to defaults so the form remains usable
+        setFormLoadError(error.message
+      ? `Failed to load form options: ${error.message}`
+      : 'Unable to load program options. Some dropdown suggestions may be unavailable.');
         setExistingStatuses(['Active', 'Completed', 'In Progress']);
         if (editingProgram) {
           setExistingProgramTypes([editingProgram.program_type]);
@@ -157,6 +179,9 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
     };
 
     fetchExistingValues();
+    return () => {
+    isCancelled = true; 
+  };
   }, [editingProgram]);
 
   // Pre-populate when editing
@@ -192,7 +217,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
     if (!editingProgram && !slugManuallyEdited) {
       setSlug(generateSlug(title));
     }
-  }, [title, editingProgram, slugManuallyEdited]);
+  }, [title, editingProgram, slugManuallyEdited, generateSlug]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,10 +249,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
     };
 
     const success = await onProgramSaved(formData);
-    // Reset form only on successful creation.
-    // editingProgram being null/undefined is the source of truth
-    // for whether this was a create vs update operation.
-    // Only reset form on successful creation (not editing)
+    // Only reset on successful creation; editingProgram=null is the create vs update signal
     if (success && !editingProgram) {
       setTitle('');
       setSlug('');
@@ -254,7 +276,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
       setImageUrl(url);
     } catch (err) {
       setImageUploadError(err instanceof Error ? err.message : 'Image upload failed');
-      if (imageInputRef.current) imageInputRef.current.value = '';
+      resetFileInput(imageInputRef);
     } finally {
       setUploadingImage(false);
     }
@@ -270,7 +292,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
       setBannerUrl(url);
     } catch (err) {
       setBannerUploadError(err instanceof Error ? err.message : 'Banner upload failed');
-      if (bannerInputRef.current) bannerInputRef.current.value = '';
+      resetFileInput(bannerInputRef); 
     } finally {
       setUploadingBanner(false);
     }

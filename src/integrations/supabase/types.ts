@@ -253,11 +253,11 @@ export type Database = {
           id: string
           title: string
           slug: string
-          program_type: string | null
-          location: string | null
-          date: string | null
-          status: string | null
-          image_url: string | null
+          program_type: string
+          location: string
+          date: string
+          status: string
+          image_url: string
           banner_url: string | null
           short_description: string | null
           display_order: number
@@ -269,11 +269,11 @@ export type Database = {
           id?: string
           title: string
           slug: string
-          program_type?: string | null
-          location?: string | null
-          date?: string | null
-          status?: string | null
-          image_url?: string | null
+          program_type?: string
+          location?: string
+          date?: string
+          status?: string
+          image_url?: string
           banner_url?: string | null
           short_description?: string | null
           display_order?: number
@@ -285,11 +285,11 @@ export type Database = {
           id?: string
           title?: string
           slug?: string
-          program_type?: string | null
-          location?: string | null
-          date?: string | null
-          status?: string | null
-          image_url?: string | null
+          program_type?: string
+          location?: string
+          date?: string
+          status?: string
+          image_url?: string
           banner_url?: string | null
           short_description?: string | null
           display_order?: number

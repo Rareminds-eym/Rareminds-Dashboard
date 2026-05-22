@@ -358,7 +358,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                                   try {
                                                     const parsed = new URL(v);
                                                     const isHttps = parsed.protocol === 'http:' || parsed.protocol === 'https:';
-                                                    const isAllowedDomain = parsed.hostname.endsWith('.r2.dev');
+                                                    const isAllowedDomain = parsed.hostname === 'pub-ff2f575034a34f13924fa500457f5a1e.r2.dev';
                                                     return isHttps && isAllowedDomain;
                                                   } catch {
                                                     return false;
@@ -386,8 +386,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                           return (
                                             <>
                                               {sectionText && (
-                                                <p className="whitespace-pre-wrap mb-4">{sectionText}</p>
-                                                //                                       
+                                                <p className="whitespace-pre-wrap mb-4">{sectionText}</p>                                   
                                               )}
                                               {/* images array */}
                                               {Array.isArray(section.content?.images) && section.content.images.length > 0 && (

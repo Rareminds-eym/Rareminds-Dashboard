@@ -40,18 +40,26 @@ const VALID_CONTENT_TYPES: ContentType[] = ['text', 'cards', 'stats', 'courses']
 
 const asSectionKey = (val: unknown): SectionKeyType => {
     const str = asString(val);
-    return (VALID_SECTION_KEYS as string[]).includes(str) ? str as SectionKeyType : 'introduction';
+    const found = VALID_SECTION_KEYS.find((k): k is SectionKeyType => k === str);
+    return found ?? 'introduction';
 };
 
 const asContentType = (val: unknown): ContentType => {
     const str = asString(val);
-    return (VALID_CONTENT_TYPES as string[]).includes(str) ? str as ContentType : 'text';
+    const found = VALID_CONTENT_TYPES.find((k): k is ContentType => k === str);
+    return found ?? 'text';
 };
 
-const toRecord = (val: unknown): Record<string, unknown> =>
-    (val !== null && typeof val === 'object' && !Array.isArray(val))
-        ? (val as Record<string, unknown>)
-        : {};
+const toRecord = (val: unknown): Record<string, unknown> => {
+    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+        const result: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(val)) {
+            result[k] = v;
+        }
+        return result;
+    }
+    return {};
+};
 
 export const usePrograms = () => {
     const [programs, setPrograms] = useState<Program[]>([]);
@@ -62,7 +70,7 @@ export const usePrograms = () => {
     const toastRef = useRef(toast);
     useEffect(() => {
         toastRef.current = toast;
-    });
+    }, [toast]);
 
     // Helper to map a database row + nested sections to a Program
     const dbRowToProgram = (input: unknown): Program => {

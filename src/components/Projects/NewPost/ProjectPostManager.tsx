@@ -6,7 +6,7 @@ import { useToast } from '../../../hooks/use-toast';
 
 interface ProgramPostManagerProps {
   editingProgram?: Program | null;
-  onProgramSaved?: () => void;
+  onProgramSaved?: () => void | Promise<void>;
 }
 
 const ProgramPostManager = ({ editingProgram: externalEditingProgram, onProgramSaved }: ProgramPostManagerProps) => {
@@ -24,14 +24,14 @@ const ProgramPostManager = ({ editingProgram: externalEditingProgram, onProgramS
         const updated = await updateProgram(editingProgram.id, formData);
         if (updated) {
           toast({ title: 'Success', description: 'Program updated successfully!', variant: 'default' });
-          onProgramSaved?.();
+          await onProgramSaved?.();
           return true;
         }
       } else {
         const created = await createProgram(formData);
         if (created) {
           toast({ title: 'Success', description: 'Program created successfully!', variant: 'default' });
-          onProgramSaved?.();
+          await onProgramSaved?.();
           return true;
         }
       }
@@ -51,4 +51,4 @@ const ProgramPostManager = ({ editingProgram: externalEditingProgram, onProgramS
   );
 };
 
-export default ProgramPostManager
+export default ProgramPostManager;

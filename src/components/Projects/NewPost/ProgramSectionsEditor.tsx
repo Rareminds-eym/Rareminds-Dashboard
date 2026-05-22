@@ -9,8 +9,6 @@ import { Badge } from '../../ui/badge';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../ui/select';
 import { Plus, X, Layers, Loader2 } from 'lucide-react';
 
-const UPLOAD_ENDPOINT = '/upload';
-
 const hasStringError = (val: unknown): val is { error: string } => {
   return (
     typeof val === 'object' &&
@@ -46,9 +44,10 @@ const uploadFile = async (file: File): Promise<string> => {
   formData.append('file', file);
   let res: Response;
   try {
-    res = await fetch(UPLOAD_ENDPOINT, { method: 'POST', body: formData });
-  } catch {
-    throw new Error('Network error: unable to reach upload server');
+    res = await fetch('/upload', { method: 'POST', body: formData });
+  } catch (err) {
+    const cause = err instanceof Error ? err.message : String(err);
+    throw new Error(`Network error: unable to reach upload server (${cause})`);
   }
 
   // Try to parse JSON regardless of status, so we can extract error messages
@@ -681,7 +680,7 @@ const isCourseItem = (item: unknown): item is CourseItem =>
         {sections.length === 0 && (
           <div className="text-center py-8 text-slate-400">
             <Plus className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p>No sections added yet. Use the dropdown above to add sections.</p>
+            <p>Select a section type from the dropdown above to start building your program content.</p>
           </div>
         )}
         {uploadError && (
