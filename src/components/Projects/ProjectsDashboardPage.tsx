@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Plus, FileText, Eye } from 'lucide-react';
 import DashboardOverview from './Dashboard/DashboardOverview';
@@ -6,9 +5,11 @@ import PostedPostsSection from './PostedPosts/PostedPostsSection';
 import ProjectPostManager from './NewPost/ProjectPostManager';
 import { Program } from '../../types/program';
 import { usePrograms } from '../../hooks/usePrograms';
+import { useToast } from "../../hooks/use-toast";
 
 const ProjectsDashboardPage = () => {
   const { programs, loading: programsLoading, deleteProgram, fetchPrograms } = usePrograms();
+  const { toast } = useToast();
   const [activeSection, setActiveSection] = useState('overview');
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
 
@@ -18,7 +19,16 @@ const ProjectsDashboardPage = () => {
   };
 
   const handleDeleteProgram = async (programId: string) => {
-    await deleteProgram(programId);
+    try {
+      await deleteProgram(programId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete program';
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleProgramSaved = () => {

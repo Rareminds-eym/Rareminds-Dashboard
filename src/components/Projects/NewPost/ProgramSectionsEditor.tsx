@@ -39,15 +39,27 @@ const isSafeUrl = (url: string): boolean => {
   }
 };
 
+const UPLOAD_TIMEOUT_MS = 30000;
 const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
+  const controller = new AbortController();
+
+  const timeoutId = window.setTimeout(() => {
+    controller.abort();
+  }, UPLOAD_TIMEOUT_MS);
+
   let res: Response;
   try {
-    res = await fetch('/upload', { method: 'POST', body: formData });
+    res = await fetch('/upload', { method: 'POST', body: formData, signal: controller.signal, });
   } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('Upload timed out. Please try again.');
+    }
     const cause = err instanceof Error ? err.message : String(err);
     throw new Error(`Network error: unable to reach upload server (${cause})`);
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   // Try to parse JSON regardless of status, so we can extract error messages
@@ -100,25 +112,25 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const isImageObject = (val: unknown): val is { url?: string; alt?: string } =>
-    val !== null && typeof val === 'object' && !Array.isArray(val) && 
+    val !== null && typeof val === 'object' && !Array.isArray(val) &&
     (!('url' in val) || typeof (val as { url: unknown }).url === 'string') &&
     (!('alt' in val) || typeof (val as { alt: unknown }).alt === 'string');
 
   const isCardItem = (item: unknown): item is CardItem =>
-  typeof item === 'object' && item !== null &&
-  typeof (item as { title?: unknown }).title === 'string' &&
-  typeof (item as { description?: unknown }).description === 'string';
+    typeof item === 'object' && item !== null &&
+    typeof (item as { title?: unknown }).title === 'string' &&
+    typeof (item as { description?: unknown }).description === 'string';
 
-const isStatItem = (item: unknown): item is StatItem =>
-  typeof item === 'object' && item !== null &&
-  typeof (item as { value?: unknown }).value === 'string' &&
-  typeof (item as { label?: unknown }).label === 'string';
+  const isStatItem = (item: unknown): item is StatItem =>
+    typeof item === 'object' && item !== null &&
+    typeof (item as { value?: unknown }).value === 'string' &&
+    typeof (item as { label?: unknown }).label === 'string';
 
-const isCourseItem = (item: unknown): item is CourseItem =>
-  typeof item === 'object' && item !== null &&
-  typeof (item as { title?: unknown }).title === 'string' &&
-  typeof (item as { total?: unknown }).total === 'number' &&
-  Array.isArray((item as { universities?: unknown }).universities);
+  const isCourseItem = (item: unknown): item is CourseItem =>
+    typeof item === 'object' && item !== null &&
+    typeof (item as { title?: unknown }).title === 'string' &&
+    typeof (item as { total?: unknown }).total === 'number' &&
+    Array.isArray((item as { universities?: unknown }).universities);
 
   const getUniversities = (course: CourseItem) =>
     Array.isArray(course.universities) ? course.universities : [];
@@ -155,10 +167,10 @@ const isCourseItem = (item: unknown): item is CourseItem =>
         if (i !== sectionIndex) return s;
         const raw = s.content[arrayKey];
         const current = Array.isArray(raw)
-        ? raw.filter((item): item is CardItem | StatItem | CourseItem | ImageItem =>
-        typeof item === 'object' && item !== null && !Array.isArray(item)
-    )
-  : [];
+          ? raw.filter((item): item is CardItem | StatItem | CourseItem | ImageItem =>
+            typeof item === 'object' && item !== null && !Array.isArray(item)
+          )
+          : [];
         return { ...s, content: { ...s.content, [arrayKey]: [...current, newItem] } };
       })
     );
@@ -186,10 +198,10 @@ const isCourseItem = (item: unknown): item is CourseItem =>
         if (i !== sectionIndex) return s;
         const raw = s.content[arrayKey];
         const current = Array.isArray(raw)
-        ? raw.filter((item): item is Record<string, unknown> =>
-        typeof item === 'object' && item !== null && !Array.isArray(item)
-    )
-  : [];
+          ? raw.filter((item): item is Record<string, unknown> =>
+            typeof item === 'object' && item !== null && !Array.isArray(item)
+          )
+          : [];
         return {
           ...s,
           content: {
@@ -371,7 +383,7 @@ const isCourseItem = (item: unknown): item is CourseItem =>
       }
 
       case 'cards': {
-        const items = Array.isArray(content.items) ? content.items .filter(isCardItem) : [];
+        const items = Array.isArray(content.items) ? content.items.filter(isCardItem) : [];
         const description = typeof content.description === 'string' ? content.description : '';
 
         return (
@@ -430,7 +442,7 @@ const isCourseItem = (item: unknown): item is CourseItem =>
       }
 
       case 'stats': {
-        const items = Array.isArray(content.items) ? content.items .filter(isStatItem) : [];
+        const items = Array.isArray(content.items) ? content.items.filter(isStatItem) : [];
 
 
         return (
@@ -477,7 +489,7 @@ const isCourseItem = (item: unknown): item is CourseItem =>
       }
 
       case 'courses': {
-        const courses = Array.isArray(content.courses) ? content.courses .filter(isCourseItem) : [];
+        const courses = Array.isArray(content.courses) ? content.courses.filter(isCourseItem) : [];
 
         return (
           <div className="space-y-4">
@@ -614,7 +626,7 @@ const isCourseItem = (item: unknown): item is CourseItem =>
 
         {sections.map((section, index) => (
           <div
-            key={section.id ?? section.section_key}
+            key={section.id ?? `${section.section_key}-${index}`}
             className="border border-slate-200 rounded-xl p-4 space-y-4 bg-slate-50/50"
           >
             <div className="flex items-center justify-between">
@@ -646,7 +658,7 @@ const isCourseItem = (item: unknown): item is CourseItem =>
               <Label className="text-sm font-medium text-slate-700">Content Type</Label>
               <Select
                 value={section.content_type}
-                onValueChange={(value) => updateSection(index, 'content_type', value )}
+                onValueChange={(value) => updateSection(index, 'content_type', value)}
               >
                 <SelectTrigger className="border-slate-200">
                   <SelectValue />

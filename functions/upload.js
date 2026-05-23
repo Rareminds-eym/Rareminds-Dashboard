@@ -13,7 +13,12 @@ const MAX_SIZE_BYTES = 100 * 1024 * 1024;
 /**
  * @param {Request} request
  * @param {{ ALLOWED_ORIGIN?: string, ALLOWED_ORIGINS?: string }} env
- * @returns {Record<string, string> | null}
+ * @returns {{ 
+ *   'Access-Control-Allow-Origin': string,
+ *   'Access-Control-Allow-Methods': string,
+ *   'Access-Control-Allow-Headers': string,
+ *   'Vary': string
+ * } | null}
  */
 function getCorsHeaders(request, env) {
   const origin = request.headers.get('Origin') || '';
@@ -95,17 +100,28 @@ export async function onRequestPost({ request, env }) {
     const arrayBuffer = await file.arrayBuffer();
 
     let uploadResponse;
+
     try {
       uploadResponse = await r2.fetch(uploadUrl, {
         method: 'PUT',
         body: arrayBuffer,
         headers: { 'Content-Type': file.type },
       });
-    } catch {
-      return new Response(JSON.stringify({ error: 'Failed to reach storage' }), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      });
+    } catch (err) {
+      const message =
+      err instanceof Error ? err.message : 'Unknown storage error';
+      return new Response(
+        JSON.stringify({
+          error: `Failed to reach storage: ${message}`,
+        }),
+        {
+          status: 502,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders,
+          },
+        }
+      );
     }
 
     if (!uploadResponse.ok) {

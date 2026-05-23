@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -66,9 +67,11 @@ const ProgramSections = ({
 
   const getUniversities = (course: CourseItem) =>
     Array.isArray(course.universities) ? course.universities : [];
-  const availableSectionKeys = ALL_SECTION_KEYS.filter(
-    (key) => !sections.some((s) => s.section_key === key)
-  );
+  const availableSectionKeys = useMemo(() => {
+  const selectedKeys = new Set(sections.map((s) => s.section_key));
+
+  return ALL_SECTION_KEYS.filter((key) => !selectedKeys.has(key));
+}, [sections]);
   const isImageItem = (val: unknown): val is ImageItem =>
   typeof val === 'object' && val !== null && 
   typeof (val as ImageItem).url === 'string';
@@ -95,7 +98,7 @@ const ProgramSections = ({
     switch (contentType) {
       case 'text': {
         const textContent = typeof section.content.text === 'string' ? section.content.text : '';
-        const rawImages = Array.isArray(section.content.images) ? section.content.images .filter(isImageItem) 
+        const rawImages = Array.isArray(section.content.images) ? section.content.images.filter(isImageItem)
         : [];
         const rawImage = isImageObject(section.content.image)
           ? section.content.image
@@ -176,7 +179,7 @@ const ProgramSections = ({
       }
 
       case 'cards': {
-        const items = Array.isArray(section.content.items) ? section.content.items .filter(isCardItem) : [];
+        const items = Array.isArray(section.content.items) ? section.content.items.filter(isCardItem) : [];
         const description = typeof section.content.description === 'string' ? section.content.description : '';
 
         return (
@@ -236,7 +239,7 @@ const ProgramSections = ({
       }
 
       case 'stats': {
-        const items = Array.isArray(section.content.items) ? section.content.items .filter(isStatItem) : [];
+        const items = Array.isArray(section.content.items) ? section.content.items.filter(isStatItem) : [];
 
         return (
           <div className="space-y-4">
@@ -282,7 +285,7 @@ const ProgramSections = ({
       }
 
       case 'courses': {
-        const courses = Array.isArray(section.content.courses) ? section.content.courses .filter(isCourseItem) : [];
+        const courses = Array.isArray(section.content.courses) ? section.content.courses.filter(isCourseItem) : [];
 
         return (
           <div className="space-y-4">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { Json } from '../integrations/supabase/types';
 import { Program, ProgramSection, ProgramFormData, SectionKeyType, ContentType } from '../types/program';
@@ -67,11 +67,6 @@ export const usePrograms = () => {
     const [error, setError] = useState<string | null>(null);
     const { user } = useAuth();
     const { toast } = useToast();
-    const toastRef = useRef(toast);
-    useEffect(() => {
-        toastRef.current = toast;
-    }, [toast]);
-
     // Helper to map a database row + nested sections to a Program
     const dbRowToProgram = (input: unknown): Program => {
         const row = toRecord(input);
@@ -131,15 +126,15 @@ export const usePrograms = () => {
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to fetch programs';
             setError(errorMessage);
-            toastRef.current({
-                title: 'Error',
-                description: errorMessage,
-                variant: 'destructive',
-            });
+            toast({              
+            title: 'Error',
+            description: errorMessage,
+            variant: 'destructive',
+        });
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [toast]);
 
     // Create a new program with sections
     const createProgram = async (formData: ProgramFormData): Promise<Program | null> => {
@@ -495,7 +490,12 @@ export const usePrograms = () => {
 
     // Load programs on hook initialization
     useEffect(() => {
-        fetchPrograms();
+        let cancelled = false;
+        const load = async () => {
+            await fetchPrograms();
+        };
+        if (!cancelled) load();
+        return () => { cancelled = true; };
     }, [fetchPrograms]);
 
     return {

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Program } from '../../../types/program';
 import { Button } from '../../ui/button';
@@ -25,6 +24,20 @@ interface PostedPostsSectionProps {
   onEditProgram: (program: Program) => void;
   onDeleteProgram: (programId: string) => void;
 }
+
+const isAllowedVideoUrl = (url: string): boolean => {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') return false;                              
+    if (parsed.hostname !== 'pub-ff2f575034a34f13924fa500457f5a1e.r2.dev') return false; 
+    if (parsed.search || parsed.hash) return false;                              
+    const safePath = /^\/(?:[\w-]+\/)*[\w-]+\.(mp4|webm|ogg|mov)$/i;
+    if (!safePath.test(parsed.pathname)) return false;                           
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: PostedPostsSectionProps) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -191,7 +204,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                       </Badge>
                     )}
                     {program.status && (
-                      <Badge variant="secondary" className={`rounded-full px-3 py-1 ${getStatusColor(program.status ?? '')}`}>
+                      <Badge variant="secondary" className={`rounded-full px-3 py-1 ${getStatusColor(program.status)}`}>
                         {program.status}
                       </Badge>
                     )}
@@ -250,7 +263,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                             </Badge>
                           )}
                           {selectedPost?.status && (
-                            <Badge variant="secondary" className={`rounded-full ${getStatusColor(selectedPost.status ?? '')}`}>
+                            <Badge variant="secondary" className={`rounded-full ${getStatusColor(selectedPost.status)}`}>
                               {selectedPost.status}
                             </Badge>
                           )}
@@ -354,16 +367,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                               return videoText
                                                 .split(',')
                                                 .map((v) => v.trim())
-                                                .filter((v) => {
-                                                  try {
-                                                    const parsed = new URL(v);
-                                                    const isHttps = parsed.protocol === 'http:' || parsed.protocol === 'https:';
-                                                    const isAllowedDomain = parsed.hostname === 'pub-ff2f575034a34f13924fa500457f5a1e.r2.dev';
-                                                    return isHttps && isAllowedDomain;
-                                                  } catch {
-                                                    return false;
-                                                  }
-                                                })
+                                                .filter((v) => isAllowedVideoUrl(v.trim()))
                                                 .map((cleanUrl, idx) => (
                                                   <div key={idx} className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                                                     <video

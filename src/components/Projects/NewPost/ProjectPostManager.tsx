@@ -24,14 +24,14 @@ const ProgramPostManager = ({ editingProgram: externalEditingProgram, onProgramS
         const updated = await updateProgram(editingProgram.id, formData);
         if (updated) {
           toast({ title: 'Success', description: 'Program updated successfully!', variant: 'default' });
-          await onProgramSaved?.();
+          if (onProgramSaved) await onProgramSaved();
           return true;
         }
       } else {
         const created = await createProgram(formData);
         if (created) {
           toast({ title: 'Success', description: 'Program created successfully!', variant: 'default' });
-          await onProgramSaved?.();
+          if (onProgramSaved) await onProgramSaved();
           return true;
         }
       }

@@ -19,13 +19,12 @@ interface UploadResponse {
   error?: string;
 }
 
-const isUploadResponse = (data: unknown): data is UploadResponse => {
+const isErrorResponse = (data: unknown): data is { error: string } => {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
-  const hasUrl = 'url' in obj && typeof obj.url === 'string' && obj.url.length > 0;
-  const hasError = 'error' in obj && typeof obj.error === 'string';
-  return hasUrl || hasError;
+  return typeof obj.error === 'string';
 };
+
 
 const isSuccessResponse = (data: unknown): data is { url: string } => {
   if (typeof data !== 'object' || data === null) return false;
@@ -51,7 +50,7 @@ const uploadFile = async (file: File): Promise<string> => {
   } catch {
     throw new Error('Upload failed: server returned an invalid response');
   }
-  if (!isUploadResponse(data)) {
+  if (!isErrorResponse(data)) {
     throw new Error('Upload failed: invalid response format');
   }
   if (!isSuccessResponse(data)) {
@@ -84,7 +83,7 @@ const removeIds = (obj: Record<string, unknown>): Record<string, unknown> => {
 const resetFileInput = (ref: React.RefObject<HTMLInputElement>) => {
   if (ref.current) {
     ref.current.value = '';
-    if (ref.current.value) {
+    if (ref.current.files?.length) {
       ref.current.type = 'text';
       ref.current.type = 'file';
     }
@@ -141,8 +140,8 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
 
       if (error) {
         setFormLoadError(error.message
-      ? `Failed to load form options: ${error.message}`
-      : 'Unable to load program options. Some dropdown suggestions may be unavailable.');
+          ? `Failed to load form options: ${error.message}`
+          : 'Unable to load program options. Some dropdown suggestions may be unavailable.');
         setExistingStatuses(['Active', 'Completed', 'In Progress']);
         if (editingProgram) {
           setExistingProgramTypes([editingProgram.program_type]);
@@ -180,8 +179,8 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
 
     fetchExistingValues();
     return () => {
-    isCancelled = true; 
-  };
+      isCancelled = true;
+    };
   }, [editingProgram]);
 
   // Pre-populate when editing
@@ -292,7 +291,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
       setBannerUrl(url);
     } catch (err) {
       setBannerUploadError(err instanceof Error ? err.message : 'Banner upload failed');
-      resetFileInput(bannerInputRef); 
+      resetFileInput(bannerInputRef);
     } finally {
       setUploadingBanner(false);
     }
