@@ -25,11 +25,13 @@ interface PostedPostsSectionProps {
   onDeleteProgram: (programId: string) => void;
 }
 
+const ALLOWED_VIDEO_HOSTNAME = 'pub-ff2f575034a34f13924fa500457f5a1e.r2.dev';
+
 const isAllowedVideoUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== 'https:') return false;                              
-    if (parsed.hostname !== 'pub-ff2f575034a34f13924fa500457f5a1e.r2.dev') return false; 
+    if (parsed.hostname !== ALLOWED_VIDEO_HOSTNAME) return false; 
     if (parsed.search || parsed.hash) return false;                              
     const safePath = /^\/(?:[\w-]+\/)*[\w-]+\.(mp4|webm|ogg|mov)$/i;
     if (!safePath.test(parsed.pathname)) return false;                           
@@ -100,6 +102,11 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
 
   const formatSectionKey = (key: string) =>
     key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+  const safeFormatDate = (dateStr: string): string => {
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString();
+  };
   return (
     <div className="space-y-8 p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 min-h-screen">
       {/* Header Section */}
@@ -219,7 +226,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                     {program.date && (
                       <span className="flex items-center bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-full">
                         <Calendar className="w-3 h-3 mr-1" />
-                        {new Date(program.date).toLocaleDateString()}
+                        {safeFormatDate(program.date)}
                       </span>
                     )}
                   </div>
@@ -276,7 +283,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                           {selectedPost?.date && (
                             <span className="flex items-center text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">
                               <Calendar className="w-3 h-3 mr-1" />
-                              {new Date(selectedPost.date).toLocaleDateString()}
+                              {safeFormatDate(selectedPost.date)}
                             </span>
                           )}
                         </DialogDescription>

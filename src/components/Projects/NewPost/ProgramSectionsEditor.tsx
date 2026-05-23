@@ -242,8 +242,9 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                   <input
                     type="file"
                     accept="video/*"
+                    aria-label="Upload video file"
                     disabled={uploadingStates[`video-${sectionIndex}`]}
-                    onChange={async (e) => {
+                    onChange={(e) => void (async () => {
                       const file = e.target.files?.[0];
                       if (!file) return;
                       setUploading(`video-${sectionIndex}`, true);
@@ -256,7 +257,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                       } finally {
                         setUploading(`video-${sectionIndex}`, false);
                       }
-                    }}
+                    })()}
                     className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                   />
                   {uploadingStates[`video-${sectionIndex}`] && (
@@ -281,13 +282,14 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                 <Label className="text-sm font-medium text-slate-700">Images (Multiple)</Label>
                 {images.map((img, idx) => (
                   <div key={img.id ?? `new-${idx}`} className="space-y-1">
-                    {img.url && isSafeUrl(img.url) && <img src={img.url} alt={`Image ${idx + 1}`} className="w-24 h-16 object-cover rounded border border-slate-200" />}
+                    {img.url && isSafeUrl(img.url) && <img src={img.url} alt={`Introduction section image ${idx + 1}`} className="w-24 h-16 object-cover rounded border border-slate-200" />}
                     <div className="flex gap-2 items-center">
                       <input
                         type="file"
                         accept="image/*"
+                        aria-label={`Upload introduction image ${idx + 1}`}
                         disabled={uploadingStates[`intro-img-${sectionIndex}-${idx}`]}
-                        onChange={async (e) => {
+                        onChange={(e) => void (async () => {
                           const file = e.target.files?.[0];
                           if (!file) return;
                           setUploading(`intro-img-${sectionIndex}-${idx}`, true);
@@ -304,7 +306,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                           } finally {
                             setUploading(`intro-img-${sectionIndex}-${idx}`, false);
                           }
-                        }}
+                        })()}
                         className="flex-1 text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                       />
                       {uploadingStates[`intro-img-${sectionIndex}-${idx}`] && (
@@ -347,8 +349,9 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                 <input
                   type="file"
                   accept="image/*"
+                  aria-label="Upload conclusion image"
                   disabled={uploadingStates[`conclusion-img-${sectionIndex}`]}
-                  onChange={async (e) => {
+                  onChange={(e) => void (async () => {
                     const file = e.target.files?.[0];
                     if (!file) return;
                     setUploading(`conclusion-img-${sectionIndex}`, true);
@@ -361,7 +364,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                     } finally {
                       setUploading(`conclusion-img-${sectionIndex}`, false);
                     }
-                  }}
+                  })()}
                   className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                 />
                 {uploadingStates[`conclusion-img-${sectionIndex}`] && (

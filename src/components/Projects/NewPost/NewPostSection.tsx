@@ -14,11 +14,6 @@ import { Save, Sparkles, Settings, Loader2, ChevronsUpDown, Check } from 'lucide
 import { cn } from '../../../lib/utils';
 import ProgramSectionsEditor, { SectionItem } from './ProgramSectionsEditor';
 
-interface UploadResponse {
-  url?: string;
-  error?: string;
-}
-
 const isErrorResponse = (data: unknown): data is { error: string } => {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
@@ -50,11 +45,11 @@ const uploadFile = async (file: File): Promise<string> => {
   } catch {
     throw new Error('Upload failed: server returned an invalid response');
   }
-  if (!isErrorResponse(data)) {
-    throw new Error('Upload failed: invalid response format');
-  }
   if (!isSuccessResponse(data)) {
-    throw new Error('Upload failed: no URL returned');
+    if (isErrorResponse(data)) {
+      throw new Error(`Upload failed: ${data.error}`);
+    }
+    throw new Error('Upload failed: invalid response format');
   }
 
   return data.url;
@@ -83,10 +78,6 @@ const removeIds = (obj: Record<string, unknown>): Record<string, unknown> => {
 const resetFileInput = (ref: React.RefObject<HTMLInputElement>) => {
   if (ref.current) {
     ref.current.value = '';
-    if (ref.current.files?.length) {
-      ref.current.type = 'text';
-      ref.current.type = 'file';
-    }
   }
 };
 
@@ -133,15 +124,51 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   useEffect(() => {
     let isCancelled = false;
     const fetchExistingValues = async () => {
-      const { data, error } = await supabase
-        .from('programs')
-        .select('program_type, location, status');
-      if (isCancelled) return;
+      try {
+        const { data, error } = await supabase
+          .from('programs')
+          .select('program_type, location, status');
+        if (isCancelled) return;
 
-      if (error) {
-        setFormLoadError(error.message
-          ? `Failed to load form options: ${error.message}`
-          : 'Unable to load program options. Some dropdown suggestions may be unavailable.');
+        if (error) {
+          setFormLoadError(error.message
+            ? `Failed to load form options: ${error.message}`
+            : 'Unable to load program options. Some dropdown suggestions may be unavailable.');
+          setExistingStatuses(['Active', 'Completed', 'In Progress']);
+          if (editingProgram) {
+            setExistingProgramTypes([editingProgram.program_type]);
+            setExistingLocations([editingProgram.location]);
+          } else {
+            setExistingProgramTypes([]);
+            setExistingLocations([]);
+          }
+          return;
+        }
+
+        if (data) {
+          const types = [...new Set(data.map((p) => p.program_type).filter(Boolean))];
+          const locations = [...new Set(data.map((p) => p.location).filter(Boolean))];
+          const statuses = [...new Set(data.map((p) => p.status).filter(Boolean))];
+
+          if (editingProgram?.program_type && !types.includes(editingProgram.program_type)) {
+            types.unshift(editingProgram.program_type);
+          }
+          if (editingProgram?.location && !locations.includes(editingProgram.location)) {
+            locations.unshift(editingProgram.location);
+          }
+          if (editingProgram?.status && !statuses.includes(editingProgram.status)) {
+            statuses.unshift(editingProgram.status);
+          }
+
+          const finalStatuses = statuses.length > 0 ? statuses : ['Active', 'Completed', 'In Progress'];
+
+          setExistingProgramTypes(types);
+          setExistingLocations(locations);
+          setExistingStatuses(finalStatuses);
+        }
+      } catch (err) {
+        if (isCancelled) return;
+        setFormLoadError('Unable to load program options. Some dropdown suggestions may be unavailable.');
         setExistingStatuses(['Active', 'Completed', 'In Progress']);
         if (editingProgram) {
           setExistingProgramTypes([editingProgram.program_type]);
@@ -150,30 +177,6 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
           setExistingProgramTypes([]);
           setExistingLocations([]);
         }
-        return;
-      }
-
-      if (data) {
-        const types = [...new Set(data.map((p) => p.program_type).filter(Boolean))];
-        const locations = [...new Set(data.map((p) => p.location).filter(Boolean))];
-        const statuses = [...new Set(data.map((p) => p.status).filter(Boolean))];
-
-        // Ensure the editing program's values are always present in the lists
-        if (editingProgram?.program_type && !types.includes(editingProgram.program_type)) {
-          types.unshift(editingProgram.program_type);
-        }
-        if (editingProgram?.location && !locations.includes(editingProgram.location)) {
-          locations.unshift(editingProgram.location);
-        }
-        if (editingProgram?.status && !statuses.includes(editingProgram.status)) {
-          statuses.unshift(editingProgram.status);
-        }
-
-        const finalStatuses = statuses.length > 0 ? statuses : ['Active', 'Completed', 'In Progress'];
-
-        setExistingProgramTypes(types);
-        setExistingLocations(locations);
-        setExistingStatuses(finalStatuses);
       }
     };
 
@@ -216,7 +219,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
     if (!editingProgram && !slugManuallyEdited) {
       setSlug(generateSlug(title));
     }
-  }, [title, editingProgram, slugManuallyEdited, generateSlug]);
+  }, [title, editingProgram, slugManuallyEdited]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -392,7 +395,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     Image
                   </Label>
                   {imageUrl && (
-                    <img src={imageUrl} alt={title ? `${title} program image` : 'Program image preview'} className="w-32 h-20 object-cover rounded-lg border border-slate-200" />
+                    <img src={imageUrl} alt={`${title || 'Program'} image preview`} className="w-32 h-20 object-cover rounded-lg border border-slate-200" />
                   )}
                   <input
                     ref={imageInputRef}
@@ -419,7 +422,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     Banner
                   </Label>
                   {bannerUrl && (
-                    <img src={bannerUrl} alt={title ? `${title} program banner` : 'Program banner preview'} className="w-full h-24 object-cover rounded-lg border border-slate-200" />
+                    <img src={bannerUrl} alt={`${title || 'Program'} banner preview`} className="w-full h-24 object-cover rounded-lg border border-slate-200" />
                   )}
                   <input
                     ref={bannerInputRef}

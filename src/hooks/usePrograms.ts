@@ -492,9 +492,9 @@ export const usePrograms = () => {
     useEffect(() => {
         let cancelled = false;
         const load = async () => {
-            await fetchPrograms();
+            if (!cancelled) await fetchPrograms();
         };
-        if (!cancelled) load();
+        load().catch(() => { /* errors handled inside fetchPrograms */ });
         return () => { cancelled = true; };
     }, [fetchPrograms]);
 
