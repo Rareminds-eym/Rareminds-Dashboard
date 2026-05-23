@@ -108,6 +108,8 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   const bannerInputRef = useRef<HTMLInputElement>(null);
   // prevents auto-slug regeneration after manual edit
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Get unique values from existing programs
   const [existingProgramTypes, setExistingProgramTypes] = useState<string[]>(
@@ -234,37 +236,47 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
     }
 
     setErrors({});
+    setSubmitError(null);
+    setIsSubmitting(true);
+    try {
+      const formData: ProgramFormData = {
+        title: title.trim(),
+        slug: slug.trim(),
+        program_type: programType,
+        location,
+        date,
+        status,
+        image_url: imageUrl,
+        banner_url: bannerUrl,
+        short_description: shortDescription,
+        display_order: displayOrder,
+        is_active: isActive,
+        sections,
+      };
 
-    const formData: ProgramFormData = {
-      title: title.trim(),
-      slug: slug.trim(),
-      program_type: programType,
-      location,
-      date,
-      status,
-      image_url: imageUrl,
-      banner_url: bannerUrl,
-      short_description: shortDescription,
-      display_order: displayOrder,
-      is_active: isActive,
-      sections,
-    };
-
-    const success = await onProgramSaved(formData);
-    // Only reset on successful creation; editingProgram=null is the create vs update signal
-    if (success && !editingProgram) {
-      setTitle('');
-      setSlug('');
-      setShortDescription('');
-      setImageUrl('');
-      setBannerUrl('');
-      setProgramType('');
-      setLocation('');
-      setDate('');
-      setStatus('Active');
-      setDisplayOrder(0);
-      setIsActive(true);
-      setSections([]);
+      const success = await onProgramSaved(formData);
+      // Only reset on successful creation; editingProgram=null is the create vs update signal
+      if (success && !editingProgram) {
+        setTitle('');
+        setSlug('');
+        setShortDescription('');
+        setImageUrl('');
+        setBannerUrl('');
+        setProgramType('');
+        setLocation('');
+        setDate('');
+        setStatus('Active');
+        setDisplayOrder(0);
+        setIsActive(true);
+        setSections([]);
+      }
+      if (!success) {
+        setSubmitError('Failed to save program. Please try again.');
+      }
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'An unexpected error occurred.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -322,11 +334,25 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
             <Button
               type="submit"
               form="program-form"
+              disabled={isSubmitting}
               className="h-11 px-6 bg-purple-600 hover:bg-purple-700 shadow-xl shadow-purple-600/10 hover:shadow-md transition-all duration-200"
             >
-              <Save className="w-4 h-4 mr-2" />
-              {editingProgram ? 'Update Program' : 'Save Program'}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {editingProgram ? 'Updating...' : 'Saving...'}
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  {editingProgram ? 'Update Program' : 'Save Program'}
+                </>
+              )}
             </Button>
+            {submitError && (
+              <p className="text-sm text-red-600 mt-2">{submitError}</p>
+            )}
+
           </div>
         </div>
 
@@ -484,7 +510,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                           onValueChange={setProgramType}
                         />
                         <CommandList>
-                          <CommandEmpty className="py-2 px-3 text-sm cursor-pointer hover:bg-purple-50 text-slate-700">
+                          <CommandEmpty className="py-2 px-3 text-sm text-slate-700">
                             Press Enter to use &quot;{programType}&quot;
                           </CommandEmpty>
                           <CommandGroup>

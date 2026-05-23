@@ -24,18 +24,23 @@ interface PostedPostsSectionProps {
   onEditProgram: (program: Program) => void;
   onDeleteProgram: (programId: string) => void;
 }
-
-const ALLOWED_VIDEO_HOSTNAME = 'pub-ff2f575034a34f13924fa500457f5a1e.r2.dev';
-
 const isAllowedVideoUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url);
-    if (parsed.protocol !== 'https:') return false;                              
-    if (parsed.hostname !== ALLOWED_VIDEO_HOSTNAME) return false; 
-    if (parsed.search || parsed.hash) return false;                              
-    const safePath = /^\/(?:[\w-]+\/)*[\w-]+\.(mp4|webm|ogg|mov)$/i;
-    if (!safePath.test(parsed.pathname)) return false;                           
-    return true;
+    if (parsed.protocol !== 'https:') return false;
+    if (parsed.hostname !== 'pub-ff2f575034a34f13924fa500457f5a1e.r2.dev') return false;
+    if (parsed.search || parsed.hash) return false;
+    const allowedExtensions = [
+      '.mp4',
+      '.webm',
+      '.ogg',
+      '.mov',
+      '.m3u8'
+    ];
+    const pathname = parsed.pathname.toLowerCase();
+    return allowedExtensions.some(ext =>
+      pathname.endsWith(ext)
+    );
   } catch {
     return false;
   }
@@ -391,13 +396,13 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                         )}
                                         {section.content_type === 'text' && section.section_key !== 'video' && (() => {
                                           const sectionText = typeof section.content?.text === 'string'
-                                            ? section.content.text  
+                                            ? section.content.text
                                             : null;
 
                                           return (
                                             <>
                                               {sectionText && (
-                                                <p className="whitespace-pre-wrap mb-4">{sectionText}</p>                                   
+                                                <p className="whitespace-pre-wrap mb-4">{sectionText}</p>
                                               )}
                                               {/* images array */}
                                               {Array.isArray(section.content?.images) && section.content.images.length > 0 && (

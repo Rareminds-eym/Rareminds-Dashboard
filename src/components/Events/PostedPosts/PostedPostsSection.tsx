@@ -7,7 +7,7 @@ import { Badge } from '../../ui/badge';
 import { Input } from '../../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Edit, Trash2, Eye, Search, Calendar, Tag, Pin, Filter, TrendingUp } from 'lucide-react';
-import { useToast } from '../../../hooks/use-toast';
+
 
 interface PostedPostsSectionProps {
   posts: EventPost[];
@@ -19,7 +19,6 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTag, setFilterTag] = useState('all');
   const [selectedPost, setSelectedPost] = useState<EventPost | null>(null);
-  const { toast } = useToast();
 
   // Generate excerpt from event description
   const generateExcerpt = (description: string): string => {

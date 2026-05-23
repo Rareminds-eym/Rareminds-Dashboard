@@ -38,7 +38,6 @@ const isSafeUrl = (url: string): boolean => {
     return false;
   }
 };
-
 const UPLOAD_TIMEOUT_MS = 30000;
 const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData();
@@ -137,6 +136,23 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
 
   const setUploading = (key: string, val: boolean) =>
     setUploadingStates((prev) => ({ ...prev, [key]: val }));
+  const handleFileUpload = async (
+    file: File,
+    uploadKey: string,
+    onSuccess: (url: string) => void,
+    errorLabel = 'Upload failed'
+  ) => {
+    setUploading(uploadKey, true);
+    setUploadError(null);
+    try {
+      const url = await uploadFile(file);
+      onSuccess(url);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : errorLabel);
+    } finally {
+      setUploading(uploadKey, false);
+    }
+  };
   const availableSectionKeys = ALL_SECTION_KEYS.filter(
     (key) => !sections.some((s) => s.section_key === key)
   );
@@ -244,20 +260,10 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                     accept="video/*"
                     aria-label="Upload video file"
                     disabled={uploadingStates[`video-${sectionIndex}`]}
-                    onChange={(e) => void (async () => {
+                    onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (!file) return;
-                      setUploading(`video-${sectionIndex}`, true);
-                      try {
-                        const url = await uploadFile(file);
-                        updateContentField(sectionIndex, 'text', url);
-                        setUploadError(null);
-                      } catch (err) {
-                        setUploadError(err instanceof Error ? err.message : 'Video upload failed');
-                      } finally {
-                        setUploading(`video-${sectionIndex}`, false);
-                      }
-                    })()}
+                      if (file) handleFileUpload(file, `video-${sectionIndex}`, (url) => updateContentField(sectionIndex, 'text', url), 'Video upload failed');
+                    }}
                     className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                   />
                   {uploadingStates[`video-${sectionIndex}`] && (
@@ -289,24 +295,10 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                         accept="image/*"
                         aria-label={`Upload introduction image ${idx + 1}`}
                         disabled={uploadingStates[`intro-img-${sectionIndex}-${idx}`]}
-                        onChange={(e) => void (async () => {
+                        onChange={(e) => {
                           const file = e.target.files?.[0];
-                          if (!file) return;
-                          setUploading(`intro-img-${sectionIndex}-${idx}`, true);
-                          try {
-                            const url = await uploadFile(file);
-                            updateContentField(
-                              sectionIndex,
-                              'images',
-                              images.map((img, i) => i === idx ? { ...img, url } : img)
-                            );
-                            setUploadError(null);
-                          } catch (err) {
-                            setUploadError(err instanceof Error ? err.message : 'Image upload failed');
-                          } finally {
-                            setUploading(`intro-img-${sectionIndex}-${idx}`, false);
-                          }
-                        })()}
+                          if (file) handleFileUpload(file, `intro-img-${sectionIndex}-${idx}`, (url) => updateContentField(sectionIndex, 'images', images.map((img, i) => i === idx ? { ...img, url } : img)), 'Image upload failed');
+                        }}
                         className="flex-1 text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                       />
                       {uploadingStates[`intro-img-${sectionIndex}-${idx}`] && (
@@ -351,20 +343,10 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                   accept="image/*"
                   aria-label="Upload conclusion image"
                   disabled={uploadingStates[`conclusion-img-${sectionIndex}`]}
-                  onChange={(e) => void (async () => {
+                  onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (!file) return;
-                    setUploading(`conclusion-img-${sectionIndex}`, true);
-                    try {
-                      const url = await uploadFile(file);
-                      updateContentField(sectionIndex, 'image', { url, alt: image.alt });
-                      setUploadError(null);
-                    } catch (err) {
-                      setUploadError(err instanceof Error ? err.message : 'Image upload failed');
-                    } finally {
-                      setUploading(`conclusion-img-${sectionIndex}`, false);
-                    }
-                  })()}
+                    if (file) handleFileUpload(file, `conclusion-img-${sectionIndex}`, (url) => updateContentField(sectionIndex, 'image', { url, alt: image.alt }), 'Image upload failed');
+                  }}
                   className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                 />
                 {uploadingStates[`conclusion-img-${sectionIndex}`] && (

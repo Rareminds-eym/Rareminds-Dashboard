@@ -115,8 +115,8 @@ export interface ProgramFormData {
 
 export interface ProgramSectionFormData {
     section_key: SectionKeyType;
-    content_type?: ContentType; // NEW FIELD (optional for backward compatibility)
+    content_type: ContentType; // required — defaults to 'text' if not provided
     title: string;
-    preamble?: string; // NEW FIELD
-    content: Record<string, unknown>; // CHANGED from string to JSONB object
+    preamble?: string;
+    content: Record<string, unknown>;
 }

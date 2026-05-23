@@ -421,7 +421,7 @@ const ProgramSections = ({
 
         {sections.map((section, index) => (
           <div
-            key={section.id ?? section.section_key}
+            key={section.id ?? `${section.section_key}-${index}`}
             className="border border-slate-200 rounded-xl p-4 space-y-4 bg-slate-50/50"
           >
             <div className="flex items-center justify-between">

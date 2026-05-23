@@ -31,12 +31,20 @@ const ProjectsDashboardPage = () => {
     }
   };
 
-  const handleProgramSaved = () => {
-    // Refresh the programs list after save
-    fetchPrograms();
-    // Switch to programs tab to show the new/updated program
+  const handleProgramSaved = async () => {
+    try {
+    await fetchPrograms();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to refresh programs';
+    toast({
+      title: 'Error',
+      description: message,
+      variant: 'destructive',
+    });
+  } finally {
     setActiveSection('programs');
     setEditingProgram(null);
+  }
   };
 
   return (
