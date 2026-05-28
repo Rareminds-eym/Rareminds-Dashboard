@@ -14,18 +14,14 @@ import { Save, Sparkles, Settings, Loader2, ChevronsUpDown, Check } from 'lucide
 import { cn } from '../../../lib/utils';
 import ProgramSectionsEditor, { SectionItem } from './ProgramSectionsEditor';
 
-const isErrorResponse = (data: unknown): data is { error: string } => {
-  if (typeof data !== 'object' || data === null) return false;
-  const obj = data as Record<string, unknown>;
-  return typeof obj.error === 'string';
-};
+const isErrorResponse = (data: unknown): data is { error: string } =>
+  typeof data === 'object' && data !== null &&
+  'error' in data && typeof (data as Record<string, unknown>)['error'] === 'string';
 
-
-const isSuccessResponse = (data: unknown): data is { url: string } => {
-  if (typeof data !== 'object' || data === null) return false;
-  const obj = data as Record<string, unknown>;
-  return typeof obj.url === 'string' && obj.url.length > 0;
-};
+const isSuccessResponse = (data: unknown): data is { url: string } =>
+  typeof data === 'object' && data !== null &&
+  'url' in data && typeof (data as Record<string, unknown>)['url'] === 'string' &&
+  (data as Record<string, unknown>)['url'] !== '';
 const UPLOAD_TIMEOUT_MS = 30000;
 const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData();
@@ -111,7 +107,15 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   const [displayOrder, setDisplayOrder] = useState(0);
   const [isActive, setIsActive] = useState(true);
   const [sections, setSections] = useState<SectionItem[]>([]);
-  const [errors, setErrors] = useState<{ title?: string; slug?: string }>({});
+  const [errors, setErrors] = useState<{
+    title?: string;
+    slug?: string;
+    program_type?: string;
+    location?: string;
+    date?: string;
+    image_url?: string;
+    short_description?: string;
+  }>({});
   const [formLoadError, setFormLoadError] = useState<string | null>(null);
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const [desktopBannerUploadError, setDesktopBannerUploadError] = useState<string | null>(null);
@@ -240,16 +244,32 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   // Auto-generate slug from title only when creating new and user hasn't manually edited the slug
   useEffect(() => {
     if (!editingProgram && !slugManuallyEdited) {
+      const timer = setTimeout(() => {
       setSlug(generateSlug(title));
+    }, 300);
+    return () => clearTimeout(timer); 
     }
   }, [title, editingProgram, slugManuallyEdited]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const newErrors: { title?: string; slug?: string } = {};
+    const newErrors: {
+      title?: string;
+      slug?: string;
+      program_type?: string;
+      location?: string;
+      date?: string;
+      image_url?: string;
+      short_description?: string;
+    } = {};
     if (!title.trim()) newErrors.title = 'Title is required';
     if (!slug.trim()) newErrors.slug = 'Slug is required';
+    if (!programType.trim()) newErrors.program_type = 'Program type is required';
+    if (!location.trim()) newErrors.location = 'Location is required';
+    if (!date.trim()) newErrors.date = 'Date is required';
+    if (!imageUrl.trim()) newErrors.image_url = 'Image is required';
+    if (!shortDescription.trim()) newErrors.short_description = 'Short description is required';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -274,6 +294,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
         hero_description: heroDescription,
         display_order: displayOrder,
         is_active: isActive,
+        updated_at: editingProgram?.updated_at,
         sections: sections.map((s) => ({
           ...s,
           // Ensure text content_type always has content.text (required by DB constraint)
@@ -315,9 +336,9 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || uploadingImage) return;
-    setUploadingImage(true);
-    setImageUploadError(null);
     try {
+      setUploadingImage(true);
+      setImageUploadError(null);
       const url = await uploadFile(file);
       setImageUrl(url);
     } catch (err) {
@@ -334,9 +355,9 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   const handleDesktopBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || uploadingDesktopBanner) return;
-    setUploadingDesktopBanner(true);
-    setDesktopBannerUploadError(null);
     try {
+      setUploadingDesktopBanner(true);
+      setDesktopBannerUploadError(null);
       const url = await uploadFile(file);
       setDesktopBannerUrl(url);
     } catch (err) {
@@ -350,9 +371,9 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   const handleMobileBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || uploadingMobileBanner) return;
-    setUploadingMobileBanner(true);
-    setMobileBannerUploadError(null);
     try {
+      setUploadingMobileBanner(true);
+      setMobileBannerUploadError(null);
       const url = await uploadFile(file);
       setMobileBannerUrl(url);
     } catch (err) {
@@ -385,7 +406,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
             <Button
               type="submit"
               form="program-form"
-              disabled={isSubmitting}
+                disabled={isSubmitting || uploadingImage || uploadingDesktopBanner || uploadingMobileBanner}
               className="h-11 px-6 bg-purple-600 hover:bg-purple-700 shadow-xl shadow-purple-600/10 hover:shadow-md transition-all duration-200"
             >
               {isSubmitting ? (
@@ -469,6 +490,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none transition-all duration-200"
                     rows={3}
                   />
+                  {errors.short_description && <p className="text-sm text-red-500">{errors.short_description}</p>}
                 </div>
 
                 {/* Image Upload */}
@@ -498,6 +520,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     </div>
                   )}
                   {imageUploadError && <p className="text-sm text-red-600">{imageUploadError}</p>}
+                  {errors.image_url && <p className="text-sm text-red-500">{errors.image_url}</p>}
                 </div>
                 {/* Desktop Banner Upload */}
                 <div className="space-y-2">
@@ -620,11 +643,10 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                         <CommandInput
                           placeholder="Search or type new..."
                           value={programType}
-                          onValueChange={setProgramType}
                         />
                         <CommandList>
                           <CommandEmpty className="py-2 px-3 text-sm text-slate-700">
-                            Press Enter to use &quot;{programType}&quot;
+                            No program type found.
                           </CommandEmpty>
                           <CommandGroup>
                             {existingProgramTypes.map((type) => (
@@ -642,6 +664,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                       </Command>
                     </PopoverContent>
                   </Popover>
+                  {errors.program_type && <p className="text-sm text-red-500">{errors.program_type}</p>}
                 </div>
 
                 {/* Location */}
@@ -691,6 +714,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                       </Command>
                     </PopoverContent>
                   </Popover>
+                  {errors.location && <p className="text-sm text-red-500">{errors.location}</p>}
                 </div>
 
                 {/* Date */}
@@ -705,6 +729,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     onChange={(e) => setDate(e.target.value)}
                     className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
                   />
+                  {errors.date && <p className="text-sm text-red-500">{errors.date}</p>}
                 </div>
 
                 {/* Status */}

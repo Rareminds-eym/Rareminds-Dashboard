@@ -48,7 +48,9 @@ export interface ImageItem {
 
 export interface TextContent {
     text: string;
+    /** Multiple images — used by 'introduction' sections only */
     images?: ImageItem[];
+    /** Single image — used by 'conclusion' sections only */
     image?: { id?: string; url: string; alt?: string };
 }
 
@@ -114,6 +116,7 @@ export interface ProgramFormData {
     hero_description: string;
     display_order: number;
     is_active: boolean;
+    updated_at?: string; 
     sections: ProgramSectionFormData[];
 }
 

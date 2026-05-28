@@ -6,7 +6,7 @@ import { useToast } from '../../../hooks/use-toast';
 
 interface ProgramPostManagerProps {
   editingProgram?: Program | null;
-  onProgramSaved?: () => void | Promise<void>;
+  onProgramSaved?: () => Promise<void>;
 }
 
 const ProgramPostManager = ({ editingProgram: externalEditingProgram, onProgramSaved }: ProgramPostManagerProps) => {

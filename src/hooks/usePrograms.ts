@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { Json } from '../integrations/supabase/types';
 import { Program, ProgramSection, ProgramFormData, SectionKeyType, ContentType } from '../types/program';
@@ -78,6 +78,10 @@ export const usePrograms = () => {
     const [error, setError] = useState<string | null>(null);
     const { user } = useAuth();
     const { toast } = useToast();
+    const toastRef = useRef(toast); // ← add this
+    useEffect(() => {
+        toastRef.current = toast;
+    }, [toast]);
     // Helper to map a database row + nested sections to a Program
     const dbRowToProgram = (input: unknown): Program => {
         const row = toRecord(input);
@@ -85,19 +89,19 @@ export const usePrograms = () => {
             ? row.program_sections
                 .filter((s): s is Record<string, unknown> => s !== null && typeof s === 'object' && !Array.isArray(s))
                 .map(
-                (s): ProgramSection => ({
-                    id: asString(s.id),
-                    program_id: asString(s.program_id),
-                    section_key: asSectionKey(s.section_key),
-                    content_type: asContentType(s.content_type),
-                    title: typeof s.title === 'string' ? s.title : null,
-                    preamble: typeof s.preamble === 'string' ? s.preamble : null,
-                    content: toRecord(s.content),
-                    display_order: asNumber(s.display_order),
-                    created_at: asString(s.created_at),
-                    updated_at: asString(s.updated_at),
-                }),
-            )
+                    (s): ProgramSection => ({
+                        id: asString(s.id),
+                        program_id: asString(s.program_id),
+                        section_key: asSectionKey(s.section_key),
+                        content_type: asContentType(s.content_type),
+                        title: typeof s.title === 'string' ? s.title : null,
+                        preamble: typeof s.preamble === 'string' ? s.preamble : null,
+                        content: toRecord(s.content),
+                        display_order: asNumber(s.display_order),
+                        created_at: asString(s.created_at),
+                        updated_at: asString(s.updated_at),
+                    }),
+                )
             : [];
 
         return {
@@ -139,7 +143,7 @@ export const usePrograms = () => {
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to fetch programs';
             setError(errorMessage);
-            toast({              
+            toastRef.current({
             title: 'Error',
             description: errorMessage,
             variant: 'destructive',
@@ -147,7 +151,7 @@ export const usePrograms = () => {
         } finally {
             setLoading(false);
         }
-    }, [toast]);
+    }, []);
 
     // Create a new program with sections
     const createProgram = async (formData: ProgramFormData): Promise<Program | null> => {
@@ -161,7 +165,7 @@ export const usePrograms = () => {
             }
 
             // Validate required fields
-            if (!formData.program_type || !formData.location || !formData.date || 
+            if (!formData.program_type || !formData.location || !formData.date ||
                 !formData.status || !formData.image_url || !formData.short_description) {
                 throw new Error('Missing required fields: program_type, location, date, status, image_url, and short_description are required');
             }
@@ -190,7 +194,7 @@ export const usePrograms = () => {
 
             // Batch-insert sections if any
             let sections: ProgramSection[] = [];
-            if (formData.sections.length > 0) {
+            if (Array.isArray(formData.sections) && formData.sections.length > 0) {
                 const sectionRows = formData.sections.map((s, idx) => ({
                     program_id: data.id,
                     section_key: s.section_key,
@@ -292,14 +296,17 @@ export const usePrograms = () => {
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', id)
+                .eq('updated_at', formData.updated_at)
                 .select()
                 .single();
 
             if (updateError || !data) throw updateError || new Error('No data returned');
+            if (!data) throw new Error('Program was modified by someone else. Please refresh and try again.');
             // Upsert sections that are in the form data
-            const newSectionKeys = formData.sections.map((s) => s.section_key);
-
-            if (formData.sections.length > 0) {
+            const newSectionKeys = Array.isArray(formData.sections)
+                ? formData.sections.map((s) => s.section_key)
+                : [];
+            if (Array.isArray(formData.sections) && formData.sections.length > 0) {
                 const sectionRows = formData.sections.map((s, idx) => ({
                     program_id: id,
                     section_key: s.section_key,

@@ -60,6 +60,10 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
     (val.students === undefined || typeof val.students === 'number');
   const isCourseItem = (val: unknown): val is SectionCourseItem => {
     if (!isPlainObject(val)) return false;
+  if ('title' in val && typeof val.title !== 'string') return false;
+  if ('name' in val && typeof val.name !== 'string') return false;
+  if ('total' in val && typeof val.total !== 'number') return false;
+  if ('description' in val && typeof val.description !== 'string') return false;
     if ('universities' in val) {
       if (!Array.isArray(val['universities'])) return false;
       if (!val['universities'].every(isUniversityItem)) return false;
@@ -392,24 +396,22 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                         {/* Render based on content_type or section_key */}
                                         {section.section_key === 'video' && typeof section.content?.text === 'string' && section.content.text && (
                                           <div className="space-y-4">
-                                            {(() => {
-                                              const videoText = section.content.text;
-                                              return videoText
-                                                .split(',')
-                                                .map((v) => v.trim())
-                                                .filter((v) => isAllowedVideoUrl(v.trim()))
-                                                .map((cleanUrl, idx) => (
-                                                  <div key={idx} className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                                                    <video
-                                                      controls
-                                                      className="absolute top-0 left-0 w-full h-full rounded-lg"
-                                                      src={String(cleanUrl)}
-                                                    >
-                                                      Your browser does not support the video tag.
-                                                    </video>
-                                                  </div>
-                                                ));
-                                            })()}
+                                            {section.content.text
+                                              .split(',')
+                                              .map((v) => v.trim())
+                                              .filter((url) => isAllowedVideoUrl(url))
+                                              .map((cleanUrl) => (
+                                                <div key={cleanUrl} className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                                                  <video
+                                                    controls
+                                                    className="absolute top-0 left-0 w-full h-full rounded-lg"
+                                                    src={cleanUrl}
+                                                  >
+                                                    Your browser does not support the video tag.
+                                                  </video>
+                                                </div>
+                                              ))
+                                            }
                                           </div>
                                         )}
                                         {section.content_type === 'text' && section.section_key !== 'video' && (() => {
@@ -425,7 +427,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                                 <p className="whitespace-pre-wrap mb-4">{sectionText}</p>
                                               )}
                                               {/* images array */}
-                                              {Array.isArray(section.content?.images) && section.content.images.length > 0 && (
+                                              {Array.isArray(section.content?.images) && (section.content?.images?.length ?? 0) > 0 && (
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                                                   {section.content.images.filter(isImageItem).map((img, idx) => (
                                                     <img key={img.id ?? `img-${idx}`} src={img.url}

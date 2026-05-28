@@ -278,8 +278,8 @@ export type Database = {
           image_url?: string
           banner_url?: { desktop: string | null; mobile: string | null } | null
           short_description?: string
-          hero_title: string
-          hero_description: string
+          hero_title?: string
+          hero_description?: string
           display_order?: number
           is_active?: boolean
           created_at?: string
@@ -295,8 +295,8 @@ export type Database = {
           status?: string
           image_url?: string
           banner_url?: { desktop: string | null; mobile: string | null } | null
-          hero_title: string
-          hero_description: string
+          hero_title?: string
+          hero_description?: string
           short_description?: string
           display_order?: number
           is_active?: boolean

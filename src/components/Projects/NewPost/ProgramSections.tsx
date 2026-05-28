@@ -74,22 +74,22 @@ const ProgramSections = ({
 }, [sections]);
   const isImageItem = (val: unknown): val is ImageItem =>
   typeof val === 'object' && val !== null && 
-  typeof (val as ImageItem).url === 'string';
+  'url' in val && typeof (val as Record<string, unknown>).url === 'string';
 
   const isCardItem = (item: unknown): item is CardItem =>
-  typeof item === 'object' && item !== null &&
-  typeof (item as { title?: unknown }).title === 'string' &&
+  typeof item === 'object' && item !== null && 'title' in item &&
+  typeof (item as { title?: unknown }).title === 'string' && 'description' in item &&
   typeof (item as { description?: unknown }).description === 'string'; 
 
   const isStatItem = (item: unknown): item is StatItem =>
-  typeof item === 'object' && item !== null &&
-  typeof (item as { value?: unknown }).value === 'string' &&
+  typeof item === 'object' && item !== null && 'value' in item &&
+  typeof (item as { value?: unknown }).value === 'string' && 'label' in item &&
   typeof (item as { label?: unknown }).label === 'string';
 
   const isCourseItem = (item: unknown): item is CourseItem =>
-  typeof item === 'object' && item !== null &&
-  typeof (item as { title?: unknown }).title === 'string' &&
-  typeof (item as { total?: unknown }).total === 'number' &&
+  typeof item === 'object' && item !== null && 'title' in item &&
+  typeof (item as { title?: unknown }).title === 'string' && 'total' in item &&
+  typeof (item as { total?: unknown }).total === 'number' &&  'universities' in item &&
   Array.isArray((item as { universities?: unknown }).universities); 
 
   const renderContentForm = (section: ProgramSectionData, sectionIndex: number) => {

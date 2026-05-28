@@ -58,8 +58,7 @@ const uploadFile = async (file: File): Promise<string> => {
     if (err instanceof DOMException && err.name === 'AbortError') {
       throw new Error('Upload timed out. Please try again.');
     }
-    const cause = err instanceof Error ? err.message : String(err);
-    throw new Error(`Network error: unable to reach upload server (${cause})`);
+    throw new Error(`Network error: unable to reach upload server (${err instanceof Error ? err.message : String(err)})`);
   } finally {
     clearTimeout(timeoutId);
   }
@@ -161,9 +160,8 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
   );
 
   const addSection = (key: SectionKeyType) => {
-    // 'text' content_type requires content.text to exist (DB constraint check_text_shape)
-    const defaultContent: Record<string, unknown> = key === 'video' || true ? { text: '' } : {};
-    onChange([...sections, { section_key: key, content_type: 'text', title: '', preamble: '', content: defaultContent }]);
+    // All sections default to content_type 'text', which requires content.text (DB constraint check_text_shape)
+    onChange([...sections, { section_key: key, content_type: 'text', title: '', preamble: '', content: { text: '' } }]);
   };
 
   const removeSection = (index: number) => {
