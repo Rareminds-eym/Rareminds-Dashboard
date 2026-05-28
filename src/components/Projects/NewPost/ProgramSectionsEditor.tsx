@@ -29,10 +29,13 @@ const hasStringUrl = (val: unknown): val is { url: string } => {
 
 const isImageLike = (val: unknown): val is { id?: string; url?: string } =>
   typeof val === 'object' && val !== null && !Array.isArray(val);
-
 const isSafeUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url);
+    // Explicitly block data: and javascript: URIs
+    if (parsed.protocol === 'data:') return false;
+    if (parsed.protocol === 'javascript:') return false;
+    // Only allow https and http
     return parsed.protocol === 'https:' || parsed.protocol === 'http:';
   } catch {
     return false;
@@ -158,7 +161,9 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
   );
 
   const addSection = (key: SectionKeyType) => {
-    onChange([...sections, { section_key: key, content_type: 'text', title: '', preamble: '', content: {} }]);
+    // 'text' content_type requires content.text to exist (DB constraint check_text_shape)
+    const defaultContent: Record<string, unknown> = key === 'video' || true ? { text: '' } : {};
+    onChange([...sections, { section_key: key, content_type: 'text', title: '', preamble: '', content: defaultContent }]);
   };
 
   const removeSection = (index: number) => {
@@ -255,6 +260,24 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
               </Label>
               {isVideo ? (
                 <>
+                  {/* Show existing uploaded videos */}
+                  {textContent && textContent.split(',').map((v) => v.trim()).filter(Boolean).map((url) => (
+                     // key={idx} is acceptable here: videos are a comma-string with no stable ID,
+                    // items are never reordered, and rows contain no controlled inputs
+                    <div key={url} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                      <span className="flex-1 text-xs text-slate-600 truncate">{url}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = textContent.split(',').map((v) => v.trim()).filter((v) => v !== url).join(', ');
+                          updateContentField(sectionIndex, 'text', updated);
+                        }}
+                        className="text-red-400 hover:text-red-600 text-xs font-medium"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
                   <input
                     type="file"
                     accept="video/*"
@@ -262,7 +285,15 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                     disabled={uploadingStates[`video-${sectionIndex}`]}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) handleFileUpload(file, `video-${sectionIndex}`, (url) => updateContentField(sectionIndex, 'text', url), 'Video upload failed');
+                      if (file) handleFileUpload(
+                        file,
+                        `video-${sectionIndex}`,
+                        (url) => {
+                          const existing = typeof content.text === 'string' && content.text.trim() ? content.text.trim() : '';
+                          updateContentField(sectionIndex, 'text', existing ? `${existing}, ${url}` : url);
+                        },
+                        'Video upload failed'
+                      );
                     }}
                     className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                   />
@@ -288,7 +319,17 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                 <Label className="text-sm font-medium text-slate-700">Images (Multiple)</Label>
                 {images.map((img, idx) => (
                   <div key={img.id ?? `new-${idx}`} className="space-y-1">
-                    {img.url && isSafeUrl(img.url) && <img src={img.url} alt={`Introduction section image ${idx + 1}`} className="w-24 h-16 object-cover rounded border border-slate-200" />}
+                    {(() => {
+                      const safeUrl = isSafeUrl(img.url) ? img.url : '';
+                      return safeUrl ? (
+                        <img
+                          src={safeUrl}
+                          alt={`Introduction section image ${idx + 1}`}
+                          className="w-24 h-16 object-cover rounded border border-slate-200"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      ) : null;
+                    })()}
                     <div className="flex gap-2 items-center">
                       <input
                         type="file"
@@ -337,7 +378,17 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
             {!isVideo && isConclusion && (
               <div className="space-y-3">
                 <Label className="text-sm font-medium text-slate-700">Single Image</Label>
-                {image.url && isSafeUrl(image.url) && <img src={image.url} alt="Conclusion image" className="w-32 h-20 object-cover rounded-lg border border-slate-200" />}
+                {(() => {
+                  const safeUrl = isSafeUrl(image.url) ? image.url : '';
+                  return safeUrl ? (
+                    <img
+                      src={safeUrl}
+                      alt="Conclusion image"
+                      className="w-32 h-20 object-cover rounded-lg border border-slate-200"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  ) : null;
+                })()}
                 <input
                   type="file"
                   accept="image/*"

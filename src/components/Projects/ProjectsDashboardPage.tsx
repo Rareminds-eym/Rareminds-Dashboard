@@ -33,18 +33,17 @@ const ProjectsDashboardPage = () => {
 
   const handleProgramSaved = async () => {
     try {
-    await fetchPrograms();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to refresh programs';
-    toast({
-      title: 'Error',
-      description: message,
-      variant: 'destructive',
-    });
-  } finally {
-    setActiveSection('programs');
-    setEditingProgram(null);
-  }
+      await fetchPrograms();
+      setActiveSection('programs');
+      setEditingProgram(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to refresh programs';
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
+      });
+    }
   };
 
   return (

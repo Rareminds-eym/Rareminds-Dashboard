@@ -50,6 +50,17 @@ const asContentType = (val: unknown): ContentType => {
     return found ?? 'text';
 };
 
+const parseBannerUrl = (val: unknown): { desktop: string | null; mobile: string | null } | null => {
+    if (val === null || val === undefined) return null;
+    const obj = typeof val === 'string' ? (() => { try { return JSON.parse(val); } catch { return null; } })() : val;
+    if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) return null;
+    const entries = Object.fromEntries(Object.entries(obj));
+    return {
+        desktop: typeof entries['desktop'] === 'string' ? entries['desktop'] : null,
+        mobile: typeof entries['mobile'] === 'string' ? entries['mobile'] : null,
+    };
+};
+
 const toRecord = (val: unknown): Record<string, unknown> => {
     if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
         const result: Record<string, unknown> = {};
@@ -98,8 +109,10 @@ export const usePrograms = () => {
             date: asString(row.date),
             status: asString(row.status),
             image_url: asString(row.image_url),
-            banner_url: typeof row.banner_url === 'string' ? row.banner_url : null,
+            banner_url: parseBannerUrl(row.banner_url),
             short_description: asString(row.short_description),
+            hero_title: asString(row.hero_title),
+            hero_description: asString(row.hero_description),
             display_order: asNumber(row.display_order),
             is_active: asBool(row.is_active),
             created_at: asString(row.created_at),
@@ -163,8 +176,10 @@ export const usePrograms = () => {
                     date: formData.date, // NOW REQUIRED
                     status: formData.status, // NOW REQUIRED
                     image_url: formData.image_url, // NOW REQUIRED
-                    banner_url: formData.banner_url || null,
+                    banner_url: formData.banner_url ?? null,
                     short_description: formData.short_description, // NOW REQUIRED
+                    hero_title: formData.hero_title || '',
+                    hero_description: formData.hero_description || '',
                     display_order: formData.display_order,
                     is_active: formData.is_active,
                 })
@@ -218,8 +233,10 @@ export const usePrograms = () => {
                 date: data.date,
                 status: data.status,
                 image_url: data.image_url,
-                banner_url: data.banner_url,
+                banner_url: parseBannerUrl(data.banner_url),
                 short_description: data.short_description,
+                hero_title: data.hero_title,
+                hero_description: data.hero_description,
                 display_order: data.display_order,
                 is_active: data.is_active,
                 created_at: data.created_at,
@@ -266,8 +283,10 @@ export const usePrograms = () => {
                     date: formData.date, // NOW REQUIRED
                     status: formData.status, // NOW REQUIRED
                     image_url: formData.image_url, // NOW REQUIRED
-                    banner_url: formData.banner_url || null,
+                    banner_url: formData.banner_url ?? null,
                     short_description: formData.short_description, // NOW REQUIRED
+                    hero_title: formData.hero_title || '',
+                    hero_description: formData.hero_description || '',
                     display_order: formData.display_order,
                     is_active: formData.is_active,
                     updated_at: new Date().toISOString(),
@@ -353,8 +372,10 @@ export const usePrograms = () => {
                 date: data.date,
                 status: data.status,
                 image_url: data.image_url,
-                banner_url: data.banner_url,
+                banner_url: parseBannerUrl(data.banner_url),
                 short_description: data.short_description,
+                hero_title: data.hero_title,
+                hero_description: data.hero_description,
                 display_order: data.display_order,
                 is_active: data.is_active,
                 created_at: data.created_at,

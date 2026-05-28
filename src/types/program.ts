@@ -76,8 +76,10 @@ export interface Program {
     date: string; // NOW REQUIRED (not null)
     status: string; // NOW REQUIRED (not null)
     image_url: string; // NOW REQUIRED (not null)
-    banner_url: string | null;
+    banner_url: { desktop: string | null; mobile: string | null } | null;
     short_description: string; // NOW REQUIRED (not null)
+    hero_title: string;
+    hero_description: string;
     display_order: number;
     is_active: boolean;
     created_at: string;
@@ -106,8 +108,10 @@ export interface ProgramFormData {
     date: string; // NOW REQUIRED
     status: string; // NOW REQUIRED
     image_url: string; // NOW REQUIRED
-    banner_url: string | null;
+    banner_url: { desktop: string | null; mobile: string | null } | null;
     short_description: string; // NOW REQUIRED
+    hero_title: string;
+    hero_description: string;
     display_order: number;
     is_active: boolean;
     sections: ProgramSectionFormData[];

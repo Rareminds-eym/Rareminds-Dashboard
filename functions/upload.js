@@ -82,7 +82,7 @@ export async function onRequestPost({ request, env }) {
     }
 
     const missingVars = ['R2_ACCESS_KEY', 'R2_SECRET_KEY', 'R2_ACCOUNT_ID', 'R2_BUCKET_NAME', 'R2_PUBLIC_URL']
-      .filter(key => !env[key]);
+      .filter(key => !env[key] || typeof env[key] !== 'string' || env[key].trim() === '');
 
     if (missingVars.length > 0) {
       return new Response(JSON.stringify({ error: `Server misconfiguration: missing ${missingVars.join(', ')}` }), {
@@ -98,7 +98,7 @@ export async function onRequestPost({ request, env }) {
       region: 'auto',
     });
 
-    const filename = `${Date.now()}-${crypto.randomUUID()}-${file.name.replace(/\s+/g, '-')}`;
+    const filename = `${Date.now()}-${crypto.randomUUID()}-${file.name.trim().replace(/\s+/g, '-').replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
     const uploadUrl = `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${env.R2_BUCKET_NAME}/${filename}`;
     const arrayBuffer = await file.arrayBuffer();
 

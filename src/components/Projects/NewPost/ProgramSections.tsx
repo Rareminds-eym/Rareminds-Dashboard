@@ -98,8 +98,10 @@ const ProgramSections = ({
     switch (contentType) {
       case 'text': {
         const textContent = typeof section.content.text === 'string' ? section.content.text : '';
-        const rawImages = Array.isArray(section.content.images) ? section.content.images.filter(isImageItem)
-        : [];
+        const imageList = section.content.images;
+const rawImages: ImageItem[] = Array.isArray(imageList) 
+  ? imageList.filter(isImageItem)
+  : [];
         const rawImage = isImageObject(section.content.image)
           ? section.content.image
           : undefined;

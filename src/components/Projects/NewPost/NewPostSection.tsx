@@ -26,15 +26,22 @@ const isSuccessResponse = (data: unknown): data is { url: string } => {
   const obj = data as Record<string, unknown>;
   return typeof obj.url === 'string' && obj.url.length > 0;
 };
-
+const UPLOAD_TIMEOUT_MS = 30000;
 const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
   let res: Response;
   try {
-    res = await fetch('/upload', { method: 'POST', body: formData });
-  } catch {
+    res = await fetch('/upload', { method: 'POST', body: formData, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('Upload timed out. Please try again.');
+    }
     throw new Error('Network error during upload');
+  } finally {
+    clearTimeout(timeoutId);
   }
   if (!res.ok) {
     throw new Error(`Upload failed: server error ${res.status}`);
@@ -78,6 +85,11 @@ const removeIds = (obj: Record<string, unknown>): Record<string, unknown> => {
 const resetFileInput = (ref: React.RefObject<HTMLInputElement>) => {
   if (ref.current) {
     ref.current.value = '';
+    // Fallback for browsers that don't support value reset
+    if (ref.current.value) {
+      ref.current.type = 'text';
+      ref.current.type = 'file';
+    }
   }
 };
 
@@ -90,7 +102,8 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   const [slug, setSlug] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [bannerUrl, setBannerUrl] = useState('');
+  const [desktopBannerUrl, setDesktopBannerUrl] = useState('');
+  const [mobileBannerUrl, setMobileBannerUrl] = useState('');
   const [programType, setProgramType] = useState('');
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
@@ -101,15 +114,20 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   const [errors, setErrors] = useState<{ title?: string; slug?: string }>({});
   const [formLoadError, setFormLoadError] = useState<string | null>(null);
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
-  const [bannerUploadError, setBannerUploadError] = useState<string | null>(null);
+  const [desktopBannerUploadError, setDesktopBannerUploadError] = useState<string | null>(null);
+  const [mobileBannerUploadError, setMobileBannerUploadError] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploadingDesktopBanner, setUploadingDesktopBanner] = useState(false);
+  const [uploadingMobileBanner, setUploadingMobileBanner] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const desktopBannerInputRef = useRef<HTMLInputElement>(null);
+  const mobileBannerInputRef = useRef<HTMLInputElement>(null);
   // prevents auto-slug regeneration after manual edit
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [heroTitle, setHeroTitle] = useState('');
+  const [heroDescription, setHeroDescription] = useState('');
 
   // Get unique values from existing programs
   const [existingProgramTypes, setExistingProgramTypes] = useState<string[]>(
@@ -196,13 +214,16 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
       setSlugManuallyEdited(false);
       setShortDescription(editingProgram.short_description || '');
       setImageUrl(editingProgram.image_url || '');
-      setBannerUrl(editingProgram.banner_url || '');
+      setDesktopBannerUrl(editingProgram.banner_url?.desktop || '');
+      setMobileBannerUrl(editingProgram.banner_url?.mobile || '');
       setProgramType(editingProgram.program_type || '');
       setLocation(editingProgram.location || '');
       setDate(editingProgram.date || '');
       setStatus(editingProgram.status || 'Active');
       setDisplayOrder(editingProgram.display_order);
       setIsActive(editingProgram.is_active);
+      setHeroTitle(editingProgram.hero_title || '');
+      setHeroDescription(editingProgram.hero_description || '');
       setSections(
         (editingProgram.sections ?? []).map((s) => ({
           id: s.id,
@@ -247,11 +268,19 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
         date,
         status,
         image_url: imageUrl,
-        banner_url: bannerUrl,
+        banner_url: { desktop: desktopBannerUrl || null, mobile: mobileBannerUrl || null },
         short_description: shortDescription,
+        hero_title: heroTitle,
+        hero_description: heroDescription,
         display_order: displayOrder,
         is_active: isActive,
-        sections,
+        sections: sections.map((s) => ({
+          ...s,
+          // Ensure text content_type always has content.text (required by DB constraint)
+          content: s.content_type === 'text' && !('text' in s.content)
+            ? { text: '', ...s.content }
+            : s.content,
+        })),
       };
 
       const success = await onProgramSaved(formData);
@@ -261,7 +290,8 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
         setSlug('');
         setShortDescription('');
         setImageUrl('');
-        setBannerUrl('');
+        setDesktopBannerUrl('');
+        setMobileBannerUrl('');
         setProgramType('');
         setLocation('');
         setDate('');
@@ -269,6 +299,8 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
         setDisplayOrder(0);
         setIsActive(true);
         setSections([]);
+        setHeroTitle('');
+        setHeroDescription('');
       }
       if (!success) {
         setSubmitError('Failed to save program. Please try again.');
@@ -296,19 +328,38 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
     }
   };
 
-  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Remove handleBannerUpload entirely
+
+  // Add these two
+  const handleDesktopBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || uploadingBanner) return;
-    setUploadingBanner(true);
-    setBannerUploadError(null);
+    if (!file || uploadingDesktopBanner) return;
+    setUploadingDesktopBanner(true);
+    setDesktopBannerUploadError(null);
     try {
       const url = await uploadFile(file);
-      setBannerUrl(url);
+      setDesktopBannerUrl(url);
     } catch (err) {
-      setBannerUploadError(err instanceof Error ? err.message : 'Banner upload failed');
-      resetFileInput(bannerInputRef);
+      setDesktopBannerUploadError(err instanceof Error ? err.message : 'Desktop banner upload failed');
+      resetFileInput(desktopBannerInputRef);
     } finally {
-      setUploadingBanner(false);
+      setUploadingDesktopBanner(false);
+    }
+  };
+
+  const handleMobileBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || uploadingMobileBanner) return;
+    setUploadingMobileBanner(true);
+    setMobileBannerUploadError(null);
+    try {
+      const url = await uploadFile(file);
+      setMobileBannerUrl(url);
+    } catch (err) {
+      setMobileBannerUploadError(err instanceof Error ? err.message : 'Mobile banner upload failed');
+      resetFileInput(mobileBannerInputRef);
+    } finally {
+      setUploadingMobileBanner(false);
     }
   };
 
@@ -367,6 +418,11 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                {formLoadError && (
+                  <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg border border-red-200">
+                    {formLoadError}
+                  </p>
+                )}
                 {/* Title */}
                 <div className="space-y-2">
                   <Label htmlFor="title" className="text-sm font-medium text-slate-700">
@@ -421,7 +477,9 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     Image
                   </Label>
                   {imageUrl && (
-                    <img src={imageUrl} alt={`${title || 'Program'} image preview`} className="w-32 h-20 object-cover rounded-lg border border-slate-200" />
+                    <img src={imageUrl} alt={`${title || 'Program'} image preview`} className="w-32 h-20 object-cover rounded-lg border border-slate-200" onError={(e) => {
+                      e.currentTarget.src = '/image.png';
+                    }} />
                   )}
                   <input
                     ref={imageInputRef}
@@ -441,33 +499,86 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                   )}
                   {imageUploadError && <p className="text-sm text-red-600">{imageUploadError}</p>}
                 </div>
-
-                {/* Banner Upload */}
+                {/* Desktop Banner Upload */}
                 <div className="space-y-2">
-                  <Label htmlFor="banner-url" className="text-sm font-medium text-slate-700">
-                    Banner
+                  <Label htmlFor="desktop-banner-url" className="text-sm font-medium text-slate-700">
+                    Desktop Banner
                   </Label>
-                  {bannerUrl && (
-                    <img src={bannerUrl} alt={`${title || 'Program'} banner preview`} className="w-full h-24 object-cover rounded-lg border border-slate-200" />
+                  {desktopBannerUrl && (
+                    <img src={desktopBannerUrl} alt={`${title || 'Program'} desktop banner preview`} className="w-full h-24 object-cover rounded-lg border border-slate-200" onError={(e) => { e.currentTarget.src = '/image.png'; }} />
                   )}
                   <input
-                    ref={bannerInputRef}
-                    id="banner-url"
-                    name="banner"
+                    ref={desktopBannerInputRef}
+                    id="desktop-banner-url"
+                    name="desktop-banner"
                     type="file"
                     accept="image/*"
-                    aria-label="Upload program banner"
-                    disabled={uploadingBanner}
-                    onChange={handleBannerUpload}
+                    aria-label="Upload desktop banner"
+                    disabled={uploadingDesktopBanner}
+                    onChange={handleDesktopBannerUpload}
                     className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                   />
-                  {uploadingBanner && (
+                  {uploadingDesktopBanner && (
                     <div className="flex items-center gap-2 text-sm text-slate-500">
-                      <Loader2 className="w-4 h-4 animate-spin" /> Uploading banner...
+                      <Loader2 className="w-4 h-4 animate-spin" /> Uploading desktop banner...
                     </div>
                   )}
-                  {bannerUploadError && <p className="text-sm text-red-600">{bannerUploadError}</p>}
-                  {formLoadError && <p className="text-sm text-red-600">{formLoadError}</p>}
+                  {desktopBannerUploadError && <p className="text-sm text-red-600">{desktopBannerUploadError}</p>}
+                </div>
+
+                {/* Mobile Banner Upload */}
+                <div className="space-y-2">
+                  <Label htmlFor="mobile-banner-url" className="text-sm font-medium text-slate-700">
+                    Mobile Banner
+                  </Label>
+                  {mobileBannerUrl && (
+                    <img src={mobileBannerUrl} alt={`${title || 'Program'} mobile banner preview`} className="w-full h-24 object-cover rounded-lg border border-slate-200" onError={(e) => { e.currentTarget.src = '/image.png'; }} />
+                  )}
+                  <input
+                    ref={mobileBannerInputRef}
+                    id="mobile-banner-url"
+                    name="mobile-banner"
+                    type="file"
+                    accept="image/*"
+                    aria-label="Upload mobile banner"
+                    disabled={uploadingMobileBanner}
+                    onChange={handleMobileBannerUpload}
+                    className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
+                  />
+                  {uploadingMobileBanner && (
+                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Uploading mobile banner...
+                    </div>
+                  )}
+                  {mobileBannerUploadError && <p className="text-sm text-red-600">{mobileBannerUploadError}</p>}
+                </div>
+                {/* Hero Title */}
+                <div className="space-y-2">
+                  <Label htmlFor="hero-title" className="text-sm font-medium text-slate-700">
+                    Hero Title
+                  </Label>
+                  <Input
+                    id="hero-title"
+                    value={heroTitle}
+                    onChange={(e) => setHeroTitle(e.target.value)}
+                    placeholder="Title shown on the banner..."
+                    className="h-12 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                  />
+                </div>
+
+                {/* Hero Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="hero-description" className="text-sm font-medium text-slate-700">
+                    Hero Description
+                  </Label>
+                  <Textarea
+                    id="hero-description"
+                    value={heroDescription}
+                    onChange={(e) => setHeroDescription(e.target.value)}
+                    placeholder="Description shown on the banner..."
+                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none transition-all duration-200"
+                    rows={3}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -504,6 +615,8 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     </PopoverTrigger>
                     <PopoverContent className="w-full p-0" align="start">
                       <Command>
+                        {/* Single state is intentional — this combobox supports both selecting existing 
+                         values and typing a custom new value. The input value IS the final output. */}
                         <CommandInput
                           placeholder="Search or type new..."
                           value={programType}
@@ -549,6 +662,8 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     </PopoverTrigger>
                     <PopoverContent className="w-full p-0" align="start">
                       <Command>
+                        {/* Single state is intentional — this combobox supports both selecting existing 
+    values and typing a custom new value. The input value IS the final output. */}
                         <CommandInput
                           placeholder="Search or type new..."
                           value={location}

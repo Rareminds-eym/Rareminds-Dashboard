@@ -28,19 +28,7 @@ const isAllowedVideoUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== 'https:') return false;
-    if (parsed.hostname !== 'pub-ff2f575034a34f13924fa500457f5a1e.r2.dev') return false;
-    if (parsed.search || parsed.hash) return false;
-    const allowedExtensions = [
-      '.mp4',
-      '.webm',
-      '.ogg',
-      '.mov',
-      '.m3u8'
-    ];
-    const pathname = parsed.pathname.toLowerCase();
-    return allowedExtensions.some(ext =>
-      pathname.endsWith(ext)
-    );
+    return true;
   } catch {
     return false;
   }
@@ -80,7 +68,10 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
   };
 
   // Get all unique statuses from programs
-  const allStatuses = [...new Set(programs.map(p => p.status).filter((s): s is string => typeof s === 'string' && s.length > 0))];
+  const allStatuses = [...programs.reduce<Set<string>>((set, p) => {
+    if (typeof p.status === 'string' && p.status.length > 0) set.add(p.status);
+    return set;
+  }, new Set<string>())];
 
   const filteredPosts = programs.filter(program => {
     const matchesSearch =
@@ -296,16 +287,26 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
 
                       {selectedPost && (
                         <div className="space-y-8 py-6">
-                          {selectedPost.banner_url && (
+                          {selectedPost.banner_url?.desktop && (
                             <div className="relative overflow-hidden rounded-xl">
                               <img
-                                src={selectedPost.banner_url}
-                                alt={selectedPost.title}
+                                src={selectedPost.banner_url.desktop}
+                                alt={`${selectedPost.title} desktop banner`}
                                 className="w-full max-h-96 object-cover"
                               />
+                              <span className="absolute top-2 left-2 text-xs bg-black/50 text-white px-2 py-1 rounded">Desktop</span>
                             </div>
                           )}
-
+                          {selectedPost.banner_url?.mobile && (
+                            <div className="relative overflow-hidden rounded-xl">
+                              <img
+                                src={selectedPost.banner_url.mobile}
+                                alt={`${selectedPost.title} mobile banner`}
+                                className="w-full max-h-96 object-cover"
+                              />
+                              <span className="absolute top-2 left-2 text-xs bg-black/50 text-white px-2 py-1 rounded">Mobile</span>
+                            </div>
+                          )}
                           {selectedPost.short_description && (
                             <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base">
                               {selectedPost.short_description}
@@ -340,6 +341,23 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                   {new Date(selectedPost.created_at).toLocaleDateString()}
                                 </span>
                               </div>
+                              {selectedPost.hero_title && (
+                                <div className="flex flex-col gap-1 col-span-2">
+                                  <span className="font-medium text-slate-700 dark:text-slate-300">Hero Title:</span>
+                                  <span className="text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    {selectedPost.hero_title}
+                                  </span>
+                                </div>
+                              )}
+                              {selectedPost.hero_description && (
+                                <div className="flex flex-col gap-1 col-span-2">
+                                  <span className="font-medium text-slate-700 dark:text-slate-300">Hero Description:</span>
+                                  <span className="text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    {selectedPost.hero_description}
+                                  </span>
+                                </div>
+                              )}
+
                             </div>
                           </div>
 
@@ -385,7 +403,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                                     <video
                                                       controls
                                                       className="absolute top-0 left-0 w-full h-full rounded-lg"
-                                                      src={cleanUrl}
+                                                      src={String(cleanUrl)}
                                                     >
                                                       Your browser does not support the video tag.
                                                     </video>
@@ -402,6 +420,8 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                           return (
                                             <>
                                               {sectionText && (
+                                                // Safe: React escapes all text interpolation automatically.
+                                                // No dangerouslySetInnerHTML used — raw HTML never executes
                                                 <p className="whitespace-pre-wrap mb-4">{sectionText}</p>
                                               )}
                                               {/* images array */}
@@ -470,7 +490,8 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                                     )}
                                                   </div>
                                                   {Array.isArray(course.universities) && course.universities.length > 0 && (() => {
-                                                    const universities = course.universities.filter(isUniversityItem); // ✅ no ?. needed
+                                                    const universities = course.universities.filter(isUniversityItem);
+                                                    if (universities.length === 0) return null;
                                                     return (
                                                       <div className="divide-y divide-slate-100 dark:divide-slate-700">
                                                         {universities.map((uni, uIdx) => (
