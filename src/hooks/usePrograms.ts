@@ -300,8 +300,7 @@ export const usePrograms = () => {
                 .select()
                 .single();
 
-            if (updateError || !data) throw updateError || new Error('No data returned');
-            if (!data) throw new Error('Program was modified by someone else. Please refresh and try again.');
+            if (updateError || !data) throw updateError || new Error('Program was modified by someone else. Please refresh and try again.');
             // Upsert sections that are in the form data
             const newSectionKeys = Array.isArray(formData.sections)
                 ? formData.sections.map((s) => s.section_key)

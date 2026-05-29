@@ -342,7 +342,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                               <div className="flex flex-col gap-1">
                                 <span className="font-medium text-slate-700 dark:text-slate-300">Created:</span>
                                 <span className="text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
-                                  {new Date(selectedPost.created_at).toLocaleDateString()}
+                                {safeFormatDate(selectedPost.created_at)}
                                 </span>
                               </div>
                               {selectedPost.hero_title && (

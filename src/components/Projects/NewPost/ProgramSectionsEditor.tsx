@@ -181,6 +181,8 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
   };
 
   const addArrayItem = (sectionIndex: number, arrayKey: string, newItem: CardItem | StatItem | CourseItem | ImageItem) => {
+    // Assign a stable client-side UUID so key={item.id} always works without index fallback
+    const itemWithId = { ...newItem, id: crypto.randomUUID() };
     onChange(
       sections.map((s, i) => {
         if (i !== sectionIndex) return s;
@@ -190,7 +192,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
             typeof item === 'object' && item !== null && !Array.isArray(item)
           )
           : [];
-        return { ...s, content: { ...s.content, [arrayKey]: [...current, newItem] } };
+        return { ...s, content: { ...s.content, [arrayKey]: [...current, itemWithId] } };
       })
     );
   };
@@ -316,7 +318,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
               <div className="space-y-3">
                 <Label className="text-sm font-medium text-slate-700">Images (Multiple)</Label>
                 {images.map((img, idx) => (
-                  <div key={img.id ?? `new-${idx}`} className="space-y-1">
+                  <div key={img.id ?? `img-${idx}`} className="space-y-1">
                     {(() => {
                       const safeUrl = isSafeUrl(img.url) ? img.url : '';
                       return safeUrl ? (
@@ -324,7 +326,9 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                           src={safeUrl}
                           alt={`Introduction section image ${idx + 1}`}
                           className="w-24 h-16 object-cover rounded border border-slate-200"
-                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          onError={(e) => { 
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = '/image.png'; }}
                         />
                       ) : null;
                     })()}
@@ -383,7 +387,9 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                       src={safeUrl}
                       alt="Conclusion image"
                       className="w-32 h-20 object-cover rounded-lg border border-slate-200"
-                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      onError={(e) => { 
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = '/image.png'; }}
                     />
                   ) : null;
                 })()}
@@ -434,7 +440,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
             </div>
             <Label className="text-sm font-medium text-slate-700">Cards</Label>
             {items.map((card, idx) => (
-              <div key={card.id ?? `new-${idx}`} className="border border-slate-300 rounded-lg p-4 space-y-3 bg-white">
+              <div key={card.id} className="border border-slate-300 rounded-lg p-4 space-y-3 bg-white">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-600">Card {idx + 1}</span>
                   <Button
@@ -483,7 +489,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
           <div className="space-y-4">
             <Label className="text-sm font-medium text-slate-700">Statistics</Label>
             {items.map((stat, idx) => (
-              <div key={stat.id ?? `new-${idx}`} className="border border-slate-300 rounded-lg p-4 space-y-3 bg-white">
+              <div key={stat.id} className="border border-slate-300 rounded-lg p-4 space-y-3 bg-white">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-600">Stat {idx + 1}</span>
                   <Button
@@ -529,7 +535,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
           <div className="space-y-4">
             <Label className="text-sm font-medium text-slate-700">Courses</Label>
             {courses.map((course, courseIdx) => (
-              <div key={course.id ?? `new-${courseIdx}`} className="border border-slate-300 rounded-lg p-4 space-y-4 bg-white">
+              <div key={course.id} className="border border-slate-300 rounded-lg p-4 space-y-4 bg-white">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-600">Course {courseIdx + 1}</span>
                   <Button
@@ -558,7 +564,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                 <div className="space-y-3 pl-4 border-l-2 border-purple-200">
                   <Label className="text-xs font-medium text-slate-600">Universities</Label>
                   {getUniversities(course).map((uni, uniIdx) => (
-                    <div key={uni.id ?? `new-uni-${uniIdx}`} className="flex gap-2 items-start">
+                    <div key={uni.id} className="flex gap-2 items-start">
                       <Input
                         value={uni.name}
                         onChange={(e) => {
@@ -601,7 +607,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                     size="sm"
                     onClick={() => {
                       updateArrayItem(sectionIndex, 'courses', courseIdx, 'universities',
-                        [...getUniversities(course), { name: '', students: 0 }]
+                        [...getUniversities(course), { id: crypto.randomUUID(), name: '', students: 0 }]
                       );
                     }}
                     className="w-full"
@@ -660,7 +666,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
 
         {sections.map((section, index) => (
           <div
-            key={section.id ?? `${section.section_key}-${index}`}
+            key={section.id ?? section.section_key}
             className="border border-slate-200 rounded-xl p-4 space-y-4 bg-slate-50/50"
           >
             <div className="flex items-center justify-between">

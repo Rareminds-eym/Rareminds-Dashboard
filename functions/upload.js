@@ -98,10 +98,12 @@ export async function onRequestPost({ request, env }) {
       region: 'auto',
     });
 
-    const rawName = file.name.trim();
-    // Strip path separators and traversal patterns before any other sanitization
-    const basename = rawName.replace(/[/\\]/g, '_').replace(/\.\./g, '_');
-    const filename = `${Date.now()}-${crypto.randomUUID()}-${basename.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
+    // Use UUID + timestamp as the filename key — no original filename needed
+    // This eliminates all path traversal risk and guarantees uniqueness
+    const ext = file.name.includes('.')
+      ? '.' + file.name.split('.').pop().replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
+      : '';
+    const filename = `${Date.now()}-${crypto.randomUUID()}${ext}`;
     const uploadUrl = `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${env.R2_BUCKET_NAME}/${filename}`;
     const arrayBuffer = await file.arrayBuffer();
 

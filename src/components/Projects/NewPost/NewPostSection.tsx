@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Program, ProgramFormData } from '../../../types/program';
 import { generateSlug } from '../../../hooks/usePrograms';
 import { supabase } from '../../../integrations/supabase/client';
@@ -16,12 +16,13 @@ import ProgramSectionsEditor, { SectionItem } from './ProgramSectionsEditor';
 
 const isErrorResponse = (data: unknown): data is { error: string } =>
   typeof data === 'object' && data !== null &&
-  'error' in data && typeof (data as Record<string, unknown>)['error'] === 'string';
+  'error' in data && typeof data.error === 'string';
 
 const isSuccessResponse = (data: unknown): data is { url: string } =>
   typeof data === 'object' && data !== null &&
-  'url' in data && typeof (data as Record<string, unknown>)['url'] === 'string' &&
-  (data as Record<string, unknown>)['url'] !== '';
+  'url' in data && typeof data.url === 'string' &&
+  data.url !== '';
+
 const UPLOAD_TIMEOUT_MS = 30000;
 const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData();
@@ -31,11 +32,13 @@ const uploadFile = async (file: File): Promise<string> => {
   let res: Response;
   try {
     res = await fetch('/upload', { method: 'POST', body: formData, signal: controller.signal });
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new Error('Upload timed out. Please try again.');
-    }
-    throw new Error('Network error during upload');
+ } catch (err) {
+  const name = err instanceof Error ? err.name : Object(err).name;
+  if (name === 'AbortError') {
+    throw new Error('Upload timed out. Please try again.');
+  }
+  throw new Error('Network error during upload');
+
   } finally {
     clearTimeout(timeoutId);
   }
@@ -78,17 +81,6 @@ const removeIds = (obj: Record<string, unknown>): Record<string, unknown> => {
       .map(([k, v]) => [k, processValue(v)])
   );
 };
-const resetFileInput = (ref: React.RefObject<HTMLInputElement>) => {
-  if (ref.current) {
-    ref.current.value = '';
-    // Fallback for browsers that don't support value reset
-    if (ref.current.value) {
-      ref.current.type = 'text';
-      ref.current.type = 'file';
-    }
-  }
-};
-
 interface NewPostSectionProps {
   onProgramSaved: (data: ProgramFormData) => Promise<boolean>;
   editingProgram?: Program | null;
@@ -123,9 +115,9 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingDesktopBanner, setUploadingDesktopBanner] = useState(false);
   const [uploadingMobileBanner, setUploadingMobileBanner] = useState(false);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const desktopBannerInputRef = useRef<HTMLInputElement>(null);
-  const mobileBannerInputRef = useRef<HTMLInputElement>(null);
+  const [imageInputKey, setImageInputKey] = useState(0);
+  const [desktopBannerInputKey, setDesktopBannerInputKey] = useState(0);
+  const [mobileBannerInputKey, setMobileBannerInputKey] = useState(0);
   // prevents auto-slug regeneration after manual edit
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -343,7 +335,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
       setImageUrl(url);
     } catch (err) {
       setImageUploadError(err instanceof Error ? err.message : 'Image upload failed');
-      resetFileInput(imageInputRef);
+      setImageInputKey((k) => k + 1);
     } finally {
       setUploadingImage(false);
     }
@@ -362,7 +354,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
       setDesktopBannerUrl(url);
     } catch (err) {
       setDesktopBannerUploadError(err instanceof Error ? err.message : 'Desktop banner upload failed');
-      resetFileInput(desktopBannerInputRef);
+      setDesktopBannerInputKey((k) => k + 1);
     } finally {
       setUploadingDesktopBanner(false);
     }
@@ -378,7 +370,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
       setMobileBannerUrl(url);
     } catch (err) {
       setMobileBannerUploadError(err instanceof Error ? err.message : 'Mobile banner upload failed');
-      resetFileInput(mobileBannerInputRef);
+      setMobileBannerInputKey((k) => k + 1);
     } finally {
       setUploadingMobileBanner(false);
     }
@@ -499,12 +491,14 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     Image
                   </Label>
                   {imageUrl && (
-                    <img src={imageUrl} alt={`${title || 'Program'} image preview`} className="w-32 h-20 object-cover rounded-lg border border-slate-200" onError={(e) => {
+                    <img src={imageUrl} alt={`${title || 'Program'} image preview`} className="w-32 h-20 object-cover rounded-lg border border-slate-200" 
+                    onError={(e) => {
+                      e.currentTarget.onerror = null; 
                       e.currentTarget.src = '/image.png';
                     }} />
                   )}
                   <input
-                    ref={imageInputRef}
+                    key={imageInputKey}
                     id="image-url"
                     name="image"
                     type="file"
@@ -528,10 +522,13 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     Desktop Banner
                   </Label>
                   {desktopBannerUrl && (
-                    <img src={desktopBannerUrl} alt={`${title || 'Program'} desktop banner preview`} className="w-full h-24 object-cover rounded-lg border border-slate-200" onError={(e) => { e.currentTarget.src = '/image.png'; }} />
+                    <img src={desktopBannerUrl} alt={`${title || 'Program'} desktop banner preview`} className="w-full h-24 object-cover rounded-lg border border-slate-200" 
+                    onError={(e) => {
+                    e.currentTarget.onerror = null;  
+                    e.currentTarget.src = '/image.png'; }} />
                   )}
                   <input
-                    ref={desktopBannerInputRef}
+                    key={desktopBannerInputKey}
                     id="desktop-banner-url"
                     name="desktop-banner"
                     type="file"
@@ -555,10 +552,13 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                     Mobile Banner
                   </Label>
                   {mobileBannerUrl && (
-                    <img src={mobileBannerUrl} alt={`${title || 'Program'} mobile banner preview`} className="w-full h-24 object-cover rounded-lg border border-slate-200" onError={(e) => { e.currentTarget.src = '/image.png'; }} />
+                    <img src={mobileBannerUrl} alt={`${title || 'Program'} mobile banner preview`} className="w-full h-24 object-cover rounded-lg border border-slate-200" 
+                    onError={(e) => { 
+                    e.currentTarget.onerror = null; 
+                    e.currentTarget.src = '/image.png'; }} />
                   )}
                   <input
-                    ref={mobileBannerInputRef}
+                    key={mobileBannerInputKey}
                     id="mobile-banner-url"
                     name="mobile-banner"
                     type="file"
@@ -643,6 +643,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                         <CommandInput
                           placeholder="Search or type new..."
                           value={programType}
+                          onValueChange={setProgramType}
                         />
                         <CommandList>
                           <CommandEmpty className="py-2 px-3 text-sm text-slate-700">
@@ -696,7 +697,7 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
                           <CommandEmpty
                             className="py-2 px-3 text-sm text-slate-700"
                           >
-                            Press Enter to use &quot;{location}&quot;
+                            Press Enter to use "{location}"
                           </CommandEmpty>
                           <CommandGroup>
                             {existingLocations.map((loc) => (
