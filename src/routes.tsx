@@ -19,6 +19,9 @@ const EventsOverviewPage = lazy(() => import('./pages/Events/Overview/EventsOver
 // Use static import for NewEventPage to avoid dynamic import fetch issues during navigation
 import NewEventPage from './pages/Events/NewEvent/NewEventPage';
 const EventsListPage = lazy(() => import('./pages/Events/EventsList/EventsListPage'));
+const FormsListPage = lazy(() => import('./pages/FormBuilder/FormsListPage'));
+const FormBuilderPage = lazy(() => import('./pages/FormBuilder/FormBuilderPage'));
+const FormPreviewPage = lazy(() => import('./pages/FormBuilder/FormPreviewPage'));
 const NanmaduvalanPage = lazy(() => import('./pages/NanmaduvalanPage'));
 const AuthPageWrapper = lazy(() => import('./pages/AuthPageWrapper'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -178,6 +181,43 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<RouteLoading />}>
                 <EventsListPage />
+              </Suspense>
+            ),
+          },
+        ],
+      },
+      {
+        path: 'form-builder',
+        children: [
+          {
+            index: true,
+            element: (
+              <Suspense fallback={<RouteLoading />}>
+                <FormsListPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'new',
+            element: (
+              <Suspense fallback={<RouteLoading />}>
+                <FormBuilderPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: ':formId/edit',
+            element: (
+              <Suspense fallback={<RouteLoading />}>
+                <FormBuilderPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: ':formId/preview',
+            element: (
+              <Suspense fallback={<RouteLoading />}>
+                <FormPreviewPage />
               </Suspense>
             ),
           },

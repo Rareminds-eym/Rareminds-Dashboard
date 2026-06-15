@@ -129,6 +129,7 @@ export const useEvents = () => {
       status: (row.status as EventStatus) ?? 'upcoming',
       is_physical: row.is_physical ?? true,
       slug: row.slug ?? '',
+      form_id: row.form_id ?? null,
       content_metadata: {
         event_link:              cm.event_link              ?? '',
         zoho_form_url:           cm.zoho_form_url           ?? '',
@@ -256,6 +257,7 @@ export const useEvents = () => {
         status: eventData.status,
         is_physical: eventData.is_physical,
         slug,
+        form_id: eventData.form_id || null,
         content_metadata: {
           event_link:              eventData.is_physical ? '' : (eventData.event_link ?? ''),
           zoho_form_url:           eventData.zoho_form_url ?? '',
@@ -324,6 +326,8 @@ export const useEvents = () => {
 
   // Updates an existing event row and re-upserts all six section content rows.
   const updateEvent = useCallback(async (id: string, eventData: EventFormData): Promise<EventPost | null> => {
+    console.log('useEvents - updateEvent called with id:', id);
+    console.log('useEvents - updateEvent eventData.form_id:', eventData.form_id);
     console.log('useEvents - updateEvent called with:', { id, eventData });
     if (!id || id.trim() === '') throw new Error('Invalid event ID provided for update');
 
@@ -355,6 +359,7 @@ export const useEvents = () => {
         status: eventData.status,
         is_physical: eventData.is_physical,
         slug,
+        form_id: eventData.form_id || null,
         content_metadata: {
           event_link:              eventData.is_physical ? '' : (eventData.event_link ?? ''),
           zoho_form_url:           eventData.zoho_form_url ?? '',
@@ -394,12 +399,30 @@ export const useEvents = () => {
         if (value === undefined) continue;
         if (current) {
           const prev = (current as any)[key];
-          if (JSON.stringify(prev ?? null) === JSON.stringify(value ?? null)) continue;
+          // Special handling for form_id: always include if it's changing from null to a value or vice versa
+          if (key === 'form_id') {
+            if (prev !== value) {
+              diffPayload[key] = value;
+            }
+          } else if (JSON.stringify(prev ?? null) === JSON.stringify(value ?? null)) {
+            continue;
+          } else {
+            diffPayload[key] = value;
+          }
+        } else {
+          diffPayload[key] = value;
         }
-        diffPayload[key] = value;
       }
 
+      console.log('useEvents updateEvent - current event form_id:', current?.form_id);
+      console.log('useEvents updateEvent - new form_id:', fullPayload.form_id);
+      console.log('useEvents updateEvent - form_id in fullPayload:', fullPayload.form_id);
+      console.log('useEvents updateEvent - form_id in diffPayload:', diffPayload.form_id);
+      console.log('useEvents updateEvent - diffPayload keys:', Object.keys(diffPayload));
+
       const performUpdate = async (payload: Record<string, any>) => {
+        console.log('useEvents - performUpdate called with payload:', payload);
+        console.log('useEvents - performUpdate payload.form_id:', payload.form_id);
         let q = supabase.from('events').update(payload).eq('id', id);
         if (userRole !== 'owner') q = q.eq('created_by', user.id);
         const { error } = await q;
@@ -414,7 +437,7 @@ export const useEvents = () => {
             console.warn('Update timed out. Retrying with split payload...');
             const coreKeys = [
               'title', 'event_date', 'event_time', 'duration', 'category', 'price',
-              'registration_deadline', 'status', 'is_physical', 'slug', 'updated_at',
+              'registration_deadline', 'status', 'is_physical', 'slug', 'form_id', 'updated_at',
             ];
             const core: Record<string, any> = {};
             const heavy: Record<string, any> = {};
@@ -572,6 +595,7 @@ export const useEvents = () => {
         status:                  post.status,
         is_physical:             post.is_physical,
         slug:                    post.slug,
+        form_id:                 post.form_id ?? null,
         event_link:              cm.event_link,
         zoho_form_url:           cm.zoho_form_url,
         capacity:                cm.capacity,

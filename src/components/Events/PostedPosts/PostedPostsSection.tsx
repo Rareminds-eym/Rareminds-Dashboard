@@ -6,9 +6,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from '../../ui/badge';
 import { Input } from '../../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { Edit, Trash2, Eye, Search, Calendar, Tag, Pin, Filter, TrendingUp, Loader2 } from 'lucide-react';
+import { Edit, Trash2, Eye, Search, Calendar, Tag, Pin, TrendingUp, Loader2, ClipboardList } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
 import { useEvents } from '../../../hooks/useEvents';
+import { useForms } from '../../../hooks/useForms';
 
 interface PostedPostsSectionProps {
   posts: EventPost[];
@@ -22,8 +23,15 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
   const [selectedPost, setSelectedPost] = useState<EventPost | null>(null);
   const [selectedPostDetail, setSelectedPostDetail] = useState<EventFormData | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const { toast } = useToast();
   const { getEventById } = useEvents();
+  const { forms } = useForms();
+
+  // Helper function to get form name by ID
+  const getFormName = (formId: string | null | undefined) => {
+    if (!formId) return null;
+    const form = forms.find(f => f.id === formId);
+    return form?.title || null;
+  };
 
   // Generate excerpt from event description
   const generateExcerpt = (description: string): string => {
@@ -159,6 +167,14 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                 {/* Meta Information */}
                 <div className="flex items-center justify-between">
                   <div className="flex flex-wrap gap-2">
+                    {/* Form Badge (if attached) */}
+                    {post.form_id && getFormName(post.form_id) && (
+                      <Badge variant="secondary" className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/50 dark:to-teal-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 rounded-full px-3 py-1">
+                        <ClipboardList className="w-3 h-3 mr-1" />
+                        {getFormName(post.form_id)}
+                      </Badge>
+                    )}
+                    {/* Event Tags */}
                     {post.content_metadata?.event_tags && post.content_metadata.event_tags.length > 0 && post.content_metadata.event_tags.map((tag, index) => (
                       <Badge key={index} variant="secondary" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/50 dark:to-purple-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 rounded-full px-3 py-1">
                         <Pin className="w-3 h-3 mr-1" />
@@ -210,6 +226,14 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                         </DialogTitle>
                         <DialogDescription className="flex items-center gap-6 text-sm">
                           <div className="flex flex-wrap gap-2">
+                            {/* Form Badge */}
+                            {selectedPost?.form_id && getFormName(selectedPost.form_id) && (
+                              <Badge variant="secondary" className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/50 dark:to-teal-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 rounded-full">
+                                <ClipboardList className="w-3 h-3 mr-1" />
+                                {getFormName(selectedPost.form_id)}
+                              </Badge>
+                            )}
+                            {/* Event Tags */}
                             {selectedPost?.content_metadata?.event_tags && selectedPost.content_metadata.event_tags.length > 0 && selectedPost.content_metadata.event_tags.map((tag, index) => (
                               <Badge key={index} variant="secondary" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/50 dark:to-purple-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 rounded-full">
                                 <Tag className="w-3 h-3 mr-1" />

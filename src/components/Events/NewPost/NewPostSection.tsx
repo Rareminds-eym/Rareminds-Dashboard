@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
@@ -14,6 +15,7 @@ import { Badge } from '../../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign, HelpCircle, Images, Play, Search, Loader2, Plus, File as FileIcon, Megaphone, MessageSquare } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
+import { useForms } from '../../../hooks/useForms';
 import { FAQManager } from '../FAQManager';
 import { EventGalleryManager } from '../EventGalleryManager';
 import { TeaserVideoManager } from '../TeaserVideoManager';
@@ -50,6 +52,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const [registrationDeadline, setRegistrationDeadline] = useState('');
   const [requirements, setRequirements] = useState('');
   const [zohoFormUrl, setZohoFormUrl] = useState('');
+  const [formId, setFormId] = useState<string | null>(null);
   const [speakersDetails, setSpeakersDetails] = useState<Speaker[]>([]);
   const [currentSpeaker, setCurrentSpeaker] = useState<Speaker>({
     name: '',
@@ -103,6 +106,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const speakerPhotoInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { forms } = useForms();
 
   // Geocode address to lat/lng
   const geocodeAddress = async () => {
@@ -204,6 +208,8 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     setRegistrationDeadline(editingPost.registration_deadline || '');
     setRequirements(editingPost.requirements || '');
     setZohoFormUrl(editingPost.zoho_form_url || '');
+    console.log('Loading event - form_id:', editingPost.form_id);
+    setFormId(editingPost.form_id || null);
     setSpeakersDetails(editingPost.speakers || []);
     setSponsors(editingPost.sponsors || []);
     setStatus(editingPost.status || 'upcoming');
@@ -464,6 +470,8 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
       priceNum = parseFloat(price.replace('₹', '')) || 0;
     }
 
+    console.log('Submitting event with form_id:', formId);
+
     const formData: EventFormData = {
       id: editingPost?.id,
       title,
@@ -478,6 +486,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
       slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
       event_link: isPhysical ? '' : locationLink,
       zoho_form_url: zohoFormUrl,
+      form_id: formId,
       capacity,
       requirements: requirements || '',
       sponsors,
@@ -1339,17 +1348,37 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                     </ul>
                   )}
                 </div>
+
+                {/* Custom Registration Form Selector */}
                 <div className="space-y-2">
-                  <Label htmlFor="zoho-form-url" className="text-sm font-medium text-slate-700">
-                    Zoho Form URL <span className="text-slate-400 font-normal">(optional)</span>
-                  </Label>
-                  <Input
-                    id="zoho-form-url"
-                    value={zohoFormUrl}
-                    onChange={(e) => setZohoFormUrl(e.target.value)}
-                    placeholder="https://forms.zohopublic.com/..."
-                    className="border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all duration-200"
-                  />
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="registration-form" className="text-sm font-medium text-slate-700">
+                      Registration Form <span className="text-slate-400 font-normal">(optional)</span>
+                    </Label>
+                    <RouterLink 
+                      to="/form-builder" 
+                      target="_blank"
+                      className="text-xs text-indigo-600 hover:text-indigo-700 underline"
+                    >
+                      Manage Forms
+                    </RouterLink>
+                  </div>
+                  <Select value={formId || 'none'} onValueChange={(value) => setFormId(value === 'none' ? null : value)}>
+                    <SelectTrigger id="registration-form" className="border-slate-200 focus:border-indigo-400">
+                      <SelectValue placeholder="Select a form or leave empty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No form attached</SelectItem>
+                      {forms.filter(f => f.is_active).map(form => (
+                        <SelectItem key={form.id} value={form.id}>
+                          {form.title} ({form.fields.length} fields)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500">
+                    Select a custom form to collect structured registration data from attendees
+                  </p>
                 </div>
               </CardContent>
             </Card>

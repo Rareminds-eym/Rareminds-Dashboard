@@ -161,6 +161,7 @@ export interface EventPost {
   status: EventStatus;
   is_physical: boolean;
   slug: string;
+  form_id?: string | null;   // optional reference to custom form
   content_metadata: ContentMetadata;
   media_metadata: MediaMetadata;
   organizer_metadata: OrganizerMetadata;
@@ -182,6 +183,7 @@ export interface EventPost {
 
 export interface EventFormData {
   id?: string;       // undefined for new events; set by getEventById for edits
+  form_id?: string | null; // optional reference to a custom form
 
   // events flat columns
   title: string;

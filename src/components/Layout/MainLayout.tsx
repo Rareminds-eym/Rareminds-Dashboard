@@ -8,7 +8,8 @@ import {
   X,
   Home,
   Calendar,
-  Heart
+  Heart,
+  ClipboardList
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useAuth } from '../../hooks/useAuth';
@@ -57,6 +58,12 @@ const MainLayout = () => {
       icon: Calendar,
       href: '/events',
       current: location.pathname.startsWith('/events')
+    },
+    {
+      name: 'Form Builder',
+      icon: ClipboardList,
+      href: '/form-builder',
+      current: location.pathname.startsWith('/form-builder')
     },
     {
       name: 'Nanmaduvalan',
