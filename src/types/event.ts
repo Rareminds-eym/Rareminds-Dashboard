@@ -16,6 +16,8 @@ export type EventCategory =
 
 export type EventStatus = 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
 
+export type EventType = 'paid' | 'free';
+
 export type EntitySectionKey =
   | 'hero'
   | 'about'
@@ -157,6 +159,7 @@ export interface EventPost {
   duration: number;          // INTEGER — total minutes (e.g. 120 = 2 hours)
   category: EventCategory;
   price?: number | null;     // NUMERIC(10,2) — 0.00 means free
+  event_type: EventType;     // 'paid' or 'free' - determined by price
   registration_deadline?: string | null;
   status: EventStatus;
   is_physical: boolean;

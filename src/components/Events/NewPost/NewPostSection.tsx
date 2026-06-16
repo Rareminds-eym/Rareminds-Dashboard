@@ -465,6 +465,8 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     const durationMinutes = parseInt(duration) || 60;
 
     // Convert price string → number (0 = free)
+    // Note: event_type is automatically set in useEvents.createEvent/updateEvent
+    // based on this price value (price > 0 = 'paid', otherwise 'free')
     let priceNum = 0;
     if (price && price !== 'FREE') {
       priceNum = parseFloat(price.replace('₹', '')) || 0;

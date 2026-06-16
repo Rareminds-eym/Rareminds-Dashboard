@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import {
   EventPost, EventFormData,
-  EventCategory, EventStatus,
+  EventCategory, EventStatus, EventType,
   ContentMetadata, MediaMetadata, OrganizerMetadata, LocationMetadata,
   GalleryItem, Speaker, FAQItem, StatItem, FeatureItem, TestimonialItem, CtaBadge,
 } from '../types/event';
@@ -125,6 +125,7 @@ export const useEvents = () => {
       duration: row.duration ?? 60,
       category: (row.category as EventCategory) ?? 'Other',
       price: row.price ?? null,
+      event_type: (row.event_type as 'paid' | 'free') ?? 'free',
       registration_deadline: row.registration_deadline ?? null,
       status: (row.status as EventStatus) ?? 'upcoming',
       is_physical: row.is_physical ?? true,
@@ -245,6 +246,10 @@ export const useEvents = () => {
       const slug = eventData.slug ||
         eventData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
+      // Determine event_type based on price
+      const priceValue = eventData.price ?? 0;
+      const eventType: 'paid' | 'free' = priceValue > 0 ? 'paid' : 'free';
+
       const newEvent = {
         created_by: user.id,
         title: eventData.title,
@@ -252,7 +257,8 @@ export const useEvents = () => {
         event_time: eventData.event_time || null,
         duration: eventData.duration,
         category: eventData.category,
-        price: eventData.price ?? null,
+        price: priceValue,
+        event_type: eventType,
         registration_deadline: eventData.registration_deadline || null,
         status: eventData.status,
         is_physical: eventData.is_physical,
@@ -348,13 +354,18 @@ export const useEvents = () => {
       const slug = eventData.slug ||
         eventData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
+      // Determine event_type based on price
+      const priceValue = eventData.price ?? 0;
+      const eventType: 'paid' | 'free' = priceValue > 0 ? 'paid' : 'free';
+
       const fullPayload = {
         title: eventData.title,
         event_date: eventData.event_date,
         event_time: eventData.event_time || null,
         duration: eventData.duration,
         category: eventData.category,
-        price: eventData.price ?? null,
+        price: priceValue,
+        event_type: eventType,
         registration_deadline: eventData.registration_deadline || null,
         status: eventData.status,
         is_physical: eventData.is_physical,

@@ -166,10 +166,12 @@ export type Database = {
           duration: number
           category: 'Workshop' | 'Webinar' | 'Seminar' | 'Conference' | 'Training' | 'Bootcamp' | 'Hackathon' | 'Other'
           price: number | null
+          event_type: 'paid' | 'free'
           registration_deadline: string | null
           status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
           is_physical: boolean
           slug: string
+          form_id: string | null
           content_metadata: Json
           media_metadata: Json
           organizer_metadata: Json
@@ -186,10 +188,12 @@ export type Database = {
           duration?: number
           category: 'Workshop' | 'Webinar' | 'Seminar' | 'Conference' | 'Training' | 'Bootcamp' | 'Hackathon' | 'Other'
           price?: number | null
+          event_type?: 'paid' | 'free'
           registration_deadline?: string | null
           status?: 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
           is_physical?: boolean
           slug?: string
+          form_id?: string | null
           content_metadata?: Json
           media_metadata?: Json
           organizer_metadata?: Json
@@ -206,10 +210,12 @@ export type Database = {
           duration?: number
           category?: 'Workshop' | 'Webinar' | 'Seminar' | 'Conference' | 'Training' | 'Bootcamp' | 'Hackathon' | 'Other'
           price?: number | null
+          event_type?: 'paid' | 'free'
           registration_deadline?: string | null
           status?: 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
           is_physical?: boolean
           slug?: string
+          form_id?: string | null
           content_metadata?: Json
           media_metadata?: Json
           organizer_metadata?: Json
@@ -357,6 +363,7 @@ export type Database = {
       entity_type_enum: 'event' | 'program'
       event_category_enum: 'Workshop' | 'Webinar' | 'Seminar' | 'Conference' | 'Training' | 'Bootcamp' | 'Hackathon' | 'Other'
       event_status_enum: 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
+      event_type_enum: 'paid' | 'free'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -476,6 +483,7 @@ export const Constants = {
       entity_type_enum: ['event', 'program'],
       event_category_enum: ['Workshop', 'Webinar', 'Seminar', 'Conference', 'Training', 'Bootcamp', 'Hackathon', 'Other'],
       event_status_enum: ['upcoming', 'ongoing', 'completed', 'cancelled'],
+      event_type_enum: ['paid', 'free'],
     },
   },
 } as const
