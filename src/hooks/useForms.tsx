@@ -349,12 +349,15 @@ export const useForms = () => {
       setLoading(true);
       setError(null);
 
-      const { error } = await supabase
+      const { error, count } = await supabase
         .from('form_fields')
-        .delete()
+        .delete({ count: 'exact' })
         .eq('id', fieldId);
 
       if (error) throw error;
+      if (count === 0) {
+        throw new Error('Field was not deleted. Please refresh and try again.');
+      }
 
       return true;
     } catch (err) {

@@ -148,6 +148,7 @@ const FormBuilderPage = () => {
   const [fields, setFields] = useState<LocalFormField[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingField, setEditingField] = useState<LocalFormField | null>(null);
+  const [deletingFieldIds, setDeletingFieldIds] = useState<Set<string>>(new Set());
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -203,9 +204,35 @@ const FormBuilderPage = () => {
     setDrawerOpen(true);
   };
 
-  const handleDeleteField = (fieldId: string) => {
+  const removeFieldFromState = (fieldId: string) => {
+    setFields(prev =>
+      prev
+        .filter(f => f.id !== fieldId)
+        .map((field, index) => ({ ...field, sort_order: index }))
+    );
+  };
+
+  const handleDeleteField = async (fieldId: string) => {
     if (confirm('Are you sure you want to delete this field?')) {
-      setFields(prev => prev.filter(f => f.id !== fieldId));
+      const field = fields.find(f => f.id === fieldId);
+      if (!field) return;
+
+      if (field.temp) {
+        removeFieldFromState(fieldId);
+        return;
+      }
+
+      setDeletingFieldIds(prev => new Set(prev).add(fieldId));
+      const deleted = await deleteFormField(fieldId);
+      setDeletingFieldIds(prev => {
+        const next = new Set(prev);
+        next.delete(fieldId);
+        return next;
+      });
+
+      if (deleted) {
+        removeFieldFromState(fieldId);
+      }
     }
   };
 
@@ -426,7 +453,11 @@ const FormBuilderPage = () => {
                         key={field.id}
                         field={field}
                         onEdit={() => handleEditField(field)}
-                        onDelete={() => handleDeleteField(field.id)}
+                        onDelete={() => {
+                          if (!deletingFieldIds.has(field.id)) {
+                            handleDeleteField(field.id);
+                          }
+                        }}
                       />
                     ))}
                   </div>
