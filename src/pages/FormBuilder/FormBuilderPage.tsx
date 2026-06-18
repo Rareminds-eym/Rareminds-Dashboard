@@ -298,20 +298,30 @@ const FormBuilderPage = () => {
 
       // Update existing fields first
       for (const field of existingFields) {
-        // Only pass the updatable fields, exclude id, form_id, temp, created_at
-        await updateFormField(field.id, {
-          field_name: field.field_name,
-          field_label: field.field_label,
-          field_type: field.field_type,
-          is_required: field.is_required,
-          options: field.options,
-          sort_order: field.sort_order
-        });
+        try {
+          // Only pass the updatable fields, exclude id, form_id, temp, created_at
+          await updateFormField(field.id, {
+            field_name: field.field_name,
+            field_label: field.field_label,
+            field_type: field.field_type,
+            is_required: field.is_required,
+            options: field.options,
+            sort_order: field.sort_order
+          });
+        } catch (error) {
+          console.error(`Error updating field ${field.id}:`, error);
+          throw error;
+        }
       }
 
       // Create new fields
       for (const field of newFields) {
-        await createFormField({ ...field, form_id: currentFormId });
+        try {
+          await createFormField({ ...field, form_id: currentFormId });
+        } catch (error) {
+          console.error(`Error creating field:`, error);
+          throw error;
+        }
       }
 
       // Reload the form to get the updated field IDs, then reorder all

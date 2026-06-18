@@ -54,7 +54,7 @@ export const useForms = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]); // Remove toast from dependencies - it's stable from use-toast hook
+  }, [user, toast]);
 
   // Get a single form by ID with fields
   const getFormById = useCallback(async (formId: string): Promise<FormWithFields | null> => {
@@ -91,7 +91,7 @@ export const useForms = () => {
     } finally {
       setLoading(false);
     }
-  }, []); // toast is stable, no dependencies needed
+  }, [toast]);
 
   // Create a new form
   const createForm = useCallback(async (formData: FormData): Promise<Form | null> => {
@@ -296,7 +296,7 @@ export const useForms = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);  // toast is stable
+  }, [user, toast]);
 
   // Update a form field
   const updateFormField = useCallback(async (fieldId: string, fieldData: Partial<FormFieldData>): Promise<FormField | null> => {
@@ -336,7 +336,7 @@ export const useForms = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);  // toast is stable
+  }, [user, toast]);
 
   // Delete a form field
   const deleteFormField = useCallback(async (fieldId: string): Promise<boolean> => {

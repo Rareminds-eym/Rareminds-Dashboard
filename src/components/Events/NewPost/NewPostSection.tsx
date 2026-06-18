@@ -1724,6 +1724,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                               type="button"
                               variant="ghost"
                               size="sm"
+                              aria-label={`Remove tag ${tag}`}
                               className="h-auto p-0 text-purple-500 hover:text-purple-700 transition-colors duration-200"
                               onClick={() => removeTag(tag)}
                             >
@@ -1774,6 +1775,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                               type="button"
                               variant="ghost"
                               size="sm"
+                              aria-label={`Remove language ${lang}`}
                               className="h-auto p-0 text-slate-500 hover:text-slate-700 transition-colors duration-200"
                               onClick={() => removeLanguage(lang)}
                             >
@@ -1993,6 +1995,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                               type="button"
                               variant="ghost"
                               size="sm"
+                              aria-label="Remove speaker"
                               onClick={() => removeSpeaker(index)}
                               className="text-red-500 hover:text-red-700 hover:bg-red-50 transition-all duration-200"
                             >
@@ -2044,6 +2047,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                           type="button"
                           variant="ghost"
                           size="sm"
+                          aria-label={`Remove sponsor ${sponsor}`}
                           onClick={() => removeSponsor(sponsor)}
                           className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600 transition-all duration-200"
                         >
