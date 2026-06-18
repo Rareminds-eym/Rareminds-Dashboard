@@ -130,7 +130,7 @@ const rawImages: ImageItem[] = Array.isArray(imageList)
               <div className="space-y-3">
                 <Label className="text-sm font-medium text-slate-700">Images (Multiple)</Label>
                 {rawImages.map((img, idx) => (
-                  <div key={img.id ?? `new-${idx}`} className="flex gap-2">
+                  <div key={img.id} className="flex gap-2">
                     <Input
                       value={img.url}
                       onChange={(e) => updateArrayItem(sectionIndex, 'images', idx, 'url', e.target.value)}
@@ -199,7 +199,7 @@ const rawImages: ImageItem[] = Array.isArray(imageList)
 
             <Label className="text-sm font-medium text-slate-700">Cards</Label>
             {items.map((card, idx) => (
-              <div key={card.id ?? `new-${idx}`} className="border border-slate-300 rounded-lg p-4 space-y-3 bg-white">
+              <div key={card.id} className="border border-slate-300 rounded-lg p-4 space-y-3 bg-white">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-600">Card {idx + 1}</span>
                   <Button
@@ -247,7 +247,7 @@ const rawImages: ImageItem[] = Array.isArray(imageList)
           <div className="space-y-4">
             <Label className="text-sm font-medium text-slate-700">Statistics</Label>
             {items.map((stat, idx) => (
-              <div key={stat.id ?? `new-${idx}`} className="border border-slate-300 rounded-lg p-4 space-y-3 bg-white">
+              <div key={stat.id} className="border border-slate-300 rounded-lg p-4 space-y-3 bg-white">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-600">Stat {idx + 1}</span>
                   <Button
@@ -293,7 +293,7 @@ const rawImages: ImageItem[] = Array.isArray(imageList)
           <div className="space-y-4">
             <Label className="text-sm font-medium text-slate-700">Courses</Label>
             {courses.map((course, courseIdx) => (
-              <div key={course.id ?? `new-${courseIdx}`} className="border border-slate-300 rounded-lg p-4 space-y-4 bg-white">
+              <div key={course.id} className="border border-slate-300 rounded-lg p-4 space-y-4 bg-white">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-600">Course {courseIdx + 1}</span>
                   <Button
@@ -321,7 +321,7 @@ const rawImages: ImageItem[] = Array.isArray(imageList)
                 <div className="space-y-3 pl-4 border-l-2 border-purple-200">
                   <Label className="text-xs font-medium text-slate-600">Universities</Label>
                   {getUniversities(course).map((uni, uniIdx) => (
-                    <div key={uni.id ?? `new-uni-${uniIdx}`} className="flex gap-2 items-start">
+                    <div key={uni.id} className="flex gap-2 items-start">
                       <Input
                         value={uni.name}
                         onChange={(e) =>
@@ -423,7 +423,7 @@ const rawImages: ImageItem[] = Array.isArray(imageList)
 
         {sections.map((section, index) => (
           <div
-            key={section.id ?? `${section.section_key}-${index}`}
+            key={section.id}
             className="border border-slate-200 rounded-xl p-4 space-y-4 bg-slate-50/50"
           >
             <div className="flex items-center justify-between">

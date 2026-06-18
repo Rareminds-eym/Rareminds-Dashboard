@@ -430,7 +430,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                               {Array.isArray(section.content?.images) && (section.content?.images?.length ?? 0) > 0 && (
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                                                   {section.content.images.filter(isImageItem).map((img, idx) => (
-                                                    <img key={img.id || `img-${idx}`} src={img.url}
+                                                    <img key={img.id} src={img.url}
                                                       alt={`${section.title || 'Section'} image ${idx + 1}`}
                                                       className="w-full h-48 object-cover rounded-lg"
                                                     />
@@ -454,7 +454,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                           return (
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                                               {items.map((item) => (
-                                                <div key={item.id || `card-${item.title}`} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                                                <div key={item.id} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
                                                   {item.title && <h6 className="font-semibold mb-1">{item.title}</h6>}
                                                   {item.description && <p className="text-sm">{item.description}</p>}
                                                 </div>
@@ -466,8 +466,8 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                           const items = section.content.items.filter(isStatItem);
                                           return (
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                                              {items.map((item, idx) => (
-                                                <div key={item.id ?? `stat-${idx}`} className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                                              {items.map((item) => (
+                                                <div key={item.id} className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
                                                   {item.value && <div className="text-2xl font-bold text-purple-600">{item.value}</div>}
                                                   {item.label && <div className="text-sm text-slate-600 dark:text-slate-400">{item.label}</div>}
                                                 </div>

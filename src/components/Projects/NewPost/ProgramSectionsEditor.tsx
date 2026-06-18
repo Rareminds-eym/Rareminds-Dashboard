@@ -319,7 +319,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
               <div className="space-y-3">
                 <Label className="text-sm font-medium text-slate-700">Images (Multiple)</Label>
                 {images.map((img, idx) => (
-                  <div key={img.id ?? `img-${idx}`} className="space-y-1">
+                  <div key={img.id} className="space-y-1">
                     {(() => {
                       const safeUrl = isSafeUrl(img.url) ? img.url : '';
                       return safeUrl ? (
@@ -327,7 +327,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                           src={safeUrl}
                           alt={`Introduction section image ${idx + 1}`}
                           className="w-24 h-16 object-cover rounded border border-slate-200"
-                          onError={(e) => { 
+                          onError={(e) => {
                             e.currentTarget.onerror = null;
                             if (isSafeUrl('/image.png')) { e.currentTarget.src = '/image.png';} }}
                         />
