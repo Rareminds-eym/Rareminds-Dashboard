@@ -11,12 +11,18 @@ lerna-debug.log*
 .env
 .env.local
 .env.*.local
-
+.dev.vars
 # Dependencies
 node_modules
 dist
 dist-ssr
 *.local
+
+# Wrangler build output
+.wrangler
+
+# Supabase
+supabase/.temp/
 
 # Editor directories and files
 .vscode/*
