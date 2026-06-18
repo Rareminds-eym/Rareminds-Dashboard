@@ -120,130 +120,153 @@ export type Database = {
         }
         Relationships: []
       }
-      events: {
+      entity_sections: {
         Row: {
           id: string
-          user_id: string
-          title: string
-          description: string
-          event_date: string
-          event_time: string
-          duration: string
-          location: string
-          organizer_name: string
-          organizer_email: string
-          organizer_phone: string
-          capacity: number
-          category: string
-          price: string | null
-          registration_deadline: string | null
-          requirements: string | null
-          agenda: string | null
-          speakers: string[] | null
-          sponsors: string[] | null
-          additional_contact_info: string | null
-          status: string
-          event_banner: string | null
-          featured_image: string | null
-          mobile_featured_image: string | null
-          event_tags: string[] | null
-          key_highlights: string[] | null
-          languages: string[] | null
-          faq: Json
-          meta_title: string
-          meta_description: string
-          slug: string
+          entity_type: 'event' | 'program'
+          entity_id: string
+          section_key: 'hero' | 'about' | 'highlights' | 'agenda' | 'gallery' | 'speakers' | 'stats' | 'features' | 'testimonials' | 'faq' | 'cta'
+          content_type: 'text' | 'list' | 'stats' | 'cards' | 'gallery' | 'faq'
+          display_order: number
+          is_active: boolean
           created_at: string
           updated_at: string
-          location_latitude: number | null
-          location_longitude: number | null
-          enquiry_pdf: string | null
-          enquiry_pdf_path: string | null
         }
         Insert: {
           id?: string
-          user_id: string
-          title: string
-          description: string
-          event_date: string
-          event_time: string
-          duration: string
-          location: string
-          organizer_name: string
-          organizer_email: string
-          organizer_phone: string
-          capacity?: number
-          category: string
-          price?: string | null
-          registration_deadline?: string | null
-          requirements?: string | null
-          agenda?: string | null
-          speakers?: string[] | null
-          sponsors?: string[] | null
-          additional_contact_info?: string | null
-          status?: string
-          event_banner?: string | null
-          featured_image?: string | null
-          mobile_featured_image?: string | null
-          event_tags?: string[] | null
-          key_highlights?: string[] | null
-          languages?: string[] | null
-          faq?: Json
-          meta_title: string
-          meta_description: string
-          slug: string
+          entity_type: 'event' | 'program'
+          entity_id: string
+          section_key: 'hero' | 'about' | 'highlights' | 'agenda' | 'gallery' | 'speakers' | 'stats' | 'features' | 'testimonials' | 'faq' | 'cta'
+          content_type?: 'text' | 'list' | 'stats' | 'cards' | 'gallery' | 'faq'
+          display_order?: number
+          is_active?: boolean
           created_at?: string
           updated_at?: string
-          location_latitude?: number | null
-          location_longitude?: number | null
-          enquiry_pdf?: string | null
-          enquiry_pdf_path?: string | null
         }
         Update: {
           id?: string
-          user_id?: string
-          title?: string
-          description?: string
-          event_date?: string
-          event_time?: string
-          duration?: string
-          location?: string
-          organizer_name?: string
-          organizer_email?: string
-          organizer_phone?: string
-          capacity?: number
-          category?: string
-          price?: string | null
-          registration_deadline?: string | null
-          requirements?: string | null
-          agenda?: string | null
-          speakers?: string[] | null
-          sponsors?: string[] | null
-          additional_contact_info?: string | null
-          status?: string
-          event_banner?: string | null
-          featured_image?: string | null
-          mobile_featured_image?: string | null
-          event_tags?: string[] | null
-          key_highlights?: string[] | null
-          languages?: string[] | null
-          faq?: Json
-          meta_title?: string
-          meta_description?: string
-          slug?: string
+          entity_type?: 'event' | 'program'
+          entity_id?: string
+          section_key?: 'hero' | 'about' | 'highlights' | 'agenda' | 'gallery' | 'speakers' | 'stats' | 'features' | 'testimonials' | 'faq' | 'cta'
+          content_type?: 'text' | 'list' | 'stats' | 'cards' | 'gallery' | 'faq'
+          display_order?: number
+          is_active?: boolean
           created_at?: string
           updated_at?: string
-          location_latitude?: number | null
-          location_longitude?: number | null
-          enquiry_pdf?: string | null
-          enquiry_pdf_path?: string | null
+        }
+        Relationships: []
+      }
+      events: {
+        Row: {
+          id: string
+          created_by: string
+          title: string
+          event_date: string
+          event_time: string | null
+          duration: number
+          category: 'Workshop' | 'Webinar' | 'Seminar' | 'Conference' | 'Training' | 'Bootcamp' | 'Hackathon' | 'Other'
+          price: number | null
+          event_type: 'paid' | 'free'
+          registration_deadline: string | null
+          status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
+          is_physical: boolean
+          slug: string
+          form_id: string | null
+          content_metadata: Json
+          media_metadata: Json
+          organizer_metadata: Json
+          location_metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          created_by: string
+          title: string
+          event_date: string
+          event_time?: string | null
+          duration?: number
+          category: 'Workshop' | 'Webinar' | 'Seminar' | 'Conference' | 'Training' | 'Bootcamp' | 'Hackathon' | 'Other'
+          price?: number | null
+          event_type?: 'paid' | 'free'
+          registration_deadline?: string | null
+          status?: 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
+          is_physical?: boolean
+          slug?: string
+          form_id?: string | null
+          content_metadata?: Json
+          media_metadata?: Json
+          organizer_metadata?: Json
+          location_metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          created_by?: string
+          title?: string
+          event_date?: string
+          event_time?: string | null
+          duration?: number
+          category?: 'Workshop' | 'Webinar' | 'Seminar' | 'Conference' | 'Training' | 'Bootcamp' | 'Hackathon' | 'Other'
+          price?: number | null
+          event_type?: 'paid' | 'free'
+          registration_deadline?: string | null
+          status?: 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
+          is_physical?: boolean
+          slug?: string
+          form_id?: string | null
+          content_metadata?: Json
+          media_metadata?: Json
+          organizer_metadata?: Json
+          location_metadata?: Json
+          created_at?: string
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "events_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      section_contents: {
+        Row: {
+          id: string
+          entity_section_id: string
+          title: string | null
+          preamble: string | null
+          content: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          entity_section_id: string
+          title?: string | null
+          preamble?: string | null
+          content?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          entity_section_id?: string
+          title?: string | null
+          preamble?: string | null
+          content?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_contents_entity_section_id_fkey"
+            columns: ["entity_section_id"]
+            isOneToOne: true
+            referencedRelation: "entity_sections"
             referencedColumns: ["id"]
           }
         ]
@@ -453,6 +476,11 @@ export type Database = {
       | "program_delivery"
       | "intervention"
       | "video"
+      entity_section_key_enum: 'hero' | 'about' | 'highlights' | 'agenda' | 'gallery' | 'speakers' | 'stats' | 'features' | 'testimonials' | 'faq' | 'cta'
+      entity_type_enum: 'event' | 'program'
+      event_category_enum: 'Workshop' | 'Webinar' | 'Seminar' | 'Conference' | 'Training' | 'Bootcamp' | 'Hackathon' | 'Other'
+      event_status_enum: 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
+      event_type_enum: 'paid' | 'free'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -582,6 +610,12 @@ export const Constants = {
         "intervention",
         "video"
       ] as const,
+      entity_section_key_enum: ['hero', 'about', 'highlights', 'agenda', 'gallery', 'speakers', 'stats', 'features', 'testimonials', 'faq', 'cta'],
+      entity_type_enum: ['event', 'program'],
+      event_category_enum: ['Workshop', 'Webinar', 'Seminar', 'Conference', 'Training', 'Bootcamp', 'Hackathon', 'Other'],
+      event_status_enum: ['upcoming', 'ongoing', 'completed', 'cancelled'],
+      event_type_enum: ['paid', 'free'],
+  
     },
   },
 } as const
