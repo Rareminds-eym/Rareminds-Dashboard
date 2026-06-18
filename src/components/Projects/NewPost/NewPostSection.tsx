@@ -32,16 +32,14 @@ const uploadFile = async (file: File): Promise<string> => {
   let res: Response;
   try {
     res = await fetch('/upload', { method: 'POST', body: formData, signal: controller.signal });
- } catch (err) {
+} catch (err) {
   const name = err instanceof Error ? err.name : Object(err).name;
   if (name === 'AbortError') {
     throw new Error('Upload timed out. Please try again.');
   }
   throw new Error('Network error during upload');
-
-  } finally {
-    clearTimeout(timeoutId);
-  }
+ } finally {  clearTimeout(timeoutId);
+}
   if (!res.ok) {
     throw new Error(`Upload failed: server error ${res.status}`);
   }
@@ -296,7 +294,14 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
         })),
       };
 
-      const success = await onProgramSaved(formData);
+     let success = false;
+      try {
+        success = await onProgramSaved(formData);
+      } catch (callbackErr) {
+        setSubmitError(callbackErr instanceof Error ? callbackErr.message : 'Failed to save program.');
+        setIsSubmitting(false);
+        return;
+      }
       // Only reset on successful creation; editingProgram=null is the create vs update signal
       if (success && !editingProgram) {
         setTitle('');

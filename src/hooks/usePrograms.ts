@@ -521,7 +521,7 @@ export const usePrograms = () => {
         const load = async () => {
             if (!cancelled) await fetchPrograms();
         };
-        load().catch(() => { /* errors handled inside fetchPrograms */ });
+        load().catch((err) => { console.error('Failed to load programs:', err);  });
         return () => { cancelled = true; };
     }, [fetchPrograms]);
 

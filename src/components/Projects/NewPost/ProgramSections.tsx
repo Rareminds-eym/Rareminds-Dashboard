@@ -69,9 +69,9 @@ const ProgramSections = ({
     Array.isArray(course.universities) ? course.universities : [];
   const availableSectionKeys = useMemo(() => {
   const selectedKeys = new Set(sections.map((s) => s.section_key));
-
   return ALL_SECTION_KEYS.filter((key) => !selectedKeys.has(key));
 }, [sections]);
+
   const isImageItem = (val: unknown): val is ImageItem =>
   typeof val === 'object' && val !== null && 
   'url' in val && typeof (val as Record<string, unknown>).url === 'string';

@@ -28,7 +28,8 @@ const hasStringUrl = (val: unknown): val is { url: string } => {
 };
 
 const isImageLike = (val: unknown): val is { id?: string; url?: string } =>
-  typeof val === 'object' && val !== null && !Array.isArray(val);
+  typeof val === 'object' && val !== null && !Array.isArray(val) &&
+  (('url' in val && typeof (val as { url: unknown }).url === 'string') || !('url' in val));
 const isSafeUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url);
