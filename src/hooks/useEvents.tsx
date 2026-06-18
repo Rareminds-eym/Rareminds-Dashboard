@@ -62,7 +62,7 @@ async function saveSectionContent(eventId: string, eventData: EventFormData): Pr
     const { error: cErr } = await supabase
       .from('section_contents')
       .upsert(
-        { entity_section_id: sectionRow.id, content: s.content as unknown as Json },
+        { entity_section_id: sectionRow.id, content: s.content as Json },
         { onConflict: 'entity_section_id' }
       );
 
@@ -310,8 +310,13 @@ export const useEvents = () => {
         throw error;
       }
 
+     try {
       await saveSectionContent(data.id, eventData);
-
+    } catch (sectionErr) {
+      console.error('Failed to save section content for event', data.id, sectionErr);
+       // Consider whether to delete the event row or inform the user to retry
+       throw new Error('Event created but section content failed. Please try updating the event.');
+      }
       const createdEvent = dbRowToEventPost(data);
       setEvents(prev => [createdEvent, ...prev]);
       __eventsCache = [createdEvent, ...__eventsCache];
@@ -466,7 +471,12 @@ export const useEvents = () => {
       }
 
       // Always upsert section content — it may be the only thing that changed
-      await saveSectionContent(id, eventData);
+      try {
+        await saveSectionContent(id, eventData);
+      } catch (sectionErr) {
+        console.error('Failed to save section content for event', id, sectionErr);
+        throw new Error('Event updated but section content failed. Please try updating again.');
+      }
 
       const { data: updatedData, error: fetchErr } = await supabase
         .from('events')

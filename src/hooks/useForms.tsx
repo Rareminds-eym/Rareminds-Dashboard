@@ -128,7 +128,7 @@ export const useForms = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);  // toast and fetchForms are stable
+  }, [user, fetchForms]);  // toast and fetchForms are stable
 
   // Update an existing form
   const updateForm = useCallback(async (formId: string, formData: FormData): Promise<Form | null> => {
@@ -166,7 +166,7 @@ export const useForms = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);  // toast and fetchForms are stable
+  }, [user, fetchForms]);  // toast and fetchForms are stable
 
   // Delete a form
   const deleteForm = useCallback(async (formId: string): Promise<boolean> => {
@@ -197,7 +197,7 @@ export const useForms = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);  // toast and fetchForms are stable
+  }, [user, fetchForms]);  // toast and fetchForms are stable
 
   // Duplicate a form with all its fields
   const duplicateForm = useCallback(async (formId: string): Promise<Form | null> => {
@@ -258,7 +258,7 @@ export const useForms = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);  // toast, getFormById, and fetchForms are stable
+  }, [user, getFormById, fetchForms]);  // toast, getFormById, and fetchForms are stable
 
   // Create a form field
   const createFormField = useCallback(async (fieldData: FormFieldData): Promise<FormField | null> => {
@@ -310,7 +310,7 @@ export const useForms = () => {
       setError(null);
 
       // Only send updatable fields, exclude id and form_id
-      const updatePayload: any = {};
+      const updatePayload: Partial<Record<keyof FormFieldData, any>> = {};
       if (fieldData.field_name !== undefined) updatePayload.field_name = fieldData.field_name;
       if (fieldData.field_label !== undefined) updatePayload.field_label = fieldData.field_label;
       if (fieldData.field_type !== undefined) updatePayload.field_type = fieldData.field_type;

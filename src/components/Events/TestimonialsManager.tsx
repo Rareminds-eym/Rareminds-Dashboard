@@ -267,7 +267,7 @@ export const TestimonialsManager: React.FC<TestimonialsManagerProps> = ({
       {testimonials.length > 0 && (
         <div className="space-y-3">
           {testimonials.map((testimonial, index) => (
-            <Card key={index} className="relative">
+            <Card key={`testimonial-${index}-${testimonial.name}`} className="relative">
               {editingTestimonial?.index === index ? (
                 <CardContent className="p-4">
                   <TestimonialForm
