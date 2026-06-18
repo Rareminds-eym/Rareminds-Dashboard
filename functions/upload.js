@@ -100,9 +100,9 @@ export async function onRequestPost({ request, env }) {
 
     // Use UUID + timestamp as the filename key — no original filename needed
     // This eliminates all path traversal risk and guarantees uniqueness
-   const ext = file.name.includes('.')
-  ? '.' + file.name.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10)
-  : '';
+    const ext = file.name.includes('.')
+      ? '.' + file.name.split('.').pop().toLowerCase().slice(0, 10).replace(/[^a-z0-9]/g, '')
+      : '';
     const filename = `${Date.now()}-${crypto.randomUUID()}${ext}`;
     const uploadUrl = `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${env.R2_BUCKET_NAME}/${filename}`;
     const arrayBuffer = await file.arrayBuffer();

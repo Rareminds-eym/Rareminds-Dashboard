@@ -329,7 +329,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                           className="w-24 h-16 object-cover rounded border border-slate-200"
                           onError={(e) => { 
                             e.currentTarget.onerror = null;
-                            e.currentTarget.src = '/image.png'; }}
+                            if (isSafeUrl('/image.png')) { e.currentTarget.src = '/image.png';} }}
                         />
                       ) : null;
                     })()}
@@ -341,8 +341,9 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                         disabled={uploadingStates[`intro-img-${sectionIndex}-${idx}`]}
                         onChange={(e) => {
                           const file = e.target.files?.[0];
-                          if (file) handleFileUpload(file, `intro-img-${sectionIndex}-${idx}`, (url) => updateContentField(sectionIndex, 'images', images.map((img, i) => i === idx ? { ...img, url } : img)), 'Image upload failed');
-                        }}
+                          if (file) {
+                            void handleFileUpload(file, `intro-img-${sectionIndex}-${idx}`, (url) => updateContentField(sectionIndex, 'images', images.map((img, i) => i === idx ? { ...img, url } : img)), 'Image upload failed');}
+                          }}
                         className="flex-1 text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                       />
                       {uploadingStates[`intro-img-${sectionIndex}-${idx}`] && (
@@ -390,7 +391,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                       className="w-32 h-20 object-cover rounded-lg border border-slate-200"
                       onError={(e) => { 
                         e.currentTarget.onerror = null;
-                        e.currentTarget.src = '/image.png'; }}
+                        if (isSafeUrl('/image.png')) {e.currentTarget.src = '/image.png';} }}
                     />
                   ) : null;
                 })()}
@@ -399,9 +400,10 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                   accept="image/*"
                   aria-label="Upload conclusion image"
                   disabled={uploadingStates[`conclusion-img-${sectionIndex}`]}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleFileUpload(file, `conclusion-img-${sectionIndex}`, (url) => updateContentField(sectionIndex, 'image', { url, alt: image.alt }), 'Image upload failed');
+                 onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    void handleFileUpload(file, `conclusion-img-${sectionIndex}`, (url) => updateContentField(sectionIndex, 'image', { url, alt: image.alt }), 'Image upload failed');}
                   }}
                   className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                 />

@@ -430,7 +430,7 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                               {Array.isArray(section.content?.images) && (section.content?.images?.length ?? 0) > 0 && (
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                                                   {section.content.images.filter(isImageItem).map((img, idx) => (
-                                                    <img key={img.id ?? `img-${idx}`} src={img.url}
+                                                    <img key={img.id || `img-${idx}`} src={img.url}
                                                       alt={`${section.title || 'Section'} image ${idx + 1}`}
                                                       className="w-full h-48 object-cover rounded-lg"
                                                     />
@@ -453,8 +453,8 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                           const items = section.content.items.filter(isCardItem);
                                           return (
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                              {items.map((item, idx) => (
-                                                <div key={item.id ?? `card-${idx}`} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                                              {items.map((item) => (
+                                                <div key={item.id || `card-${item.title}`} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
                                                   {item.title && <h6 className="font-semibold mb-1">{item.title}</h6>}
                                                   {item.description && <p className="text-sm">{item.description}</p>}
                                                 </div>
@@ -479,8 +479,8 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                           const courses = section.content.courses.filter(isCourseItem);
                                           return (
                                             <div className="space-y-6 mt-4">
-                                              {courses.map((course, idx) => (
-                                                <div key={course.id ?? `course-${idx}`} className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                                              {courses.map((course) => (
+                                                <div key={course.id} className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
                                                   <div className="bg-slate-100 dark:bg-slate-800 px-4 py-3 flex items-center justify-between">
                                                     <h6 className="font-semibold text-slate-900 dark:text-white">
                                                       {course.title || course.name}
@@ -496,8 +496,8 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                                     if (universities.length === 0) return null;
                                                     return (
                                                       <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                                                        {universities.map((uni, uIdx) => (
-                                                          <div key={uni.id ?? `uni-${uIdx}`} className="flex items-center justify-between px-4 py-2">
+                                                        {universities.map((uni) => (
+                                                          <div key={uni.id} className="flex items-center justify-between px-4 py-2">
                                                             <span className="text-sm text-slate-700 dark:text-slate-300">{uni.name}</span>
                                                             {uni.students && (
                                                               <span className="text-sm font-medium text-slate-600 dark:text-slate-400">

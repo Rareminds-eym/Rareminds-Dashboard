@@ -31,14 +31,15 @@ const uploadFile = async (file: File): Promise<string> => {
   const timeoutId = window.setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
   let res: Response;
   try {
-    res = await fetch('/upload', { method: 'POST', body: formData, signal: controller.signal });
+  res = await fetch('/upload', { method: 'POST', body: formData, signal: controller.signal });
 } catch (err) {
   const name = err instanceof Error ? err.name : Object(err).name;
   if (name === 'AbortError') {
     throw new Error('Upload timed out. Please try again.');
   }
   throw new Error('Network error during upload');
- } finally {  clearTimeout(timeoutId);
+} finally {
+  clearTimeout(timeoutId);
 }
   if (!res.ok) {
     throw new Error(`Upload failed: server error ${res.status}`);
