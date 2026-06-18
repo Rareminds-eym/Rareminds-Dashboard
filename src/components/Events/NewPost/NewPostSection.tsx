@@ -229,7 +229,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     setCtaSubline(editingPost.cta_subline || '');
     setCtaButtonLabel(editingPost.cta_button_label || 'Register Now');
     setCtaBadges(editingPost.cta_badges || []);
-    setEventsGallery((editingPost.gallery || []).filter((item): item is GalleryItem => item && 'image_url' in item).map(item => item.image_url ?? ''));
+    setEventsGallery((editingPost.gallery || []).filter((item): item is GalleryItem => item && typeof item === 'object' && 'image_url' in item && typeof item.image_url === 'string').map(item => item.image_url));
     setTeaserVideo(editingPost.teaser_video || null);
     setEnquiryPdfUrl(editingPost.enquiry_pdf || null);
     setEnquiryPdfPath(null);

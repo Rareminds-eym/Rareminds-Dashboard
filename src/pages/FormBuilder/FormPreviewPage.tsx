@@ -18,7 +18,7 @@ const FormPreviewPage = () => {
     if (formId) {
       loadForm();
     }
-  }, [formId]);
+  }, [formId, getFormById]);
 
   const loadForm = async () => {
     if (!formId) return;

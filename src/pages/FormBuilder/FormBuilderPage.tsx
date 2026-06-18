@@ -297,6 +297,7 @@ const FormBuilderPage = () => {
       const existingFields = fields.filter(f => !f.temp);
 
       // Update existing fields first
+      const updateErrors: string[] = [];
       for (const field of existingFields) {
         try {
           // Only pass the updatable fields, exclude id, form_id, temp, created_at
@@ -310,18 +311,25 @@ const FormBuilderPage = () => {
           });
         } catch (error) {
           console.error(`Error updating field ${field.id}:`, error);
-          throw error;
+          updateErrors.push(field.id);
         }
+      }
+      if (updateErrors.length > 0) {
+        throw new Error(`Failed to update fields: ${updateErrors.join(', ')}`);
       }
 
       // Create new fields
+      const createErrors: string[] = [];
       for (const field of newFields) {
         try {
           await createFormField({ ...field, form_id: currentFormId });
         } catch (error) {
-          console.error(`Error creating field:`, error);
-          throw error;
+          console.error(`Error creating field ${field.field_name}:`, error);
+          createErrors.push(field.field_name);
         }
+      }
+      if (createErrors.length > 0) {
+        throw new Error(`Failed to create fields: ${createErrors.join(', ')}`);
       }
 
       // Reload the form to get the updated field IDs, then reorder all
