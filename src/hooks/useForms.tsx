@@ -310,7 +310,7 @@ export const useForms = () => {
       setError(null);
 
       // Only send updatable fields, exclude id and form_id
-      const updatePayload: Partial<Record<keyof FormFieldData, any>> = {};
+      const updatePayload: Partial<FormFieldData> = {};
       if (fieldData.field_name !== undefined) updatePayload.field_name = fieldData.field_name;
       if (fieldData.field_label !== undefined) updatePayload.field_label = fieldData.field_label;
       if (fieldData.field_type !== undefined) updatePayload.field_type = fieldData.field_type;
