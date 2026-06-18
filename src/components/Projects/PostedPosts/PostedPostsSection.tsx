@@ -400,9 +400,9 @@ const PostedPostsSection = ({ programs, onEditProgram, onDeleteProgram }: Posted
                                               .split(',')
                                               .map((v) => v.trim())
                                               .filter((url) => isAllowedVideoUrl(url))
-                                              .map((cleanUrl, idx) => (
-                                              <div key={`video-${section.id}-${idx}`} className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                                              <video
+                                              .map((cleanUrl) => (
+                                                <div key={cleanUrl} className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                                                  <video
                                                     controls
                                                     className="absolute top-0 left-0 w-full h-full rounded-lg"
                                                     src={cleanUrl}
