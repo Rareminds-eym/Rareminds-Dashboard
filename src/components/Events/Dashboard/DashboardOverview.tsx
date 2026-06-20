@@ -21,7 +21,7 @@ const DashboardOverview = ({ events, onNewEvent, onViewEvents }: DashboardOvervi
   }).length;
 
   // Get unique tags count
-  const allTags = events.flatMap(event => event.event_tags || []);
+  const allTags = events.flatMap(event => event.content_metadata?.event_tags || []);
   const uniqueTags = new Set(allTags).size;
 
   // Get upcoming events count
@@ -110,10 +110,10 @@ const DashboardOverview = ({ events, onNewEvent, onViewEvents }: DashboardOvervi
                   className="group relative flex items-start space-x-4 p-4 rounded-xl hover:bg-secondary/30 transition-all duration-200 border border-transparent hover:border-border/50 cursor-pointer"
                   onClick={onViewEvents}
                 >
-                  {event.featured_image && (
+                  {event.media_metadata?.featured_image && (
                     <div className="relative overflow-hidden rounded-lg flex-shrink-0">
                       <img
-                        src={event.featured_image}
+                        src={event.media_metadata.featured_image}
                         alt={event.title}
                         className="w-20 h-20 object-cover transition-transform duration-200 group-hover:scale-105"
                       />
@@ -124,11 +124,11 @@ const DashboardOverview = ({ events, onNewEvent, onViewEvents }: DashboardOvervi
                       {event.title}
                     </h4>
                     <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                      {event.description || 'No description available'}
+                      {event.category} • {event.is_physical ? (event.location_metadata?.address || 'Physical location') : 'Virtual event'} • {event.duration} min
                     </p>
                     <div className="flex items-center space-x-3 text-xs">
                       <div className="flex flex-wrap gap-1">
-                        {event.event_tags?.slice(0, 2).map((tag) => (
+                        {event.content_metadata?.event_tags?.slice(0, 2).map((tag) => (
                           <Badge
                             key={tag}
                             variant="secondary"
@@ -137,12 +137,12 @@ const DashboardOverview = ({ events, onNewEvent, onViewEvents }: DashboardOvervi
                             {tag}
                           </Badge>
                         ))}
-                        {(event.event_tags?.length || 0) > 2 && (
+                        {(event.content_metadata?.event_tags?.length || 0) > 2 && (
                           <Badge
                             variant="secondary"
                             className="text-xs px-2 py-1 bg-slate-100 text-slate-600"
                           >
-                            +{(event.event_tags?.length || 0) - 2} more
+                            +{(event.content_metadata?.event_tags?.length || 0) - 2} more
                           </Badge>
                         )}
                       </div>

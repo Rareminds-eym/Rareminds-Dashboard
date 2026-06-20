@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
-import { EventPost, EventSEOSettings, Speaker, FAQItem } from '../../../types/event';
+import { EventFormData, EventCategory, GalleryItem, Speaker, FAQItem, StatItem, FeatureItem, TestimonialItem, CtaBadge } from '../../../types/event';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -12,17 +13,21 @@ import { Textarea } from '../../ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Globe, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign, HelpCircle, Images, Play, Search, Loader2, Plus, File as FileIcon} from 'lucide-react';
+import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign, HelpCircle, Images, Play, Search, Loader2, Plus, File as FileIcon, Megaphone, MessageSquare } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
+import { useForms } from '../../../hooks/useForms';
 import { FAQManager } from '../FAQManager';
 import { EventGalleryManager } from '../EventGalleryManager';
 import { TeaserVideoManager } from '../TeaserVideoManager';
 import { KeyHighlightsManager } from '../KeyHighlightsManager';
+import { StatsManager } from '../StatsManager';
+import { FeaturesManager } from '../FeaturesManager';
+import { TestimonialsManager } from '../TestimonialsManager';
 import { PDFUpload } from '../PDFUpload';
 
 interface NewPostSectionProps {
-  onPostSaved: (post: EventPost) => void;
-  editingPost?: EventPost | null;
+  onPostSaved: (formData: EventFormData) => void;
+  editingPost?: EventFormData | null;
   isSaving?: boolean;
 }
 
@@ -46,30 +51,41 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const [customPrice, setCustomPrice] = useState('');
   const [registrationDeadline, setRegistrationDeadline] = useState('');
   const [requirements, setRequirements] = useState('');
-  const [agenda, setAgenda] = useState('');
+  const [zohoFormUrl, setZohoFormUrl] = useState('');
+  const [formId, setFormId] = useState<string | null>(null);
   const [speakersDetails, setSpeakersDetails] = useState<Speaker[]>([]);
   const [currentSpeaker, setCurrentSpeaker] = useState<Speaker>({
     name: '',
+    role: '',
+    description: '',
     photo: '',
-    linkedIn: '',
-    role: ''
+    linkedin: '',
   });
   const [editingSpeakerIndex, setEditingSpeakerIndex] = useState<number | null>(null);
   const [sponsors, setSponsors] = useState<string[]>([]);
   const [sponsorInput, setSponsorInput] = useState('');
-  const [additionalContactInfo, setAdditionalContactInfo] = useState('');
   const [status, setStatus] = useState<'upcoming' | 'ongoing' | 'completed' | 'cancelled'>('upcoming');
   const [eventBanner, setEventBanner] = useState('');
   const [featuredImage, setFeaturedImage] = useState('');
   const [mobileFeaturedImage, setMobileFeaturedImage] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
-  const [seo, setSeo] = useState<EventSEOSettings>({
-    meta_title: '',
-    meta_description: '',
-    slug: ''
-  });
+  const [slug, setSlug] = useState('');
+  const [heroTitle, setHeroTitle] = useState('');
+  const [heroDescription, setHeroDescription] = useState('');
+  const [heroBenefits, setHeroBenefits] = useState<string[]>([]);
+  const [heroBenefitInput, setHeroBenefitInput] = useState('');
   const [faqs, setFaqs] = useState<FAQItem[]>([]);
+  const [stats, setStats] = useState<StatItem[]>([]);
+  const [features, setFeatures] = useState<FeatureItem[]>([]);
+  const [testimonialsHeading, setTestimonialsHeading] = useState('');
+  const [testimonialsTag, setTestimonialsTag] = useState('');
+  const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
+  const [ctaText, setCtaText] = useState('');
+  const [ctaSubline, setCtaSubline] = useState('');
+  const [ctaButtonLabel, setCtaButtonLabel] = useState('Register Now');
+  const [ctaBadges, setCtaBadges] = useState<CtaBadge[]>([]);
+  const [ctaBadgeInput, setCtaBadgeInput] = useState('');
   const [eventsGallery, setEventsGallery] = useState<string[]>([]);
   const [teaserVideo, setTeaserVideo] = useState<string | null>(null);
   const [keyHighlights, setKeyHighlights] = useState<string[]>([]);
@@ -90,6 +106,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const speakerPhotoInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { forms } = useForms();
 
   // Geocode address to lat/lng
   const geocodeAddress = async () => {
@@ -151,84 +168,92 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
 
   useEffect(() => {
     if (!editingPost || !editor) return;
-    
-    // Skip if we already loaded this event's data
     if (editingPost.id === lastLoadedEditId) return;
-    
+
     setTitle(editingPost.title);
-    setDescription(editingPost.description);
-    setEnquiryPdfUrl((editingPost as any).enquiry_pdf || null);
-    setEnquiryPdfPath((editingPost as any).enquiry_pdf_path || null);
     setEventDate(editingPost.event_date);
-    setEventTime(editingPost.event_time);
-    setDuration(editingPost.duration);
-    setLocation(editingPost.location);
-    setLocationType(editingPost.location_type || 'physical');
-    setLocationGeo({ 
-      lat: editingPost.location_latitude ? String(editingPost.location_latitude) : '',
-      lng: editingPost.location_longitude ? String(editingPost.location_longitude) : ''
+    setEventTime(editingPost.event_time || '');
+    setDuration(String(editingPost.duration || ''));
+    setLocationType(editingPost.is_physical !== false ? 'physical' : 'virtual');
+    setLocation(editingPost.location_address || '');
+    setLocationGeo({
+      lat: editingPost.location_lat ? String(editingPost.location_lat) : '',
+      lng: editingPost.location_lng ? String(editingPost.location_lng) : '',
     });
-    setLocationLink(editingPost.location_link || '');
-    setOrganizerName(editingPost.organizer_name);
-    setOrganizerEmail(editingPost.organizer_email);
-    setOrganizerPhone(editingPost.organizer_phone);
-    setCapacity(editingPost.capacity);
-    setCategory(editingPost.category);
-    const editPrice = editingPost.price || '';
-    setPrice(editPrice);
-    // Check if it's a preset value or custom
-    const presetValues = ['FREE', '₹500', '₹1000', '₹2000'];
-    if (presetValues.includes(editPrice)) {
+    setLocationLink(editingPost.event_link || '');
+    setOrganizerName(editingPost.organizer_name || '');
+    setOrganizerEmail(editingPost.organizer_email || '');
+    setOrganizerPhone(editingPost.organizer_phone || '');
+    setCapacity(editingPost.capacity || 50);
+    setCategory(editingPost.category || '');
+
+    // price: number → string for form UI
+    const numPrice = editingPost.price ?? 0;
+    if (numPrice === 0) {
+      setPrice('FREE');
       setPriceType('preset');
-    } else if (editPrice.startsWith('₹')) {
-      setPriceType('custom');
-      setCustomPrice(editPrice.replace('₹', ''));
     } else {
-      setPriceType('preset');
+      const rupeeStr = `₹${numPrice}`;
+      const presets = ['₹500', '₹1000', '₹2000'];
+      if (presets.includes(rupeeStr)) {
+        setPrice(rupeeStr);
+        setPriceType('preset');
+      } else {
+        setPrice(rupeeStr);
+        setPriceType('custom');
+        setCustomPrice(String(numPrice));
+      }
     }
+
     setRegistrationDeadline(editingPost.registration_deadline || '');
     setRequirements(editingPost.requirements || '');
-    setAgenda(editingPost.agenda || '');
-    setSpeakersDetails(editingPost.speakers_details || []);
+    setZohoFormUrl(editingPost.zoho_form_url || '');
+    console.log('Loading event - form_id:', editingPost.form_id);
+    setFormId(editingPost.form_id || null);
+    setSpeakersDetails(editingPost.speakers || []);
     setSponsors(editingPost.sponsors || []);
-    setAdditionalContactInfo(editingPost.additional_contact_info || '');
-    setStatus(editingPost.status);
+    setStatus(editingPost.status || 'upcoming');
     setEventBanner(editingPost.event_banner || '');
     setFeaturedImage(editingPost.featured_image || '');
-    setMobileFeaturedImage((editingPost as any).mobile_featured_image || '');
+    setMobileFeaturedImage(editingPost.mobile_featured_image || '');
     setTags(editingPost.event_tags || []);
-    setKeyHighlights(editingPost.key_highlights || []);
+    setKeyHighlights(editingPost.highlights || []);
     setLanguages(editingPost.languages || []);
     setFaqs(editingPost.faq || []);
-    setEventsGallery(editingPost.events_gallery || []);
+    setStats(editingPost.stats || []);
+    setFeatures(editingPost.features || []);
+    setTestimonialsHeading(editingPost.testimonials_heading || '');
+    setTestimonialsTag(editingPost.testimonials_tag || '');
+    setTestimonials(editingPost.testimonials || []);
+    setCtaText(editingPost.cta_text || '');
+    setCtaSubline(editingPost.cta_subline || '');
+    setCtaButtonLabel(editingPost.cta_button_label || 'Register Now');
+    setCtaBadges(editingPost.cta_badges || []);
+    setEventsGallery((editingPost.gallery || []).filter((item): item is GalleryItem => item && typeof item === 'object' && 'image_url' in item && typeof item.image_url === 'string').map(item => item.image_url));
     setTeaserVideo(editingPost.teaser_video || null);
-    setSeo({
-      meta_title: editingPost.meta_title,
-      meta_description: editingPost.meta_description,
-      slug: editingPost.slug
-    });
-    
-    if (editingPost.description) {
-      editor.commands.setContent(editingPost.description);
+    setEnquiryPdfUrl(editingPost.enquiry_pdf || null);
+    setEnquiryPdfPath(null);
+    setSlug(editingPost.slug || '');
+    setHeroTitle(editingPost.hero_title || '');
+    setHeroDescription(editingPost.hero_description || '');
+    setHeroBenefits(editingPost.hero_benefits || []);
+
+    if (editingPost.about) {
+      editor.commands.setContent(editingPost.about);
+      setDescription(editingPost.about);
+    } else {
+      editor.commands.clearContent();
+      setDescription('');
     }
-    
-    // Update the last loaded ID
+
     setLastLoadedEditId(editingPost.id);
   }, [editingPost, editor, lastLoadedEditId]);
 
   useEffect(() => {
-    if (title) {
-      if (!seo.meta_title) {
-        setSeo(prev => ({ ...prev, meta_title: title }));
-      }
-      if (!seo.slug) {
-        setSeo(prev => ({ ...prev, slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') }));
-      }
+    if (title && !slug) {
+      setSlug(title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''));
     }
-    if (description && !seo.meta_description) {
-      setSeo(prev => ({ ...prev, meta_description: description.substring(0, 160) }));
-    }
-  }, [title, description, seo.meta_title, seo.slug, seo.meta_description]);
+  }, [title]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -287,9 +312,10 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
       const normalized: Speaker = {
         ...currentSpeaker,
         name: currentSpeaker.name.trim(),
+        role: currentSpeaker.role?.trim() || '',
+        description: currentSpeaker.description?.trim() || '',
         photo: currentSpeaker.photo?.trim() || '',
-        linkedIn: currentSpeaker.linkedIn?.trim() || '',
-        role: currentSpeaker.role?.trim() || ''
+        linkedin: currentSpeaker.linkedin?.trim() || '',
       };
 
       if (editingSpeakerIndex !== null) {
@@ -300,7 +326,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
         // Add new speaker
         setSpeakersDetails([...speakersDetails, normalized]);
       }
-      setCurrentSpeaker({ name: '', photo: '', linkedIn: '', role: '' });
+      setCurrentSpeaker({ name: '', role: '', description: '', photo: '', linkedin: '' });
     }
   };
 
@@ -308,16 +334,17 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     const s = speakersDetails[index];
     setCurrentSpeaker({
       name: s.name || '',
+      role: s.role || '',
+      description: s.description || '',
       photo: s.photo || '',
-      linkedIn: s.linkedIn || '',
-      role: s.role || ''
+      linkedin: s.linkedin || '',
     });
     setEditingSpeakerIndex(index);
   };
 
   const cancelEditSpeaker = () => {
     setEditingSpeakerIndex(null);
-    setCurrentSpeaker({ name: '', photo: '', linkedIn: '', role: '' });
+    setCurrentSpeaker({ name: '', role: '', description: '', photo: '', linkedin: '' });
   };
 
   const removeSpeaker = (indexToRemove: number) => {
@@ -409,87 +436,99 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-  console.log('Form submitted!');
-  console.log('Form values:', { title, description, eventDate, eventTime, location, organizerName, organizerEmail });
-  console.log('Location Type:', locationType);
-  console.log('Raw Latitude:', locationGeo.lat, 'Raw Longitude:', locationGeo.lng);
-  const parsedLat = locationType === 'physical' ? parseFloat(locationGeo.lat) : null;
-  const parsedLng = locationType === 'physical' ? parseFloat(locationGeo.lng) : null;
-  console.log('Parsed Latitude:', parsedLat, 'Parsed Longitude:', parsedLng);
-    
+    console.log('Form submitted!');
 
-  if (!title || !description || !eventDate || !eventTime || !duration || !organizerName || !organizerEmail || !category) {
-    console.log('Validation failed - missing required fields');
-    const missingFields = [];
-    if (!title) missingFields.push('Title');
-    if (!description) missingFields.push('Description');
-    if (!eventDate) missingFields.push('Event Date');
-    if (!eventTime) missingFields.push('Event Time');
-    if (!duration) missingFields.push('Duration');
-    if (!organizerName) missingFields.push('Organizer Name');
-    if (!organizerEmail) missingFields.push('Organizer Email');
-    if (!category) missingFields.push('Category');
-    
-    console.log('Validation failed - missing required fields:', missingFields);
-    toast({
-      title: "Missing Required Fields",
-      description: `Please fill in the following required fields: ${missingFields.join(', ')}`,
-      variant: "destructive"
-    });
-    return;
-  }
+    const isPhysical = locationType === 'physical';
+    const parsedLat = isPhysical && locationGeo.lat ? parseFloat(locationGeo.lat) : null;
+    const parsedLng = isPhysical && locationGeo.lng ? parseFloat(locationGeo.lng) : null;
 
-    console.log('Creating event object...');
-  console.log('KeyHighlights state before creating event:', keyHighlights);
-  const event: EventPost = {
-    id: editingPost?.id || `event-${Date.now()}`,
-    user_id: editingPost?.user_id || '',
-    title,
-    description,
-    event_date: eventDate,
-    event_time: eventTime,
-    duration,
-    location: locationType === 'physical' ? location : 'Virtual Event',
-    location_type: locationType,
-    location_link: locationType === 'virtual' ? locationLink : null,
-    is_physical: locationType === 'physical',
-    event_link: locationType === 'virtual' ? locationLink : null,
-    organizer_name: organizerName,
-    organizer_email: organizerEmail,
-    organizer_phone: organizerPhone || null,
-    capacity,
-    category,
-    price: price || 'FREE',
-    registration_deadline: registrationDeadline || null,
-    requirements: requirements || null,
-    agenda: agenda || null,
-    speakers_details: speakersDetails,
-    sponsors: sponsors,
-    additional_contact_info: additionalContactInfo || null,
-    status,
-    event_banner: eventBanner || null,
-    featured_image: featuredImage || null,
-    mobile_featured_image: mobileFeaturedImage || null,
-    event_tags: tags,
-    key_highlights: keyHighlights,
-    languages: languages,
-    events_gallery: eventsGallery,
-    teaser_video: teaserVideo,
-    enquiry_pdf: enquiryPdfUrl,
-    enquiry_pdf_path: enquiryPdfPath,
-    faq: faqs,
-    meta_title: seo.meta_title || title,
-    meta_description: seo.meta_description || description.substring(0, 160),
-    slug: seo.slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-    location_latitude: parsedLat,
-    location_longitude: parsedLng,
-    created_at: editingPost?.created_at || new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-  console.log('Event object to be saved:', event);
-  console.log('Calling onPostSaved with event:', event);
-  onPostSaved(event);
-    
+    if (!title || !eventDate || !eventTime || !duration || !organizerName || !organizerEmail || !category) {
+      console.log('Validation failed - missing required fields');
+      const missingFields = [];
+      if (!title) missingFields.push('Title');
+      if (!eventDate) missingFields.push('Event Date');
+      if (!eventTime) missingFields.push('Event Time');
+      if (!duration) missingFields.push('Duration');
+      if (!organizerName) missingFields.push('Organizer Name');
+      if (!organizerEmail) missingFields.push('Organizer Email');
+      if (!category) missingFields.push('Category');
+
+      toast({
+        title: "Missing Required Fields",
+        description: `Please fill in the following required fields: ${missingFields.join(', ')}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Convert duration string → integer minutes
+    const durationMinutes = parseInt(duration) || 60;
+
+    // Convert price string → number (0 = free)
+    // Note: event_type is automatically set in useEvents.createEvent/updateEvent
+    // based on this price value (price > 0 = 'paid', otherwise 'free')
+    let priceNum = 0;
+    if (price && price !== 'FREE') {
+      priceNum = parseFloat(price.replace('₹', '')) || 0;
+    }
+
+    console.log('Submitting event with form_id:', formId);
+
+    const formData: EventFormData = {
+      id: editingPost?.id,
+      title,
+      event_date: eventDate,
+      event_time: eventTime,
+      duration: durationMinutes,
+      category: category as EventCategory,
+      price: priceNum,
+      registration_deadline: registrationDeadline || null,
+      status,
+      is_physical: isPhysical,
+      slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+      event_link: isPhysical ? '' : locationLink,
+      zoho_form_url: zohoFormUrl,
+      form_id: formId,
+      capacity,
+      requirements: requirements || '',
+      sponsors,
+      additional_contact_info: '',
+      languages,
+      event_tags: tags,
+      featured_image: featuredImage || '',
+      mobile_featured_image: mobileFeaturedImage || '',
+      event_banner: eventBanner || '',
+      teaser_video: teaserVideo || '',
+      enquiry_pdf: enquiryPdfUrl || '',
+      organizer_name: organizerName,
+      organizer_email: organizerEmail,
+      organizer_phone: organizerPhone || '',
+      location_address: isPhysical ? location : '',
+      location_lat: parsedLat,
+      location_lng: parsedLng,
+      hero_title: heroTitle,
+      hero_description: heroDescription,
+      hero_benefits: heroBenefits,
+      about: description,
+      highlights: keyHighlights,
+      agenda: '',
+      gallery: eventsGallery.map((image_url: string) => ({ image_url })),
+      speakers: speakersDetails,
+      faq: faqs,
+      stats,
+      features,
+      testimonials_heading: testimonialsHeading,
+      testimonials_tag: testimonialsTag,
+      testimonials,
+      cta_text: ctaText,
+      cta_subline: ctaSubline,
+      cta_button_label: ctaButtonLabel,
+      cta_badges: ctaBadges,
+    };
+
+    console.log('FormData to be saved:', formData);
+    onPostSaved(formData);
+
     if (!editingPost) {
       // Clear form after successful creation
       editor?.commands.clearContent();
@@ -512,12 +551,10 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
       setCustomPrice('');
       setRegistrationDeadline('');
       setRequirements('');
-      setAgenda('');
       setSpeakersDetails([]);
-      setCurrentSpeaker({ name: '', photo: '', linkedIn: '', role: '' });
+      setCurrentSpeaker({ name: '', role: '', description: '', photo: '', linkedin: '' });
       setSponsors([]);
       setSponsorInput('');
-      setAdditionalContactInfo('');
       setStatus('upcoming');
       setEventBanner('');
       setFeaturedImage('');
@@ -528,11 +565,21 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
       setLanguages([]);
       setLanguageInput('');
       setFaqs([]);
+      setStats([]);
+      setFeatures([]);
+      setTestimonials([]);
+      setCtaText('');
+      setCtaSubline('');
+      setCtaButtonLabel('Register Now');
       setEventsGallery([]);
       setTeaserVideo(null);
       setEnquiryPdfUrl(null);
       setEnquiryPdfPath(null);
-      setSeo({ meta_title: '', meta_description: '', slug: '' });
+      setSlug('');
+      setHeroTitle('');
+      setHeroDescription('');
+      setHeroBenefits([]);
+      setHeroBenefitInput('');
     }
   };
 
@@ -634,16 +681,13 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Workshop">Workshop</SelectItem>
-                      <SelectItem value="Training">Training</SelectItem>
-                      <SelectItem value="Conference">Conference</SelectItem>
-                      <SelectItem value="Lecture">Lecture</SelectItem>
                       <SelectItem value="Webinar">Webinar</SelectItem>
-                      <SelectItem value="Tutorial">Tutorial</SelectItem>
+                      <SelectItem value="Seminar">Seminar</SelectItem>
+                      <SelectItem value="Conference">Conference</SelectItem>
+                      <SelectItem value="Training">Training</SelectItem>
+                      <SelectItem value="Bootcamp">Bootcamp</SelectItem>
                       <SelectItem value="Hackathon">Hackathon</SelectItem>
-                      <SelectItem value="Internship">Internship</SelectItem>
-                      <SelectItem value="Orientation">Orientation</SelectItem>
-                      <SelectItem value="Team-building">Team-building</SelectItem>
-                      <SelectItem value="Alumni-event">Alumni-event</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -824,9 +868,11 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                     </Label>
                     <Input
                       id="duration"
+                      type="number"
+                      min="1"
                       value={duration}
                       onChange={(e) => setDuration(e.target.value)}
-                      placeholder="e.g., 2 hours, 1 day"
+                      placeholder="Duration in minutes (e.g. 60)"
                       className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
                       required
                     />
@@ -1212,6 +1258,133 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
               </CardContent>
             </Card>
 
+            {/* Hero Section Card */}
+            <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-slate-800">
+                  <Megaphone className="w-5 h-5 text-indigo-500" />
+                  Hero Section
+                </CardTitle>
+                <CardDescription className="text-slate-500">
+                  Main banner content shown at the top of the event page
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="hero-title" className="text-sm font-medium text-slate-700">
+                    Hero Title <span className="text-slate-400 font-normal">(optional)</span>
+                  </Label>
+                  <Input
+                    id="hero-title"
+                    value={heroTitle}
+                    onChange={(e) => setHeroTitle(e.target.value)}
+                    placeholder="e.g. Transform Your Teaching Practice"
+                    className="border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all duration-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="hero-description" className="text-sm font-medium text-slate-700">
+                    Hero Description <span className="text-slate-400 font-normal">(optional)</span>
+                  </Label>
+                  <Textarea
+                    id="hero-description"
+                    value={heroDescription}
+                    onChange={(e) => setHeroDescription(e.target.value)}
+                    placeholder="e.g. Join thousands of educators for an immersive learning experience."
+                    rows={3}
+                    className="border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all duration-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-slate-700">
+                    Benefits <span className="text-slate-400 font-normal">(optional)</span>
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={heroBenefitInput}
+                      onChange={(e) => setHeroBenefitInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const val = heroBenefitInput.trim();
+                          if (val) {
+                            setHeroBenefits(prev => [...prev, val]);
+                            setHeroBenefitInput('');
+                          }
+                        }
+                      }}
+                      placeholder="e.g. Hands-on workshops"
+                      className="border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all duration-200"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const val = heroBenefitInput.trim();
+                        if (val) {
+                          setHeroBenefits(prev => [...prev, val]);
+                          setHeroBenefitInput('');
+                        }
+                      }}
+                      className="shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  {heroBenefits.length > 0 && (
+                    <ul className="space-y-1 pt-1">
+                      {heroBenefits.map((benefit, idx) => (
+                        <li key={idx} className="flex items-center justify-between gap-2 text-sm text-slate-700 bg-indigo-50 rounded px-3 py-1.5">
+                          <span>{benefit}</span>
+                          <button
+                            type="button"
+                            title="Remove benefit"
+                            onClick={() => setHeroBenefits(prev => prev.filter((_, i) => i !== idx))}
+                            className="text-slate-400 hover:text-red-500 transition-colors"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {/* Custom Registration Form Selector */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="registration-form" className="text-sm font-medium text-slate-700">
+                      Registration Form <span className="text-slate-400 font-normal">(optional)</span>
+                    </Label>
+                    <RouterLink 
+                      to="/form-builder" 
+                      target="_blank"
+                      className="text-xs text-indigo-600 hover:text-indigo-700 underline"
+                    >
+                      Manage Forms
+                    </RouterLink>
+                  </div>
+                  <Select value={formId || 'none'} onValueChange={(value) => setFormId(value === 'none' ? null : value)}>
+                    <SelectTrigger id="registration-form" className="border-slate-200 focus:border-indigo-400">
+                      <SelectValue placeholder="Select a form or leave empty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No form attached</SelectItem>
+                      {forms.filter(f => f.is_active).map(form => (
+                        <SelectItem key={form.id} value={form.id}>
+                          {form.title} ({form.fields.length} fields)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500">
+                    Select a custom form to collect structured registration data from attendees
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Key Highlights Section Card */}
             <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
               <CardHeader className="pb-4">
@@ -1249,6 +1422,89 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
               </CardContent>
             </Card>
 
+            {/* Stats Section Card */}
+            <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-slate-800">
+                  <Users className="w-5 h-5 text-teal-500" />
+                  Event Stats
+                </CardTitle>
+                <CardDescription className="text-slate-500">
+                  Key numbers that showcase your event's impact (e.g. 150K+ Educators, 4.8/5 Rating)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <StatsManager
+                  stats={stats}
+                  onChange={setStats}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Features Section Card */}
+            <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-slate-800">
+                  <Sparkles className="w-5 h-5 text-violet-500" />
+                  Event Features
+                </CardTitle>
+                <CardDescription className="text-slate-500">
+                  Highlight what attendees will experience or gain from this event
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FeaturesManager
+                  features={features}
+                  onChange={setFeatures}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Testimonials Section Card */}
+            <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-slate-800">
+                  <MessageSquare className="w-5 h-5 text-amber-500" />
+                  Testimonials
+                </CardTitle>
+                <CardDescription className="text-slate-500">
+                  Add quotes from past attendees to build trust and credibility
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="testimonials-heading" className="text-sm font-medium text-slate-700">
+                      Section Heading <span className="text-slate-400 font-normal">(optional)</span>
+                    </Label>
+                    <Input
+                      id="testimonials-heading"
+                      value={testimonialsHeading}
+                      onChange={(e) => setTestimonialsHeading(e.target.value)}
+                      placeholder="e.g. What Our Attendees Say"
+                      className="border-slate-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all duration-200"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="testimonials-tag" className="text-sm font-medium text-slate-700">
+                      Tag <span className="text-slate-400 font-normal">(optional)</span>
+                    </Label>
+                    <Input
+                      id="testimonials-tag"
+                      value={testimonialsTag}
+                      onChange={(e) => setTestimonialsTag(e.target.value)}
+                      placeholder="e.g. Testimonials"
+                      className="border-slate-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all duration-200"
+                    />
+                  </div>
+                </div>
+                <TestimonialsManager
+                  testimonials={testimonials}
+                  onChange={setTestimonials}
+                />
+              </CardContent>
+            </Card>
+
             {/* FAQ Section Card */}
             <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
               <CardHeader className="pb-4">
@@ -1265,6 +1521,112 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                   faqs={faqs}
                   onChange={setFaqs}
                 />
+              </CardContent>
+            </Card>
+
+            {/* CTA Section Card */}
+            <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-slate-800">
+                  <Megaphone className="w-5 h-5 text-rose-500" />
+                  Call to Action
+                </CardTitle>
+                <CardDescription className="text-slate-500">
+                  Bottom section shown on the public event page to drive registrations
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cta-text" className="text-sm font-medium text-slate-700">
+                    Heading
+                  </Label>
+                  <Input
+                    id="cta-text"
+                    value={ctaText}
+                    onChange={(e) => setCtaText(e.target.value)}
+                    placeholder="e.g. Ready to transform your teaching practice?"
+                    className="border-slate-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all duration-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cta-subline" className="text-sm font-medium text-slate-700">
+                    Subline <span className="text-slate-400 font-normal">(optional)</span>
+                  </Label>
+                  <Input
+                    id="cta-subline"
+                    value={ctaSubline}
+                    onChange={(e) => setCtaSubline(e.target.value)}
+                    placeholder="e.g. Join 150K+ educators who have already attended."
+                    className="border-slate-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all duration-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cta-button-label" className="text-sm font-medium text-slate-700">
+                    Button Label
+                  </Label>
+                  <Input
+                    id="cta-button-label"
+                    value={ctaButtonLabel}
+                    onChange={(e) => setCtaButtonLabel(e.target.value)}
+                    placeholder="Register Now"
+                    className="border-slate-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all duration-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-slate-700">
+                    Badges <span className="text-slate-400 font-normal">(optional)</span>
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={ctaBadgeInput}
+                      onChange={(e) => setCtaBadgeInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const label = ctaBadgeInput.trim();
+                          if (label) {
+                            setCtaBadges(prev => [...prev, { label }]);
+                            setCtaBadgeInput('');
+                          }
+                        }
+                      }}
+                      placeholder="e.g. 100% Free"
+                      className="border-slate-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition-all duration-200"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const label = ctaBadgeInput.trim();
+                        if (label) {
+                          setCtaBadges(prev => [...prev, { label }]);
+                          setCtaBadgeInput('');
+                        }
+                      }}
+                      className="shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  {ctaBadges.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {ctaBadges.map((badge, idx) => (
+                        <Badge key={idx} variant="secondary" className="flex items-center gap-1 pr-1">
+                          {badge.label}
+                          <button
+                            type="button"
+                            title="Remove badge"
+                            onClick={() => setCtaBadges(prev => prev.filter((_, i) => i !== idx))}
+                            className="ml-1 hover:text-red-500 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
@@ -1288,32 +1650,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                     placeholder="Any requirements for attendees..."
                     className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none transition-all duration-200"
                     rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="agenda" className="text-sm font-medium text-slate-700">
-                    Agenda
-                  </Label>
-                  <Textarea
-                    id="agenda"
-                    value={agenda}
-                    onChange={(e) => setAgenda(e.target.value)}
-                    placeholder="Event agenda or schedule..."
-                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none transition-all duration-200"
-                    rows={4}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="additional-contact" className="text-sm font-medium text-slate-700">
-                    Additional Contact Info
-                  </Label>
-                  <Textarea
-                    id="additional-contact"
-                    value={additionalContactInfo}
-                    onChange={(e) => setAdditionalContactInfo(e.target.value)}
-                    placeholder="Any additional contact information..."
-                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none transition-all duration-200"
-                    rows={2}
                   />
                 </div>
               </CardContent>
@@ -1388,6 +1724,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                               type="button"
                               variant="ghost"
                               size="sm"
+                              aria-label={`Remove tag ${tag}`}
                               className="h-auto p-0 text-purple-500 hover:text-purple-700 transition-colors duration-200"
                               onClick={() => removeTag(tag)}
                             >
@@ -1438,6 +1775,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                               type="button"
                               variant="ghost"
                               size="sm"
+                              aria-label={`Remove language ${lang}`}
                               className="h-auto p-0 text-slate-500 hover:text-slate-700 transition-colors duration-200"
                               onClick={() => removeLanguage(lang)}
                             >
@@ -1448,6 +1786,21 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                       </div>
                     )}
                   </div>
+                </div>
+
+                {/* URL Slug */}
+                <div className="space-y-2">
+                  <Label htmlFor="slug" className="text-sm font-medium text-slate-700">
+                    URL Slug
+                  </Label>
+                  <Input
+                    id="slug"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/--+/g, '-'))}
+                    placeholder="auto-generated-from-title"
+                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200 font-mono text-sm"
+                  />
+                  <p className="text-xs text-slate-400">Auto-generated from title. Editable.</p>
                 </div>
               </CardContent>
             </Card>
@@ -1516,7 +1869,18 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                       className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
                     />
                   </div>
-                  
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-700">Description <span className="text-slate-400 font-normal">(optional)</span></Label>
+                    <Textarea
+                      value={currentSpeaker.description || ''}
+                      onChange={(e) => updateCurrentSpeaker('description', e.target.value)}
+                      placeholder="Brief bio or expertise summary..."
+                      rows={3}
+                      className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200 resize-none"
+                    />
+                  </div>
+
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-slate-700">Photo URL</Label>
                     <div className="flex gap-3">
@@ -1548,8 +1912,8 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-slate-700">LinkedIn URL</Label>
                     <Input
-                      value={currentSpeaker.linkedIn || ''}
-                      onChange={(e) => updateCurrentSpeaker('linkedIn', e.target.value)}
+                      value={currentSpeaker.linkedin || ''}
+                      onChange={(e) => updateCurrentSpeaker('linkedin', e.target.value)}
                       placeholder="https://linkedin.com/in/speaker-profile"
                       className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
                     />
@@ -1601,9 +1965,12 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                                 {speaker.role && (
                                   <p className="text-sm text-slate-600">{speaker.role}</p>
                                 )}
-                                {speaker.linkedIn && (
+                                {speaker.description && (
+                                  <p className="text-sm text-slate-500 mt-1">{speaker.description}</p>
+                                )}
+                                {speaker.linkedin && (
                                   <a
-                                    href={speaker.linkedIn}
+                                    href={speaker.linkedin}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
@@ -1628,6 +1995,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                               type="button"
                               variant="ghost"
                               size="sm"
+                              aria-label="Remove speaker"
                               onClick={() => removeSpeaker(index)}
                               className="text-red-500 hover:text-red-700 hover:bg-red-50 transition-all duration-200"
                             >
@@ -1679,6 +2047,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                           type="button"
                           variant="ghost"
                           size="sm"
+                          aria-label={`Remove sponsor ${sponsor}`}
                           onClick={() => removeSponsor(sponsor)}
                           className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600 transition-all duration-200"
                         >
@@ -1691,62 +2060,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
               </CardContent>
             </Card>
 
-            {/* SEO Settings */}
-            <Card className="border-slate-200/50 shadow-sm bg-white/80 backdrop-blur-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-slate-800">
-                  <Globe className="w-4 h-4 text-orange-500" />
-                  SEO Settings *
-                </CardTitle>
-                <CardDescription className="text-slate-500">
-                  Optimize your event for search engines
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="meta-title" className="text-sm font-medium text-slate-700">
-                    Meta Title *
-                  </Label>
-                  <Input
-                    id="meta-title"
-                    value={seo.meta_title}
-                    onChange={(e) => setSeo(prev => ({ ...prev, meta_title: e.target.value }))}
-                    placeholder="SEO title for search engines"
-                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="meta-description" className="text-sm font-medium text-slate-700">
-                    Meta Description *
-                  </Label>
-                  <Textarea
-                    id="meta-description"
-                    value={seo.meta_description}
-                    onChange={(e) => setSeo(prev => ({ ...prev, meta_description: e.target.value }))}
-                    placeholder="Brief description for search results"
-                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none transition-all duration-200"
-                    rows={3}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="slug" className="text-sm font-medium text-slate-700">
-                    URL Slug *
-                  </Label>
-                  <Input
-                    id="slug"
-                    value={seo.slug}
-                    onChange={(e) => setSeo(prev => ({ ...prev, slug: e.target.value }))}
-                    placeholder="url-friendly-slug"
-                    className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                  />
-                  <p className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded border">
-                    URL: /events/{seo.slug || 'your-event-slug'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </form>
       </div>
