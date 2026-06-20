@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { EventPost } from '../../../types/event';
+import { EventPost, EventFormData } from '../../../types/event';
 import { Button } from '../../ui/button';
 import { Card, CardContent } from '../../ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../ui/dialog';
 import { Badge } from '../../ui/badge';
 import { Input } from '../../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { Edit, Trash2, Eye, Search, Calendar, Tag, Pin, Filter, TrendingUp } from 'lucide-react';
+import { Edit, Trash2, Eye, Search, Calendar, Tag, Pin, TrendingUp, Loader2, ClipboardList } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
+import { useEvents } from '../../../hooks/useEvents';
+import { useForms } from '../../../hooks/useForms';
 
 interface PostedPostsSectionProps {
   posts: EventPost[];
@@ -19,7 +21,17 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTag, setFilterTag] = useState('all');
   const [selectedPost, setSelectedPost] = useState<EventPost | null>(null);
-  const { toast } = useToast();
+  const [selectedPostDetail, setSelectedPostDetail] = useState<EventFormData | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const { getEventById } = useEvents();
+  const { forms } = useForms();
+
+  // Helper function to get form name by ID
+  const getFormName = (formId: string | null | undefined) => {
+    if (!formId) return null;
+    const form = forms.find(f => f.id === formId);
+    return form?.title || null;
+  };
 
   // Generate excerpt from event description
   const generateExcerpt = (description: string): string => {
@@ -28,23 +40,22 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
   };
 
   // Get all unique tags from posts
-  const allTags = [...new Set(posts.flatMap(post => post.event_tags || []).filter(Boolean))];
+  const allTags = [...new Set(posts.flatMap(post => post.content_metadata?.event_tags || []).filter(Boolean))];
 
   // Debug: log all posts to verify location fields
   console.log('All event posts:', posts);
   if (posts.length > 0) {
     posts.forEach(post => {
-      console.log(`Event: ${post.title}, Lat: ${post.location_latitude}, Lng: ${post.location_longitude}`);
+      console.log(`Event: ${post.title}, Lat: ${post.location_metadata?.lat}, Lng: ${post.location_metadata?.lng}`);
     });
   }
   const filteredPosts = posts.filter(post => {
     try {
-      const excerpt = generateExcerpt(post.description || '');
       const matchesSearch = (post.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        excerpt.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (post.organizer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (post.location || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesTag = filterTag === 'all' || (post.event_tags && post.event_tags.includes(filterTag));
+        (post.organizer_metadata?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (post.location_metadata?.address || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const tags = post.content_metadata?.event_tags || [];
+      const matchesTag = filterTag === 'all' || tags.includes(filterTag);
       return matchesSearch && matchesTag;
     } catch (error) {
       console.error('Error filtering post:', error, post);
@@ -114,10 +125,10 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
           {filteredPosts.map((post) => (
             <Card key={post.id} className="group hover:shadow-xl transition-all duration-500 border-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg overflow-hidden rounded-2xl  ">
               <div className="relative overflow-hidden">
-                {post.featured_image ? (
+                {post.media_metadata?.featured_image ? (
                   <div className="relative h-48 overflow-hidden">
                     <img
-                      src={post.featured_image}
+                      src={post.media_metadata.featured_image}
                       alt={post.title}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
@@ -156,7 +167,15 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                 {/* Meta Information */}
                 <div className="flex items-center justify-between">
                   <div className="flex flex-wrap gap-2">
-                    {post.event_tags && post.event_tags.length > 0 && post.event_tags.map((tag, index) => (
+                    {/* Form Badge (if attached) */}
+                    {post.form_id && getFormName(post.form_id) && (
+                      <Badge variant="secondary" className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/50 dark:to-teal-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 rounded-full px-3 py-1">
+                        <ClipboardList className="w-3 h-3 mr-1" />
+                        {getFormName(post.form_id)}
+                      </Badge>
+                    )}
+                    {/* Event Tags */}
+                    {post.content_metadata?.event_tags && post.content_metadata.event_tags.length > 0 && post.content_metadata.event_tags.map((tag, index) => (
                       <Badge key={index} variant="secondary" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/50 dark:to-purple-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 rounded-full px-3 py-1">
                         <Pin className="w-3 h-3 mr-1" />
                         {tag}
@@ -176,7 +195,7 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
 
                 {/* Excerpt */}
                 <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed line-clamp-3">
-                  {generateExcerpt(post.description)}
+                  {generateExcerpt(post.content_metadata?.requirements || '')}
                 </p>
 
                 {/* Action Buttons */}
@@ -187,7 +206,14 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                         variant="outline"
                         size="sm"
                         className="flex-1 h-9 bg-white/50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 rounded-xl transition-all duration-300 group/btn"
-                        onClick={() => setSelectedPost(post)}
+                        onClick={async () => {
+                          setSelectedPost(post);
+                          setSelectedPostDetail(null);
+                          setDetailLoading(true);
+                          const detail = await getEventById(post.id);
+                          setSelectedPostDetail(detail);
+                          setDetailLoading(false);
+                        }}
                       >
                         <Eye className="w-4 h-4 mr-2 group-hover/btn:text-blue-600 dark:group-hover/btn:text-blue-400 transition-colors" />
                         <span className="group-hover/btn:text-blue-600 dark:group-hover/btn:text-blue-400 transition-colors">View</span>
@@ -200,7 +226,15 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                         </DialogTitle>
                         <DialogDescription className="flex items-center gap-6 text-sm">
                           <div className="flex flex-wrap gap-2">
-                            {selectedPost?.event_tags && selectedPost.event_tags.length > 0 && selectedPost.event_tags.map((tag, index) => (
+                            {/* Form Badge */}
+                            {selectedPost?.form_id && getFormName(selectedPost.form_id) && (
+                              <Badge variant="secondary" className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/50 dark:to-teal-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 rounded-full">
+                                <ClipboardList className="w-3 h-3 mr-1" />
+                                {getFormName(selectedPost.form_id)}
+                              </Badge>
+                            )}
+                            {/* Event Tags */}
+                            {selectedPost?.content_metadata?.event_tags && selectedPost.content_metadata.event_tags.length > 0 && selectedPost.content_metadata.event_tags.map((tag, index) => (
                               <Badge key={index} variant="secondary" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/50 dark:to-purple-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 rounded-full">
                                 <Tag className="w-3 h-3 mr-1" />
                                 {tag}
@@ -215,92 +249,47 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                       </DialogHeader>
 
                       {selectedPost && (
-                        <div className="space-y-8 py-6">
-                          {selectedPost.featured_image && (
+                        <div className="space-y-6 py-6">
+                          {/* Banner image */}
+                          {selectedPost.media_metadata?.event_banner && (
                             <div className="relative overflow-hidden rounded-xl">
                               <img
-                                src={selectedPost.featured_image}
-                                alt={selectedPost.title}
-                                className="w-full max-h-96 object-cover"
-                              />
-                            </div>
-                          )}
-
-                          {selectedPost.event_banner && (
-                            <div className="relative overflow-hidden rounded-xl">
-                              <img
-                                src={selectedPost.event_banner}
+                                src={selectedPost.media_metadata.event_banner}
                                 alt="Event Banner"
                                 className="w-full max-h-96 object-cover"
                               />
                             </div>
                           )}
 
-                          <div
-                            className="prose prose-slate dark:prose-invert prose-sm max-w-none prose-headings:font-semibold prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline"
-                            dangerouslySetInnerHTML={{ __html: selectedPost.description }}
-                          />
-                          {/* Location Type Display */}
-                          <div className="mt-6">
-                            <span className="font-medium text-slate-700 dark:text-slate-300">
-                              {selectedPost.location}
-                              {selectedPost.location_type === 'physical' && selectedPost.location_geo && (
-                                <div className="mt-2">
-                                  <iframe
-                                    title="Event Location Map"
-                                    width="250"
-                                    height="150"
-                                    style={{ borderRadius: '12px', border: 'none' }}
-                                    src={`https://maps.google.com/maps?q=${selectedPost.location_geo.lat},${selectedPost.location_geo.lng}&z=15&output=embed`}
-                                    allowFullScreen
-                                  />
-                                </div>
-                              )}
-                              {selectedPost.location_type === 'virtual' && selectedPost.location_link && (
-                                <div className="mt-2">
-                                  <a
-                                    href={selectedPost.location_link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ml-2"
-                                  >
-                                    {/* ExternalLink icon can be imported and used here if desired */}
-                                    Join Event
-                                  </a>
-                                </div>
-                              )}
-                            </span>
-                          </div>
-
-                          {selectedPost.requirements && (
-                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
-                              <h4 className="font-semibold mb-3 text-slate-900 dark:text-white">Requirements</h4>
-                              <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{selectedPost.requirements}</p>
+                          {/* Featured image (fallback when no banner) */}
+                          {!selectedPost.media_metadata?.event_banner && selectedPost.media_metadata?.featured_image && (
+                            <div className="relative overflow-hidden rounded-xl">
+                              <img
+                                src={selectedPost.media_metadata.featured_image}
+                                alt={selectedPost.title}
+                                className="w-full max-h-96 object-cover"
+                              />
                             </div>
                           )}
 
-                          {selectedPost.agenda && (
-                            <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-xl p-6 border border-green-200 dark:border-green-800">
-                              <h4 className="font-semibold mb-3 text-slate-900 dark:text-white">Agenda</h4>
-                              <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{selectedPost.agenda}</p>
+                          {/* About / description */}
+                          {detailLoading && (
+                            <div className="flex items-center justify-center py-8 text-slate-400">
+                              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                              Loading content…
                             </div>
                           )}
+                          {!detailLoading && selectedPostDetail?.about && (
+                            <div
+                              className="prose prose-slate max-w-none text-slate-700 dark:text-slate-300 leading-relaxed"
+                              dangerouslySetInnerHTML={{ __html: selectedPostDetail.about }}
+                            />
+                          )}
 
+                          {/* Event Information */}
                           <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
                             <h4 className="font-semibold mb-4 text-slate-900 dark:text-white">Event Information</h4>
                             <div className="space-y-3 text-sm">
-                              <div className="flex flex-col gap-1">
-                                <span className="font-medium text-slate-700 dark:text-slate-300">Meta Title:</span>
-                                <span className="text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
-                                  {selectedPost.meta_title || 'Not set'}
-                                </span>
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <span className="font-medium text-slate-700 dark:text-slate-300">Meta Description:</span>
-                                <span className="text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
-                                  {selectedPost.meta_description || 'Not set'}
-                                </span>
-                              </div>
                               <div className="flex flex-col gap-1">
                                 <span className="font-medium text-slate-700 dark:text-slate-300">URL Slug:</span>
                                 <span className="text-blue-600 dark:text-blue-400 font-mono bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -310,7 +299,7 @@ const PostedPostsSection = ({ posts, onEditPost, onDeletePost }: PostedPostsSect
                             </div>
                           </div>
 
-                          <div className="flex gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
+                          <div className="flex gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
                             <Button
                               onClick={() => onEditPost(selectedPost)}
                               className="flex-1 h-11 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"

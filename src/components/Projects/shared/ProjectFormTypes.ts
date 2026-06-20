@@ -1,4 +1,5 @@
 import { ProjectPost, ProjectDraft, ProjectSEOSettings } from '../../../types/project';
+import { Program, ProgramFormData } from '../../../types/program';
 
 export interface ProjectFormData {
   title: string;
@@ -48,3 +49,14 @@ export const commonProjectTags = [
   'Research',
   'Prototype'
 ];
+
+// Program form types
+export interface ProgramFormProps {
+  onProgramSaved: (data: ProgramFormData) => Promise<boolean>;
+  editingProgram?: Program | null;
+}
+
+export interface ProgramValidationErrors {
+  title?: boolean;
+  slug?: boolean;
+}
