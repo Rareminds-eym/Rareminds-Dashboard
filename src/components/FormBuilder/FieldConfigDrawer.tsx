@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, GripVertical, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { FieldType, FormFieldData } from '../../types/form';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Switch } from '../ui/switch';
-import { Card } from '../ui/card';
 import {
   Sheet,
   SheetContent,
@@ -223,7 +222,7 @@ const FieldConfigDrawer = ({
               </p>
               <div className="space-y-2">
                 {options.map((option, index) => (
-                  <div key={`option-${index}-${option || 'empty'}`} className="flex items-center gap-2">
+                  <div key={index} className="flex items-center gap-2">
                     <Input
                       value={option}
                       onChange={(e) => handleOptionChange(index, e.target.value)}
