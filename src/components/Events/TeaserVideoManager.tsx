@@ -2,8 +2,10 @@ import React, { useState, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Upload, X, Link2, Play, Trash2, Youtube } from 'lucide-react';
+import { Upload, X, Link2, Play, Trash2, Youtube, Loader2 } from 'lucide-react';
 import { Label } from '../ui/label';
+import { useR2Upload } from '@/hooks/useR2Upload';
+import { useToast } from '@/hooks/use-toast';
 
 interface TeaserVideoManagerProps {
   video: string | null;
@@ -19,6 +21,8 @@ export const TeaserVideoManager: React.FC<TeaserVideoManagerProps> = ({
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [isAddingUrl, setIsAddingUrl] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { upload, isUploading, progress } = useR2Upload();
+  const { toast } = useToast();
 
   const handleAddVideoUrl = () => {
     const trimmedUrl = newVideoUrl.trim();
@@ -29,21 +33,21 @@ export const TeaserVideoManager: React.FC<TeaserVideoManagerProps> = ({
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (file.type.startsWith('video/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        onChange(result);
-      };
-      reader.readAsDataURL(file);
+    if (!file || !file.type.startsWith('video/')) return;
+    try {
+      const result = await upload(file, { folder: 'events' });
+      if (result.success && result.url) {
+        onChange(result.url);
+      } else {
+        toast({ variant: 'destructive', title: 'Upload failed', description: result.error || 'Failed to upload video' });
+      }
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Upload error', description: 'An unexpected error occurred during upload' });
+    } finally {
+      event.target.value = '';
     }
-
-    // Reset the file input
-    event.target.value = '';
   };
 
   const handleRemoveVideo = () => {
@@ -227,11 +231,11 @@ export const TeaserVideoManager: React.FC<TeaserVideoManagerProps> = ({
                     type="button"
                     variant="outline"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={disabled}
+                    disabled={disabled || isUploading}
                     className="flex items-center gap-2"
                   >
-                    <Upload className="h-4 w-4" />
-                    Upload Video
+                    {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    {isUploading ? `Uploading ${progress}%` : 'Upload Video'}
                   </Button>
                   <Button
                     type="button"

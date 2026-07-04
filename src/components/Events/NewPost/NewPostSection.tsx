@@ -15,6 +15,7 @@ import { Badge } from '../../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign, HelpCircle, Images, Play, Search, Loader2, Plus, File as FileIcon, Megaphone, MessageSquare } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
+import { useR2Upload } from '../../../hooks/useR2Upload';
 import { useForms } from '../../../hooks/useForms';
 import { FAQManager } from '../FAQManager';
 import { EventGalleryManager } from '../EventGalleryManager';
@@ -93,6 +94,11 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const [languageInput, setLanguageInput] = useState('');
   const [enquiryPdfUrl, setEnquiryPdfUrl] = useState<string | null>(null);
   const [enquiryPdfPath, setEnquiryPdfPath] = useState<string | null>(null);
+  const { upload: uploadToR2, isUploading: isUploadingToR2, progress: uploadProgress } = useR2Upload();
+  const { toast } = useToast();
+  
+  // Upload state trackers
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
   
   // Debug function to track keyHighlights changes
   const handleKeyHighlightsChange = (newHighlights: string[]) => {
@@ -105,7 +111,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const mobileFileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const speakerPhotoInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
   const { forms } = useForms();
 
   // Geocode address to lat/lng
@@ -143,7 +148,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
       StarterKit,
       Image.configure({
         inline: true,
-        allowBase64: true,
       }),
       Link.configure({
         openOnClick: false,
@@ -165,6 +169,8 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
 
   // Track the last loaded edit ID to prevent reloading the same data
   const [lastLoadedEditId, setLastLoadedEditId] = useState<string | null>(null);
+
+
 
   useEffect(() => {
     if (!editingPost || !editor) return;
@@ -255,50 +261,35 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     }
   }, [title]);
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFeaturedImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
-  const handleMobileImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setMobileFeaturedImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
-  const handleBannerUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setEventBanner(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
-  const handleSpeakerPhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const photoSrc = e.target?.result as string;
-        setCurrentSpeaker(prev => ({ ...prev, photo: photoSrc }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+
+  // ponytail: One upload handler, not four copies
+  const createUploadHandler = (field: string, setter: (url: string) => void, label: string) => 
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      
+      setUploadingField(field);
+      const result = await uploadToR2(file, { folder: 'events' });
+      
+      if (result.success && result.url) {
+        setter(result.url);
+        toast({ title: 'Success', description: `${label} uploaded successfully` });
+      } else {
+        toast({ variant: 'destructive', title: 'Upload failed', description: result.error });
+      }
+      setUploadingField(null);
+    };
+
+  const handleImageUpload = createUploadHandler('featuredImage', setFeaturedImage, 'Image');
+  const handleMobileImageUpload = createUploadHandler('mobileImage', setMobileFeaturedImage, 'Mobile image');
+  const handleBannerUpload = createUploadHandler('banner', setEventBanner, 'Banner');
+  const handleSpeakerPhotoUpload = createUploadHandler('speakerPhoto', 
+    (url) => setCurrentSpeaker(prev => ({ ...prev, photo: url })), 
+    'Speaker photo'
+  );
 
   const insertImage = () => {
     const url = window.prompt('Enter image URL:');
@@ -704,16 +695,36 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                         onChange={(e) => setFeaturedImage(e.target.value)}
                         placeholder="Image URL or upload a file..."
                         className="flex-1 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                        disabled={uploadingField === 'featuredImage'}
                       />
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingField === 'featuredImage'}
                         className="h-10 px-4 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200"
                       >
-                        <Upload className="w-4 h-4" />
+                        {uploadingField === 'featuredImage' ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
                       </Button>
                     </div>
+                    {uploadingField === 'featuredImage' && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm text-slate-600">
+                          <span>Uploading image...</span>
+                          <span className="font-medium">{uploadProgress}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-purple-600 transition-all duration-300 ease-out"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -745,16 +756,36 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                         onChange={(e) => setMobileFeaturedImage(e.target.value)}
                         placeholder="Mobile image URL or upload a file..."
                         className="flex-1 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                        disabled={uploadingField === 'mobileImage'}
                       />
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => mobileFileInputRef.current?.click()}
+                        disabled={uploadingField === 'mobileImage'}
                         className="h-10 px-4 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200"
                       >
-                        <Upload className="w-4 h-4" />
+                        {uploadingField === 'mobileImage' ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
                       </Button>
                     </div>
+                    {uploadingField === 'mobileImage' && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm text-slate-600">
+                          <span>Uploading mobile image...</span>
+                          <span className="font-medium">{uploadProgress}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-purple-600 transition-all duration-300 ease-out"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                     <input
                       ref={mobileFileInputRef}
                       type="file"
@@ -1127,17 +1158,21 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                         const fileInput = document.createElement('input');
                         fileInput.type = 'file';
                         fileInput.accept = 'video/*';
-                        fileInput.onchange = (e) => {
+                        fileInput.onchange = async (e) => {
                           const file = (e.target as HTMLInputElement).files?.[0];
                           if (!file) return;
                           
                           if (file.type.startsWith('video/')) {
-                            const reader = new FileReader();
-                            reader.onload = (e) => {
-                              const result = e.target?.result as string;
-                              setTeaserVideo(result);
-                            };
-                            reader.readAsDataURL(file);
+                            try {
+                              const result = await uploadToR2(file);
+                              if (result.success && result.url) {
+                                setTeaserVideo(result.url);
+                              } else {
+                                toast({ variant: 'destructive', title: 'Upload failed', description: result.error });
+                              }
+                            } catch (error) {
+                              toast({ variant: 'destructive', title: 'Upload error', description: 'An unexpected error occurred' });
+                            }
                           }
                         };
                         fileInput.click();
@@ -1191,37 +1226,38 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
                         const fileInput = document.createElement('input');
                         fileInput.type = 'file';
                         fileInput.accept = 'image/*';
                         fileInput.multiple = true;
-                        fileInput.onchange = (e) => {
-                          const files = (e.target as HTMLInputElement).files;
-                          if (!files || eventsGallery.length >= 8) return;
-                          
-                          const fileReaders: Promise<string>[] = [];
-                          const remainingSlots = 8 - eventsGallery.length;
-                          const filesToProcess = Array.from(files).slice(0, remainingSlots);
-                          
-                          filesToProcess.forEach((file) => {
-                            if (file.type.startsWith('image/')) {
-                              fileReaders.push(
-                                new Promise((resolve) => {
-                                  const reader = new FileReader();
-                                  reader.onload = (e) => resolve(e.target?.result as string);
-                                  reader.readAsDataURL(file);
-                                })
-                              );
+                        fileInput.onchange = async (e) => {
+                          try {
+                            const files = (e.target as HTMLInputElement).files;
+                            if (!files || eventsGallery.length >= 8) return;
+                            
+                            const remainingSlots = 8 - eventsGallery.length;
+                            const filesToProcess = Array.from(files).slice(0, remainingSlots);
+                            const uploadedUrls: string[] = [];
+                            
+                            // ponytail: Sequential upload to avoid R2 rate limits
+                            for (const file of filesToProcess) {
+                              if (!file.type.startsWith('image/')) continue;
+                              
+                              const result = await uploadToR2(file);
+                              if (result.success && result.url) {
+                                uploadedUrls.push(result.url);
+                              } else {
+                                toast({ variant: 'destructive', title: 'Upload failed', description: result.error || `Failed to upload ${file.name}` });
+                              }
                             }
-                          });
-                          
-                          Promise.all(fileReaders).then((base64Images) => {
-                            const newImages = base64Images.filter(img => !eventsGallery.includes(img));
-                            if (newImages.length > 0) {
-                              setEventsGallery([...eventsGallery, ...newImages]);
+                            
+                            if (uploadedUrls.length > 0) {
+                              setEventsGallery([...eventsGallery, ...uploadedUrls]);
                             }
-                          });
+                          } catch (error) {
+                            toast({ variant: 'destructive', title: 'Upload error', description: 'An unexpected error occurred' });
+                          }
                         };
                         fileInput.click();
                       }}
@@ -1821,7 +1857,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                   <PDFUpload
                     eventId={editingPost.id}
                     currentPDFUrl={enquiryPdfUrl || undefined}
-                    currentPDFPath={enquiryPdfPath || undefined}
                     onUploadComplete={(url, path) => {
                       setEnquiryPdfUrl(url);
                       setEnquiryPdfPath(path || null);
