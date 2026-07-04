@@ -1,4 +1,5 @@
 // ponytail: Single source of truth for upload constraints (client & server)
+// KEEP IN SYNC with functions/upload.js
 export const ALLOWED_TYPES = [
   'image/jpeg', 'image/png', 'image/gif', 'image/webp',
   'video/mp4', 'video/webm', 'video/quicktime',

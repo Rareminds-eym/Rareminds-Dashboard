@@ -56,6 +56,13 @@ export const useBlogForm = (initialData?: BlogPost | null) => {
     },
   });
 
+  // ponytail: Validate upload hook is available before allowing image insertion
+  useEffect(() => {
+    if (!upload) {
+      console.warn('useR2Upload hook not properly initialized - image uploads may fail');
+    }
+  }, [upload]);
+
   // Track initialization state more reliably
   const [isInitialized, setIsInitialized] = useState(false);
   const [initialSubcategory, setInitialSubcategory] = useState('');
@@ -214,12 +221,16 @@ export const useBlogForm = (initialData?: BlogPost | null) => {
       return;
     }
     
-    const result = await upload(file, { folder: 'blogs' });
-    if (result.success && result.url) {
-      setFeaturedImage(result.url);
-      toast({ title: 'Success', description: 'Image uploaded successfully' });
-    } else {
-      toast({ variant: 'destructive', title: 'Upload failed', description: result.error || 'Failed to upload image' });
+    try {
+      const result = await upload(file, { folder: 'blogs' });
+      if (result.success && result.url) {
+        setFeaturedImage(result.url);
+        toast({ title: 'Success', description: 'Image uploaded successfully' });
+      } else {
+        toast({ variant: 'destructive', title: 'Upload failed', description: result.error || 'Failed to upload image' });
+      }
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Upload error', description: 'An unexpected error occurred during upload' });
     }
   };
 

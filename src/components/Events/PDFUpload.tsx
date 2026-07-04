@@ -6,6 +6,7 @@ import { Upload, File, X, CheckCircle } from "lucide-react";
 import { useR2Upload } from "@/hooks/useR2Upload";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
 interface PDFUploadProps {
   eventId: string;
@@ -78,9 +79,15 @@ export const PDFUpload: React.FC<PDFUploadProps> = ({
     const result = await upload(selectedFile, { folder: 'events' });
     
     if (result.success && result.url) {
+      // ponytail: enquiry_pdf is nested in media_metadata Json field, not a direct column
       const { error: dbError } = await supabase
         .from('events')
-        .update({ enquiry_pdf: result.url, enquiry_pdf_path: result.key } as any)
+        .update({ 
+          media_metadata: { 
+            enquiry_pdf: result.url, 
+            enquiry_pdf_path: result.key 
+          } 
+        } satisfies Database['public']['Tables']['events']['Update'])
         .eq('id', eventId);
 
       if (dbError) {
@@ -102,7 +109,12 @@ export const PDFUpload: React.FC<PDFUploadProps> = ({
     // ponytail: Just clear DB reference, R2 files are cheap to leave orphaned
     const { error } = await supabase
       .from('events')
-      .update({ enquiry_pdf: null, enquiry_pdf_path: null } as any)
+      .update({ 
+        media_metadata: { 
+          enquiry_pdf: null, 
+          enquiry_pdf_path: null 
+        } 
+      } satisfies Database['public']['Tables']['events']['Update'])
       .eq('id', eventId);
     
     if (!error) {

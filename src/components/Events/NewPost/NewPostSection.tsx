@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -284,7 +284,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
         description: 'Please use the upload button to upload images' 
       });
     }
-  }, [featuredImage]);
+  }, [featuredImage, toast]);
 
   useEffect(() => {
     if (isBase64Image(mobileFeaturedImage)) {
@@ -296,7 +296,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
         description: 'Please use the upload button to upload images' 
       });
     }
-  }, [mobileFeaturedImage]);
+  }, [mobileFeaturedImage, toast]);
 
   useEffect(() => {
     if (isBase64Image(eventBanner)) {
@@ -308,12 +308,12 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
         description: 'Please use the upload button to upload images' 
       });
     }
-  }, [eventBanner]);
+  }, [eventBanner, toast]);
 
   // ponytail: Reject base64, accept only valid URLs
-  const isBase64Image = (str: string): boolean => {
+  const isBase64Image = useCallback((str: string): boolean => {
     return str.trim().startsWith('data:image/');
-  };
+  }, []);
 
   const handleFeaturedImageChange = (value: string) => {
     if (isBase64Image(value)) {
@@ -1281,11 +1281,15 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                           if (!file) return;
                           
                           if (file.type.startsWith('video/')) {
-                            const result = await uploadToR2(file);
-                            if (result.success && result.url) {
-                              setTeaserVideo(result.url);
-                            } else {
-                              toast({ variant: 'destructive', title: 'Upload failed', description: result.error });
+                            try {
+                              const result = await uploadToR2(file);
+                              if (result.success && result.url) {
+                                setTeaserVideo(result.url);
+                              } else {
+                                toast({ variant: 'destructive', title: 'Upload failed', description: result.error });
+                              }
+                            } catch (error) {
+                              toast({ variant: 'destructive', title: 'Upload error', description: 'An unexpected error occurred' });
                             }
                           }
                         };
@@ -1346,27 +1350,31 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                         fileInput.accept = 'image/*';
                         fileInput.multiple = true;
                         fileInput.onchange = async (e) => {
-                          const files = (e.target as HTMLInputElement).files;
-                          if (!files || eventsGallery.length >= 8) return;
-                          
-                          const remainingSlots = 8 - eventsGallery.length;
-                          const filesToProcess = Array.from(files).slice(0, remainingSlots);
-                          const uploadedUrls: string[] = [];
-                          
-                          // ponytail: Sequential upload to avoid R2 rate limits
-                          for (const file of filesToProcess) {
-                            if (!file.type.startsWith('image/')) continue;
+                          try {
+                            const files = (e.target as HTMLInputElement).files;
+                            if (!files || eventsGallery.length >= 8) return;
                             
-                            const result = await uploadToR2(file);
-                            if (result.success && result.url) {
-                              uploadedUrls.push(result.url);
-                            } else {
-                              toast({ variant: 'destructive', title: 'Upload failed', description: result.error || `Failed to upload ${file.name}` });
+                            const remainingSlots = 8 - eventsGallery.length;
+                            const filesToProcess = Array.from(files).slice(0, remainingSlots);
+                            const uploadedUrls: string[] = [];
+                            
+                            // ponytail: Sequential upload to avoid R2 rate limits
+                            for (const file of filesToProcess) {
+                              if (!file.type.startsWith('image/')) continue;
+                              
+                              const result = await uploadToR2(file);
+                              if (result.success && result.url) {
+                                uploadedUrls.push(result.url);
+                              } else {
+                                toast({ variant: 'destructive', title: 'Upload failed', description: result.error || `Failed to upload ${file.name}` });
+                              }
                             }
-                          }
-                          
-                          if (uploadedUrls.length > 0) {
-                            setEventsGallery([...eventsGallery, ...uploadedUrls]);
+                            
+                            if (uploadedUrls.length > 0) {
+                              setEventsGallery([...eventsGallery, ...uploadedUrls]);
+                            }
+                          } catch (error) {
+                            toast({ variant: 'destructive', title: 'Upload error', description: 'An unexpected error occurred' });
                           }
                         };
                         fileInput.click();

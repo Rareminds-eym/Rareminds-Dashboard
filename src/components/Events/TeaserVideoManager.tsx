@@ -36,13 +36,18 @@ export const TeaserVideoManager: React.FC<TeaserVideoManagerProps> = ({
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !file.type.startsWith('video/')) return;
-    const result = await upload(file, { folder: 'events' });
-    if (result.success && result.url) {
-      onChange(result.url);
-    } else {
-      toast({ variant: 'destructive', title: 'Upload failed', description: result.error || 'Failed to upload video' });
+    try {
+      const result = await upload(file, { folder: 'events' });
+      if (result.success && result.url) {
+        onChange(result.url);
+      } else {
+        toast({ variant: 'destructive', title: 'Upload failed', description: result.error || 'Failed to upload video' });
+      }
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Upload error', description: 'An unexpected error occurred during upload' });
+    } finally {
+      event.target.value = '';
     }
-    event.target.value = '';
   };
 
   const handleRemoveVideo = () => {

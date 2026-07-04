@@ -10,8 +10,9 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       // Proxy /upload to Cloudflare Worker during local dev
+      // ponytail: VITE_WORKER_URL must be set in .env for dev proxy
       '/upload': {
-        target: 'http://localhost:8788',
+        target: process.env.VITE_WORKER_URL,
         changeOrigin: true,
         // Preserve Origin header for CORS
         configure: (proxy, _options) => {
