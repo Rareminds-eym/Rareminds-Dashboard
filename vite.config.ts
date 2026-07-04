@@ -8,6 +8,19 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      // Proxy /upload to Cloudflare Worker during local dev
+      '/upload': {
+        target: 'http://localhost:8788',
+        changeOrigin: true,
+        // Preserve Origin header for CORS
+        configure: (proxy, _options) => {
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            proxyReq.setHeader('Origin', 'http://localhost:8080');
+          });
+        },
+      },
+    },
   },
   plugins: [
     react(),
