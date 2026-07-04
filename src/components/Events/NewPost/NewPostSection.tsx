@@ -15,6 +15,7 @@ import { Badge } from '../../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Save, Upload, Bold, Italic, List, Link2, Heading1, Heading2, Heading3, Image as ImageIcon, X, Eye, Edit3, Sparkles, Hash, Calendar, Clock, MapPin, Users, Phone, Mail, DollarSign, HelpCircle, Images, Play, Search, Loader2, Plus, File as FileIcon, Megaphone, MessageSquare } from 'lucide-react';
 import { useToast } from '../../../hooks/use-toast';
+import { useR2Upload } from '../../../hooks/useR2Upload';
 import { useForms } from '../../../hooks/useForms';
 import { FAQManager } from '../FAQManager';
 import { EventGalleryManager } from '../EventGalleryManager';
@@ -93,6 +94,11 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const [languageInput, setLanguageInput] = useState('');
   const [enquiryPdfUrl, setEnquiryPdfUrl] = useState<string | null>(null);
   const [enquiryPdfPath, setEnquiryPdfPath] = useState<string | null>(null);
+  const { upload: uploadToR2, isUploading: isUploadingToR2, progress: uploadProgress } = useR2Upload();
+  const { toast } = useToast();
+  
+  // Upload state trackers
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
   
   // Debug function to track keyHighlights changes
   const handleKeyHighlightsChange = (newHighlights: string[]) => {
@@ -105,7 +111,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const mobileFileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const speakerPhotoInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
   const { forms } = useForms();
 
   // Geocode address to lat/lng
@@ -143,7 +148,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
       StarterKit,
       Image.configure({
         inline: true,
-        allowBase64: true,
+        allowBase64: false,
       }),
       Link.configure({
         openOnClick: false,
@@ -165,6 +170,16 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
 
   // Track the last loaded edit ID to prevent reloading the same data
   const [lastLoadedEditId, setLastLoadedEditId] = useState<string | null>(null);
+
+  // ponytail: Clean base64 from loaded data
+  const sanitizeImageUrl = (url: string | undefined | null): string => {
+    if (!url) return '';
+    if (isBase64Image(url)) {
+      console.warn('Base64 image detected and removed:', url.substring(0, 50));
+      return '';
+    }
+    return url;
+  };
 
   useEffect(() => {
     if (!editingPost || !editor) return;
@@ -213,9 +228,12 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     setSpeakersDetails(editingPost.speakers || []);
     setSponsors(editingPost.sponsors || []);
     setStatus(editingPost.status || 'upcoming');
-    setEventBanner(editingPost.event_banner || '');
-    setFeaturedImage(editingPost.featured_image || '');
-    setMobileFeaturedImage(editingPost.mobile_featured_image || '');
+    
+    // Sanitize all image URLs to remove base64
+    setEventBanner(sanitizeImageUrl(editingPost.event_banner));
+    setFeaturedImage(sanitizeImageUrl(editingPost.featured_image));
+    setMobileFeaturedImage(sanitizeImageUrl(editingPost.mobile_featured_image));
+    
     setTags(editingPost.event_tags || []);
     setKeyHighlights(editingPost.highlights || []);
     setLanguages(editingPost.languages || []);
@@ -255,50 +273,115 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     }
   }, [title]);
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFeaturedImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+  // ponytail: Auto-clear base64 if it somehow gets into state
+  useEffect(() => {
+    if (isBase64Image(featuredImage)) {
+      console.warn('Base64 detected in featuredImage, clearing...');
+      setFeaturedImage('');
+      toast({ 
+        variant: 'destructive', 
+        title: 'Base64 image removed', 
+        description: 'Please use the upload button to upload images' 
+      });
     }
+  }, [featuredImage]);
+
+  useEffect(() => {
+    if (isBase64Image(mobileFeaturedImage)) {
+      console.warn('Base64 detected in mobileFeaturedImage, clearing...');
+      setMobileFeaturedImage('');
+      toast({ 
+        variant: 'destructive', 
+        title: 'Base64 image removed', 
+        description: 'Please use the upload button to upload images' 
+      });
+    }
+  }, [mobileFeaturedImage]);
+
+  useEffect(() => {
+    if (isBase64Image(eventBanner)) {
+      console.warn('Base64 detected in eventBanner, clearing...');
+      setEventBanner('');
+      toast({ 
+        variant: 'destructive', 
+        title: 'Base64 image removed', 
+        description: 'Please use the upload button to upload images' 
+      });
+    }
+  }, [eventBanner]);
+
+  // ponytail: Reject base64, accept only valid URLs
+  const isBase64Image = (str: string): boolean => {
+    return str.trim().startsWith('data:image/');
   };
 
-  const handleMobileImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setMobileFeaturedImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+  const handleFeaturedImageChange = (value: string) => {
+    if (isBase64Image(value)) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Base64 not allowed', 
+        description: 'Please use the upload button to upload images to Cloudflare R2' 
+      });
+      // Clear the base64 value
+      setFeaturedImage('');
+      return;
     }
+    setFeaturedImage(value);
   };
 
-  const handleBannerUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setEventBanner(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+  const handleMobileFeaturedImageChange = (value: string) => {
+    if (isBase64Image(value)) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Base64 not allowed', 
+        description: 'Please use the upload button to upload images to Cloudflare R2' 
+      });
+      // Clear the base64 value
+      setMobileFeaturedImage('');
+      return;
     }
+    setMobileFeaturedImage(value);
   };
 
-  const handleSpeakerPhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const photoSrc = e.target?.result as string;
-        setCurrentSpeaker(prev => ({ ...prev, photo: photoSrc }));
-      };
-      reader.readAsDataURL(file);
+  const handleEventBannerChange = (value: string) => {
+    if (isBase64Image(value)) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Base64 not allowed', 
+        description: 'Please use the upload button to upload images to Cloudflare R2' 
+      });
+      // Clear the base64 value
+      setEventBanner('');
+      return;
     }
+    setEventBanner(value);
   };
+
+  // ponytail: One upload handler, not four copies
+  const createUploadHandler = (field: string, setter: (url: string) => void, label: string) => 
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      
+      setUploadingField(field);
+      const result = await uploadToR2(file, { folder: 'events' });
+      
+      if (result.success && result.url) {
+        setter(result.url);
+        toast({ title: 'Success', description: `${label} uploaded successfully` });
+      } else {
+        toast({ variant: 'destructive', title: 'Upload failed', description: result.error });
+      }
+      setUploadingField(null);
+    };
+
+  const handleImageUpload = createUploadHandler('featuredImage', setFeaturedImage, 'Image');
+  const handleMobileImageUpload = createUploadHandler('mobileImage', setMobileFeaturedImage, 'Mobile image');
+  const handleBannerUpload = createUploadHandler('banner', setEventBanner, 'Banner');
+  const handleSpeakerPhotoUpload = createUploadHandler('speakerPhoto', 
+    (url) => setCurrentSpeaker(prev => ({ ...prev, photo: url })), 
+    'Speaker photo'
+  );
 
   const insertImage = () => {
     const url = window.prompt('Enter image URL:');
@@ -437,6 +520,32 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Form submitted!');
+
+    // ponytail: Validate no base64 images before submit
+    if (isBase64Image(featuredImage)) {
+      toast({
+        title: "Invalid Image",
+        description: "Featured image contains base64 data. Please upload the image using the upload button.",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (isBase64Image(mobileFeaturedImage)) {
+      toast({
+        title: "Invalid Image",
+        description: "Mobile featured image contains base64 data. Please upload the image using the upload button.",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (isBase64Image(eventBanner)) {
+      toast({
+        title: "Invalid Image",
+        description: "Event banner contains base64 data. Please upload the image using the upload button.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const isPhysical = locationType === 'physical';
     const parsedLat = isPhysical && locationGeo.lat ? parseFloat(locationGeo.lat) : null;
@@ -701,19 +810,39 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                     <div className="flex gap-3">
                       <Input
                         value={featuredImage}
-                        onChange={(e) => setFeaturedImage(e.target.value)}
+                        onChange={(e) => handleFeaturedImageChange(e.target.value)}
                         placeholder="Image URL or upload a file..."
                         className="flex-1 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                        disabled={uploadingField === 'featuredImage'}
                       />
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingField === 'featuredImage'}
                         className="h-10 px-4 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200"
                       >
-                        <Upload className="w-4 h-4" />
+                        {uploadingField === 'featuredImage' ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
                       </Button>
                     </div>
+                    {uploadingField === 'featuredImage' && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm text-slate-600">
+                          <span>Uploading image...</span>
+                          <span className="font-medium">{uploadProgress}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-purple-600 transition-all duration-300 ease-out"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -721,7 +850,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                       onChange={handleImageUpload}
                       className="hidden"
                     />
-                    {featuredImage && (
+                    {featuredImage && !isBase64Image(featuredImage) && (
                       <div className="relative group">
                         <img
                           src={featuredImage}
@@ -742,19 +871,39 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                     <div className="flex gap-3">
                       <Input
                         value={mobileFeaturedImage}
-                        onChange={(e) => setMobileFeaturedImage(e.target.value)}
+                        onChange={(e) => handleMobileFeaturedImageChange(e.target.value)}
                         placeholder="Mobile image URL or upload a file..."
                         className="flex-1 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
+                        disabled={uploadingField === 'mobileImage'}
                       />
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => mobileFileInputRef.current?.click()}
+                        disabled={uploadingField === 'mobileImage'}
                         className="h-10 px-4 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200"
                       >
-                        <Upload className="w-4 h-4" />
+                        {uploadingField === 'mobileImage' ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
                       </Button>
                     </div>
+                    {uploadingField === 'mobileImage' && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm text-slate-600">
+                          <span>Uploading mobile image...</span>
+                          <span className="font-medium">{uploadProgress}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-purple-600 transition-all duration-300 ease-out"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                     <input
                       ref={mobileFileInputRef}
                       type="file"
@@ -762,7 +911,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                       onChange={handleMobileImageUpload}
                       className="hidden"
                     />
-                    {mobileFeaturedImage && (
+                    {mobileFeaturedImage && !isBase64Image(mobileFeaturedImage) && (
                       <div className="relative group">
                         <img
                           src={mobileFeaturedImage}
@@ -1127,17 +1276,17 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                         const fileInput = document.createElement('input');
                         fileInput.type = 'file';
                         fileInput.accept = 'video/*';
-                        fileInput.onchange = (e) => {
+                        fileInput.onchange = async (e) => {
                           const file = (e.target as HTMLInputElement).files?.[0];
                           if (!file) return;
                           
                           if (file.type.startsWith('video/')) {
-                            const reader = new FileReader();
-                            reader.onload = (e) => {
-                              const result = e.target?.result as string;
-                              setTeaserVideo(result);
-                            };
-                            reader.readAsDataURL(file);
+                            const result = await uploadToR2(file);
+                            if (result.success && result.url) {
+                              setTeaserVideo(result.url);
+                            } else {
+                              toast({ variant: 'destructive', title: 'Upload failed', description: result.error });
+                            }
                           }
                         };
                         fileInput.click();
@@ -1191,37 +1340,34 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
                         const fileInput = document.createElement('input');
                         fileInput.type = 'file';
                         fileInput.accept = 'image/*';
                         fileInput.multiple = true;
-                        fileInput.onchange = (e) => {
+                        fileInput.onchange = async (e) => {
                           const files = (e.target as HTMLInputElement).files;
                           if (!files || eventsGallery.length >= 8) return;
                           
-                          const fileReaders: Promise<string>[] = [];
                           const remainingSlots = 8 - eventsGallery.length;
                           const filesToProcess = Array.from(files).slice(0, remainingSlots);
+                          const uploadedUrls: string[] = [];
                           
-                          filesToProcess.forEach((file) => {
-                            if (file.type.startsWith('image/')) {
-                              fileReaders.push(
-                                new Promise((resolve) => {
-                                  const reader = new FileReader();
-                                  reader.onload = (e) => resolve(e.target?.result as string);
-                                  reader.readAsDataURL(file);
-                                })
-                              );
+                          // ponytail: Sequential upload to avoid R2 rate limits
+                          for (const file of filesToProcess) {
+                            if (!file.type.startsWith('image/')) continue;
+                            
+                            const result = await uploadToR2(file);
+                            if (result.success && result.url) {
+                              uploadedUrls.push(result.url);
+                            } else {
+                              toast({ variant: 'destructive', title: 'Upload failed', description: result.error || `Failed to upload ${file.name}` });
                             }
-                          });
+                          }
                           
-                          Promise.all(fileReaders).then((base64Images) => {
-                            const newImages = base64Images.filter(img => !eventsGallery.includes(img));
-                            if (newImages.length > 0) {
-                              setEventsGallery([...eventsGallery, ...newImages]);
-                            }
-                          });
+                          if (uploadedUrls.length > 0) {
+                            setEventsGallery([...eventsGallery, ...uploadedUrls]);
+                          }
                         };
                         fileInput.click();
                       }}
@@ -1821,7 +1967,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                   <PDFUpload
                     eventId={editingPost.id}
                     currentPDFUrl={enquiryPdfUrl || undefined}
-                    currentPDFPath={enquiryPdfPath || undefined}
                     onUploadComplete={(url, path) => {
                       setEnquiryPdfUrl(url);
                       setEnquiryPdfPath(path || null);

@@ -13,52 +13,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Save, Sparkles, Settings, Loader2, ChevronsUpDown, Check } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import ProgramSectionsEditor, { SectionItem } from './ProgramSectionsEditor';
+import { uploadToR2 } from '../../../lib/r2-upload';
 
-const isErrorResponse = (data: unknown): data is { error: string } =>
-  typeof data === 'object' && data !== null &&
-  'error' in data && typeof data.error === 'string';
-
-const isSuccessResponse = (data: unknown): data is { url: string } =>
-  typeof data === 'object' && data !== null &&
-  'url' in data && typeof data.url === 'string' &&
-  data.url !== '';
-
-const UPLOAD_TIMEOUT_MS = 30000;
-const uploadFile = async (file: File): Promise<string> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
-  let res: Response;
-  try {
-  res = await fetch('/upload', { method: 'POST', body: formData, signal: controller.signal });
-} catch (err) {
-  const name = err instanceof Error ? err.name : Object(err).name;
-  if (name === 'AbortError') {
-    throw new Error('Upload timed out. Please try again.');
-  }
-  throw new Error('Network error during upload');
-} finally {
-  clearTimeout(timeoutId);
-}
-  if (!res.ok) {
-    throw new Error(`Upload failed: server error ${res.status}`);
-  }
-  let data: unknown;
-  try {
-    data = await res.json();
-  } catch {
-    throw new Error('Upload failed: server returned an invalid response');
-  }
-  if (!isSuccessResponse(data)) {
-    if (isErrorResponse(data)) {
-      throw new Error(`Upload failed: ${data.error}`);
-    }
-    throw new Error('Upload failed: invalid response format');
-  }
-
-  return data.url;
-};
+// ponytail: Removed duplicate uploadFile, using shared r2-upload
 
 // Helper function to remove IDs from content recursively
 const removeIds = (obj: Record<string, unknown>): Record<string, unknown> => {
@@ -331,56 +288,40 @@ const NewPostSection = ({ onProgramSaved, editingProgram }: NewPostSectionProps)
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ponytail: One upload handler factory replacing three copies
+  const createProjectUploadHandler = (
+    setUrl: (url: string) => void,
+    setUploading: (v: boolean) => void,
+    setError: (e: string | null) => void,
+    resetKey: () => void,
+    errorMsg: string
+  ) => async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || uploadingImage) return;
+    if (!file) return;
+    
     try {
-      setUploadingImage(true);
-      setImageUploadError(null);
-      const url = await uploadFile(file);
-      setImageUrl(url);
+      setUploading(true);
+      setError(null);
+      const result = await uploadToR2(file, { folder: 'projects' });
+      if (!result.success || !result.url) throw new Error(result.error || 'Upload failed');
+      setUrl(result.url);
     } catch (err) {
-      setImageUploadError(err instanceof Error ? err.message : 'Image upload failed');
-      setImageInputKey((k) => k + 1);
+      setError(err instanceof Error ? err.message : errorMsg);
+      resetKey();
     } finally {
-      setUploadingImage(false);
+      setUploading(false);
     }
   };
 
-  // Remove handleBannerUpload entirely
-
-  // Add these two
-  const handleDesktopBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || uploadingDesktopBanner) return;
-    try {
-      setUploadingDesktopBanner(true);
-      setDesktopBannerUploadError(null);
-      const url = await uploadFile(file);
-      setDesktopBannerUrl(url);
-    } catch (err) {
-      setDesktopBannerUploadError(err instanceof Error ? err.message : 'Desktop banner upload failed');
-      setDesktopBannerInputKey((k) => k + 1);
-    } finally {
-      setUploadingDesktopBanner(false);
-    }
-  };
-
-  const handleMobileBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || uploadingMobileBanner) return;
-    try {
-      setUploadingMobileBanner(true);
-      setMobileBannerUploadError(null);
-      const url = await uploadFile(file);
-      setMobileBannerUrl(url);
-    } catch (err) {
-      setMobileBannerUploadError(err instanceof Error ? err.message : 'Mobile banner upload failed');
-      setMobileBannerInputKey((k) => k + 1);
-    } finally {
-      setUploadingMobileBanner(false);
-    }
-  };
+  const handleImageUpload = createProjectUploadHandler(
+    setImageUrl, setUploadingImage, setImageUploadError, () => setImageInputKey(k => k + 1), 'Image upload failed'
+  );
+  const handleDesktopBannerUpload = createProjectUploadHandler(
+    setDesktopBannerUrl, setUploadingDesktopBanner, setDesktopBannerUploadError, () => setDesktopBannerInputKey(k => k + 1), 'Desktop banner upload failed'
+  );
+  const handleMobileBannerUpload = createProjectUploadHandler(
+    setMobileBannerUrl, setUploadingMobileBanner, setMobileBannerUploadError, () => setMobileBannerInputKey(k => k + 1), 'Mobile banner upload failed'
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-6">

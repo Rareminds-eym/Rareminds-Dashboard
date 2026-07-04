@@ -8,82 +8,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../ui/select';
 import { Plus, X, Layers, Loader2 } from 'lucide-react';
+import { uploadToR2 } from '../../../lib/r2-upload';
 
-const hasStringError = (val: unknown): val is { error: string } => {
-  return (
-    typeof val === 'object' &&
-    val !== null &&
-    'error' in val &&
-    typeof (val as { error: unknown }).error === 'string'
-  );
-};
-
-const hasStringUrl = (val: unknown): val is { url: string } => {
-  return (
-    typeof val === 'object' &&
-    val !== null &&
-    'url' in val &&
-    typeof (val as { url: unknown }).url === 'string'
-  );
-};
+// ponytail: Using shared r2-upload
 
 const isImageLike = (val: unknown): val is { id?: string; url?: string } =>
   typeof val === 'object' && val !== null && !Array.isArray(val) &&
   (('url' in val && typeof (val as { url: unknown }).url === 'string') || !('url' in val));
+
 const isSafeUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url);
-    // Explicitly block data: and javascript: URIs
     if (parsed.protocol === 'data:') return false;
     if (parsed.protocol === 'javascript:') return false;
-    // Only allow https and http
     return parsed.protocol === 'https:' || parsed.protocol === 'http:';
   } catch {
     return false;
   }
-};
-const UPLOAD_TIMEOUT_MS = 30000;
-const uploadFile = async (file: File): Promise<string> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  const controller = new AbortController();
-
-  const timeoutId = window.setTimeout(() => {
-    controller.abort();
-  }, UPLOAD_TIMEOUT_MS);
-
-  let res: Response;
-  try {
-    res = await fetch('/upload', { method: 'POST', body: formData, signal: controller.signal, });
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new Error('Upload timed out. Please try again.');
-    }
-    throw new Error(`Network error: unable to reach upload server (${err instanceof Error ? err.message : String(err)})`);
-  } finally {
-    clearTimeout(timeoutId);
-  }
-
-  // Try to parse JSON regardless of status, so we can extract error messages
-  let data: unknown;
-  try {
-    data = await res.json();
-  } catch {
-    // Non-JSON response (e.g. HTML error page from a proxy/CDN)
-    throw new Error(`Upload failed (${res.status}): server returned an invalid response`);
-  }
-
-  if (!res.ok) {
-    const errMsg = hasStringError(data) ? data.error : `Upload failed (${res.status})`;
-    throw new Error(errMsg);
-  }
-
-  if (!hasStringUrl(data)) {
-    throw new Error('Upload failed: no URL returned');
-  }
-
-  return data.url;
-
 };
 
 export type SectionItem = {
@@ -139,23 +80,22 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
 
   const setUploading = (key: string, val: boolean) =>
     setUploadingStates((prev) => ({ ...prev, [key]: val }));
-  const handleFileUpload = async (
-    file: File,
-    uploadKey: string,
-    onSuccess: (url: string) => void,
-    errorLabel = 'Upload failed'
-  ) => {
+  
+  // ponytail: Thin wrapper over uploadToR2, state tracking only
+  const handleFileUpload = async (file: File, uploadKey: string, onSuccess: (url: string) => void) => {
     setUploading(uploadKey, true);
     setUploadError(null);
     try {
-      const url = await uploadFile(file);
-      onSuccess(url);
+      const result = await uploadToR2(file, { folder: 'projects' });
+      if (!result.success || !result.url) throw new Error(result.error || 'Upload failed');
+      onSuccess(result.url);
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : errorLabel);
+      setUploadError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploading(uploadKey, false);
     }
   };
+
   const availableSectionKeys = ALL_SECTION_KEYS.filter(
     (key) => !sections.some((s) => s.section_key === key)
   );
@@ -286,15 +226,10 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                     disabled={uploadingStates[`video-${sectionIndex}`]}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) handleFileUpload(
-                        file,
-                        `video-${sectionIndex}`,
-                        (url) => {
-                          const existing = typeof content.text === 'string' && content.text.trim() ? content.text.trim() : '';
-                          updateContentField(sectionIndex, 'text', existing ? `${existing}, ${url}` : url);
-                        },
-                        'Video upload failed'
-                      );
+                      if (file) handleFileUpload(file, `video-${sectionIndex}`, (url) => {
+                        const existing = typeof content.text === 'string' && content.text.trim() ? content.text.trim() : '';
+                        updateContentField(sectionIndex, 'text', existing ? `${existing}, ${url}` : url);
+                      });
                     }}
                     className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                   />
@@ -341,9 +276,8 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                         disabled={uploadingStates[`intro-img-${sectionIndex}-${idx}`]}
                         onChange={(e) => {
                           const file = e.target.files?.[0];
-                          if (file) {
-                            void handleFileUpload(file, `intro-img-${sectionIndex}-${idx}`, (url) => updateContentField(sectionIndex, 'images', images.map((img, i) => i === idx ? { ...img, url } : img)), 'Image upload failed');}
-                          }}
+                          if (file) void handleFileUpload(file, `intro-img-${sectionIndex}-${idx}`, (url) => updateContentField(sectionIndex, 'images', images.map((img, i) => i === idx ? { ...img, url } : img)));
+                        }}
                         className="flex-1 text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                       />
                       {uploadingStates[`intro-img-${sectionIndex}-${idx}`] && (
@@ -402,8 +336,7 @@ const ProgramSectionsEditor = ({ sections, onChange }: ProgramSectionsEditorProp
                   disabled={uploadingStates[`conclusion-img-${sectionIndex}`]}
                  onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) {
-                    void handleFileUpload(file, `conclusion-img-${sectionIndex}`, (url) => updateContentField(sectionIndex, 'image', { url, alt: image.alt }), 'Image upload failed');}
+                  if (file) void handleFileUpload(file, `conclusion-img-${sectionIndex}`, (url) => updateContentField(sectionIndex, 'image', { url, alt: image.alt }));
                   }}
                   className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
                 />
