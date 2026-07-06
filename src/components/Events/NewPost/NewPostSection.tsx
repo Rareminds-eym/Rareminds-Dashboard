@@ -265,7 +265,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
 
 
 
-  // ponytail: One upload handler, not four copies
   const createUploadHandler = (field: string, setter: (url: string) => void, label: string) => 
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
@@ -432,25 +431,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     const isPhysical = locationType === 'physical';
     const parsedLat = isPhysical && locationGeo.lat ? parseFloat(locationGeo.lat) : null;
     const parsedLng = isPhysical && locationGeo.lng ? parseFloat(locationGeo.lng) : null;
-
-    if (!title || !eventDate || !eventTime || !duration || !organizerName || !organizerEmail || !category) {
-      console.log('Validation failed - missing required fields');
-      const missingFields = [];
-      if (!title) missingFields.push('Title');
-      if (!eventDate) missingFields.push('Event Date');
-      if (!eventTime) missingFields.push('Event Time');
-      if (!duration) missingFields.push('Duration');
-      if (!organizerName) missingFields.push('Organizer Name');
-      if (!organizerEmail) missingFields.push('Organizer Email');
-      if (!category) missingFields.push('Category');
-
-      toast({
-        title: "Missing Required Fields",
-        description: `Please fill in the following required fields: ${missingFields.join(', ')}`,
-        variant: "destructive"
-      });
-      return;
-    }
 
     // Convert duration string → integer minutes
     const durationMinutes = parseInt(duration) || 60;
@@ -649,7 +629,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                 {/* Title */}
                 <div className="space-y-2">
                   <Label htmlFor="title" className="text-sm font-medium text-slate-700">
-                    Event Title *
+                    Event Title
                   </Label>
                   <Input
                     id="title"
@@ -657,16 +637,15 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Enter your event title..."
                     className="h-12 text-lg border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                    required
                   />
                 </div>
 
                 {/* Event Category */}
                 <div className="space-y-2">
                   <Label htmlFor="category" className="text-sm font-medium text-slate-700">
-                    Event Category *
+                    Event Category
                   </Label>
-                  <Select value={category} onValueChange={setCategory} required>
+                  <Select value={category} onValueChange={setCategory}>
                     <SelectTrigger className="h-12 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100">
                       <SelectValue placeholder="Select event type" />
                     </SelectTrigger>
@@ -686,7 +665,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                 {/* Featured Image */}
                 <div className="space-y-3">
                   <Label htmlFor="featured-image" className="text-sm font-medium text-slate-700">
-                    Featured Image *
+                    Featured Image
                   </Label>
                   <div className="space-y-3">
                     <div className="flex gap-3">
@@ -867,7 +846,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="event-date" className="text-sm font-medium text-slate-700">
-                      Event Date *
+                      Event Date
                     </Label>
                     <Input
                       id="event-date"
@@ -875,12 +854,11 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                       value={eventDate}
                       onChange={(e) => setEventDate(e.target.value)}
                       className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                      required
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="event-time" className="text-sm font-medium text-slate-700">
-                      Event Time *
+                      Event Time
                     </Label>
                     <Input
                       id="event-time"
@@ -888,14 +866,13 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                       value={eventTime}
                       onChange={(e) => setEventTime(e.target.value)}
                       className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                      required
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="duration" className="text-sm font-medium text-slate-700">
-                      Duration *
+                      Duration
                     </Label>
                     <Input
                       id="duration"
@@ -905,7 +882,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                       onChange={(e) => setDuration(e.target.value)}
                       placeholder="Duration in minutes (e.g. 60)"
                       className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                      required
                     />
                   </div>
                   <div className="space-y-2">
@@ -955,7 +931,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                     <>
                       <div className="space-y-2">
                         <Label htmlFor="location" className="text-sm font-medium text-slate-700">
-                          Address *
+                          Address
                         </Label>
                         <Input
                           id="location"
@@ -963,7 +939,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                           onChange={(e) => setLocation(e.target.value)}
                           placeholder="Enter event address"
                           className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                          required
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
@@ -996,7 +971,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                   {locationType === 'virtual' && (
                     <div className="space-y-2">
                       <Label htmlFor="event-link" className="text-sm font-medium text-slate-700">
-                        Event Link *
+                        Event Link
                       </Label>
                       <Input
                         id="event-link"
@@ -1005,7 +980,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                         onChange={e => setLocationLink(e.target.value)}
                         placeholder="Event link (e.g. Zoom/Google Meet)"
                         className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
-                        required
                       />
                     </div>
                   )}
@@ -1013,7 +987,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                 {/* Price Selection */}
                 <div className="space-y-3">
                   <Label className="text-sm font-medium text-slate-700">
-                    Price *
+                    Price
                   </Label>
                   <div className="space-y-3">
                     {/* Preset Price Dropdown */}
@@ -1021,7 +995,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                       <Select 
                         value={priceType === 'preset' ? price : 'custom'} 
                         onValueChange={handlePriceChange}
-                        required
                       >
                         <SelectTrigger className="h-12 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100">
                           <SelectValue placeholder="Select price or enter custom amount" />
@@ -1052,7 +1025,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                             placeholder="0"
                             className="flex-1 border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
                             min="0"
-                            required
                           />
                         </div>
                       </div>
@@ -1093,7 +1065,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="organizer-name" className="text-sm font-medium text-slate-700">
-                    Organizer Name *
+                    Organizer Name
                   </Label>
                   <Input
                     id="organizer-name"
@@ -1101,13 +1073,12 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                     onChange={(e) => setOrganizerName(e.target.value)}
                     placeholder="Event organizer name"
                     className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                    required
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="organizer-email" className="text-sm font-medium text-slate-700">
-                      Organizer Email *
+                      Organizer Email
                     </Label>
                     <Input
                       id="organizer-email"
@@ -1116,7 +1087,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                       onChange={(e) => setOrganizerEmail(e.target.value)}
                       placeholder="organizer@example.com"
                       className="border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all duration-200"
-                      required
                     />
                   </div>
                   <div className="space-y-2">
@@ -1240,7 +1210,6 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
                             const filesToProcess = Array.from(files).slice(0, remainingSlots);
                             const uploadedUrls: string[] = [];
                             
-                            // ponytail: Sequential upload to avoid R2 rate limits
                             for (const file of filesToProcess) {
                               if (!file.type.startsWith('image/')) continue;
                               
