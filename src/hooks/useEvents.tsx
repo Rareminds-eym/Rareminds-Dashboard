@@ -236,15 +236,8 @@ export const useEvents = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('You must be logged in to create events. Please log in and try again.');
 
-      const requiredLocationField = eventData.is_physical ? eventData.location_address : eventData.event_link;
-      if (!eventData.title || !eventData.event_date || !eventData.event_time ||
-          eventData.duration <= 0 || !requiredLocationField ||
-          !eventData.organizer_name || !eventData.organizer_email || !eventData.category) {
-        throw new Error('Missing required fields for event creation');
-      }
-
-      const slug = eventData.slug ||
-        eventData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const slug = eventData.slug || 
+        (eventData.title ? eventData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `event-${Date.now()}`);
 
       // Determine event_type based on price
       const priceValue = eventData.price ?? 0;
@@ -253,10 +246,10 @@ export const useEvents = () => {
       const newEvent = {
         created_by: user.id,
         title: eventData.title,
-        event_date: eventData.event_date,
+        event_date: eventData.event_date || null,
         event_time: eventData.event_time || null,
-        duration: eventData.duration,
-        category: eventData.category,
+        duration: eventData.duration || null,
+        category: eventData.category || null,
         price: priceValue,
         event_type: eventType,
         registration_deadline: eventData.registration_deadline || null,
@@ -349,15 +342,8 @@ export const useEvents = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('You must be logged in to update events. Please log in and try again.');
 
-      const requiredLocationField = eventData.is_physical ? eventData.location_address : eventData.event_link;
-      if (!eventData.title || !eventData.event_date || !eventData.event_time ||
-          eventData.duration <= 0 || !requiredLocationField ||
-          !eventData.organizer_name || !eventData.organizer_email || !eventData.category) {
-        throw new Error('Missing required fields for event update');
-      }
-
-      const slug = eventData.slug ||
-        eventData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const slug = eventData.slug || 
+        (eventData.title ? eventData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `event-${Date.now()}`);
 
       // Determine event_type based on price
       const priceValue = eventData.price ?? 0;
@@ -365,10 +351,10 @@ export const useEvents = () => {
 
       const fullPayload = {
         title: eventData.title,
-        event_date: eventData.event_date,
+        event_date: eventData.event_date || null,
         event_time: eventData.event_time || null,
-        duration: eventData.duration,
-        category: eventData.category,
+        duration: eventData.duration || null,
+        category: eventData.category || null,
         price: priceValue,
         event_type: eventType,
         registration_deadline: eventData.registration_deadline || null,
