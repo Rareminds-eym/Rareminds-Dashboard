@@ -8,6 +8,7 @@ import { BlogFormData, ValidationErrors, categories, subcategories } from './Blo
 import { SEOSettings, BlogPost } from '../../../types/blog';
 import { useToast } from '../../../hooks/use-toast';
 import { useBlogDrafts } from '../../../hooks/useBlogDrafts';
+import { useR2Upload } from '../../../hooks/useR2Upload';
 
 export const useBlogForm = (initialData?: BlogPost | null) => {
   const [title, setTitle] = useState('');
@@ -28,13 +29,13 @@ export const useBlogForm = (initialData?: BlogPost | null) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { saveDraft } = useBlogDrafts();
+  const { upload, isUploading: isUploadingImage } = useR2Upload();
 
   const editor = useEditor({
     extensions: [
       StarterKit,
       Image.configure({
         inline: true,
-        allowBase64: true,
       }),
       Link.configure({
         openOnClick: false,
@@ -53,6 +54,13 @@ export const useBlogForm = (initialData?: BlogPost | null) => {
       },
     },
   });
+
+  // ponytail: Validate upload hook is available before allowing image insertion
+  useEffect(() => {
+    if (!upload) {
+      console.warn('useR2Upload hook not properly initialized - image uploads may fail');
+    }
+  }, [upload]);
 
   // Track initialization state more reliably
   const [isInitialized, setIsInitialized] = useState(false);
@@ -202,14 +210,26 @@ export const useBlogForm = (initialData?: BlogPost | null) => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFeaturedImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    
+    // ponytail: Direct upload + toast, no wrapper needed
+    if (!file.type.startsWith('image/')) {
+      toast({ variant: 'destructive', title: 'Invalid file type', description: 'Please select an image file' });
+      return;
+    }
+    
+    try {
+      const result = await upload(file, { folder: 'blogs' });
+      if (result.success && result.url) {
+        setFeaturedImage(result.url);
+        toast({ title: 'Success', description: 'Image uploaded successfully' });
+      } else {
+        toast({ variant: 'destructive', title: 'Upload failed', description: result.error || 'Failed to upload image' });
+      }
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Upload error', description: 'An unexpected error occurred during upload' });
     }
   };
 
@@ -324,6 +344,7 @@ export const useBlogForm = (initialData?: BlogPost | null) => {
     lastSaved,
     validationErrors,
     showValidation, setShowValidation,
+    isUploadingImage,
     
     // Refs
     fileInputRef,

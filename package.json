@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:worker": "wrangler pages dev --port 8788 --proxy 8080",
+    "dev:full": "npm run build && wrangler pages dev dist --port 8788",
     "dev:pages": "npm run build && npx wrangler pages dev dist",
     "build": "vite build",
     "build:dev": "vite build --mode development",
