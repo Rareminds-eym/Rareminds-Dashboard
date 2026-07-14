@@ -156,7 +156,7 @@ export interface EventPost {
   title: string;
   event_date: string;
   event_time?: string | null;
-  duration: number;          // INTEGER — total minutes (e.g. 120 = 2 hours)
+  duration?: number | null;          // INTEGER — total minutes (e.g. 120 = 2 hours), can be null
   category: EventCategory;
   price?: number | null;     // NUMERIC(10,2) — 0.00 means free
   event_type: EventType;     // 'paid' or 'free' - determined by price
