@@ -177,7 +177,7 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     if (editingPost.id === lastLoadedEditId) return;
 
     setTitle(editingPost.title);
-    setEventDate(editingPost.event_date);
+    setEventDate(editingPost.event_date || '');
     setEventTime(editingPost.event_time || '');
     setDuration(String(editingPost.duration || ''));
     setLocationType(editingPost.is_physical !== false ? 'physical' : 'virtual');
@@ -432,8 +432,8 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     const parsedLat = isPhysical && locationGeo.lat ? parseFloat(locationGeo.lat) : null;
     const parsedLng = isPhysical && locationGeo.lng ? parseFloat(locationGeo.lng) : null;
 
-    // Convert duration string → integer minutes
-    const durationMinutes = parseInt(duration) || 60;
+    // Convert duration string → integer minutes (or null if empty)
+    const durationMinutes = duration ? parseInt(duration) : null;
 
     // Convert price string → number (0 = free)
     // Note: event_type is automatically set in useEvents.createEvent/updateEvent
@@ -448,8 +448,8 @@ const NewPostSection = ({ onPostSaved, editingPost, isSaving = false }: NewPostS
     const formData: EventFormData = {
       id: editingPost?.id,
       title,
-      event_date: eventDate,
-      event_time: eventTime,
+      event_date: eventDate || null,
+      event_time: eventTime || null,
       duration: durationMinutes,
       category: category as EventCategory,
       price: priceNum,

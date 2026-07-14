@@ -190,9 +190,9 @@ export interface EventFormData {
 
   // events flat columns
   title: string;
-  event_date: string;
-  event_time: string;
-  duration: number;
+  event_date?: string | null;
+  event_time?: string | null;
+  duration?: number | null;
   category: EventCategory;
   price: number;
   registration_deadline?: string | null;
@@ -266,8 +266,8 @@ export interface EventDraft {
   user_id: string;
   title: string;
   description: string;
-  event_date: string;
-  event_time: string;
+  event_date?: string | null;
+  event_time?: string | null;
   duration: string;
   location: string;
   is_physical: boolean;
