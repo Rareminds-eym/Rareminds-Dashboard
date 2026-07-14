@@ -154,9 +154,9 @@ export interface EventPost {
   id: string;
   created_by: string;
   title: string;
-  event_date: string;
+  event_date: string | null;
   event_time?: string | null;
-  duration: number;          // INTEGER — total minutes (e.g. 120 = 2 hours)
+  duration?: number | null;          // INTEGER — total minutes (e.g. 120 = 2 hours), can be null
   category: EventCategory;
   price?: number | null;     // NUMERIC(10,2) — 0.00 means free
   event_type: EventType;     // 'paid' or 'free' - determined by price
@@ -190,9 +190,9 @@ export interface EventFormData {
 
   // events flat columns
   title: string;
-  event_date: string;
-  event_time: string;
-  duration: number;
+  event_date?: string | null;
+  event_time?: string | null;
+  duration?: number | null;
   category: EventCategory;
   price: number;
   registration_deadline?: string | null;
@@ -266,8 +266,8 @@ export interface EventDraft {
   user_id: string;
   title: string;
   description: string;
-  event_date: string;
-  event_time: string;
+  event_date?: string | null;
+  event_time?: string | null;
   duration: string;
   location: string;
   is_physical: boolean;

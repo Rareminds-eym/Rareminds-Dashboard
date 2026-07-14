@@ -161,9 +161,9 @@ export type Database = {
           id: string
           created_by: string
           title: string
-          event_date: string
+          event_date: string | null
           event_time: string | null
-          duration: number
+          duration: number | null
           category: 'Workshop' | 'Webinar' | 'Seminar' | 'Conference' | 'Training' | 'Bootcamp' | 'Hackathon' | 'Other'
           price: number | null
           event_type: 'paid' | 'free'
@@ -183,9 +183,9 @@ export type Database = {
           id?: string
           created_by: string
           title: string
-          event_date: string
+          event_date?: string | null
           event_time?: string | null
-          duration?: number
+          duration?: number | null
           category: 'Workshop' | 'Webinar' | 'Seminar' | 'Conference' | 'Training' | 'Bootcamp' | 'Hackathon' | 'Other'
           price?: number | null
           event_type?: 'paid' | 'free'
@@ -205,9 +205,9 @@ export type Database = {
           id?: string
           created_by?: string
           title?: string
-          event_date?: string
+          event_date?: string | null
           event_time?: string | null
-          duration?: number
+          duration?: number | null
           category?: 'Workshop' | 'Webinar' | 'Seminar' | 'Conference' | 'Training' | 'Bootcamp' | 'Hackathon' | 'Other'
           price?: number | null
           event_type?: 'paid' | 'free'
