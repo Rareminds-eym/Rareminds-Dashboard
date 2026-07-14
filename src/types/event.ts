@@ -154,7 +154,7 @@ export interface EventPost {
   id: string;
   created_by: string;
   title: string;
-  event_date: string;
+  event_date: string | null;
   event_time?: string | null;
   duration?: number | null;          // INTEGER — total minutes (e.g. 120 = 2 hours), can be null
   category: EventCategory;

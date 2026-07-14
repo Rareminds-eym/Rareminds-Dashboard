@@ -120,7 +120,7 @@ export const useEvents = () => {
       id: row.id,
       created_by: row.created_by,
       title: row.title ?? '',
-      event_date: row.event_date ?? '',
+      event_date: row.event_date ?? null,
       event_time: row.event_time ?? null,
       duration: row.duration ?? null,
       category: (row.category as EventCategory) ?? 'Other',
