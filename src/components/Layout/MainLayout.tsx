@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { 
   FileText, 
@@ -9,18 +9,27 @@ import {
   Home,
   Calendar,
   Heart,
-  ClipboardList
+  ClipboardList,
+  Settings
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useAuth } from '../../hooks/useAuth';
 import { useUserRole } from '../../hooks/useUserRole';
+import { useCompanySettings } from '../../hooks/useCompanySettings';
 
 const MainLayout = () => {
   const { user, signOut } = useAuth();
   const { userRole, loading: roleLoading } = useUserRole();
+  const { settings, isLoading: settingsLoading } = useCompanySettings();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [logoLoadFailed, setLogoLoadFailed] = useState(false);
+  const logoUrl = settings?.logo_url?.trim();
+
+  useEffect(() => {
+    setLogoLoadFailed(false);
+  }, [logoUrl]);
 
   const handleSignOut = async () => {
     try {
@@ -70,6 +79,12 @@ const MainLayout = () => {
       icon: Heart,
       href: '/nanmaduvalan',
       current: location.pathname.startsWith('/nanmaduvalan')
+    },
+    {
+      name: 'Company Settings',
+      icon: Settings,
+      href: '/settings/company',
+      current: location.pathname.startsWith('/settings')
     }
   ];
 
@@ -91,11 +106,18 @@ const MainLayout = () => {
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 items-center justify-between px-6 border-b border-slate-200/50 dark:border-slate-700/50">
-            <img 
-              src="https://rareminds.in/RareMinds.webp" 
-              alt="RareMinds" 
-              className="h-8 w-auto object-contain" 
-            />
+            {logoUrl && !logoLoadFailed ? (
+              <img
+                src={logoUrl}
+                alt="RareMinds"
+                className="h-8 w-auto object-contain"
+                onError={() => setLogoLoadFailed(true)}
+              />
+            ) : (
+              <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                {settingsLoading ? 'Loading...' : logoLoadFailed ? 'Logo could not be loaded' : 'Logo not configured'}
+              </span>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -172,11 +194,18 @@ const MainLayout = () => {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <img 
-            src="https://rareminds.in/RareMinds.webp" 
-            alt="RareMinds" 
-            className="h-8 w-auto object-contain" 
-          />
+          {logoUrl && !logoLoadFailed ? (
+            <img
+              src={logoUrl}
+              alt="RareMinds"
+              className="h-8 w-auto object-contain"
+              onError={() => setLogoLoadFailed(true)}
+            />
+          ) : (
+            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+              {settingsLoading ? 'Loading...' : logoLoadFailed ? 'Logo could not be loaded' : 'Logo not configured'}
+            </span>
+          )}
         </div>
 
         {/* Page content */}
