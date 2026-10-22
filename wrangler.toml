@@ -10,3 +10,5 @@ bucket_name = "rareminds-media"
 
 [vars]
 R2_PUBLIC_URL = "https://media.rareminds.in"
+# Origins allowed to call /upload (comma separated). Not a secret.
+ALLOWED_ORIGINS = "https://dashboard.rareminds.in,https://company-setttings.rareminds-dashboard.pages.dev"
