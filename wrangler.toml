@@ -2,7 +2,11 @@ name = "rareminds-dashboard"
 pages_build_output_dir = "dist"
 compatibility_date = "2024-01-01"
 
+# Uploads go through the R2 binding to the shared media bucket.
+# Files are served publicly from R2_PUBLIC_URL.
 [[r2_buckets]]
 binding = "R2"
 bucket_name = "rareminds-media"
-preview_bucket_name = "rareminds-media"
+
+[vars]
+R2_PUBLIC_URL = "https://media.rareminds.in"
