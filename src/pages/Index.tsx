@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, FileText, Eye, LogOut } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -10,13 +10,21 @@ import AuthPage from '../components/Auth/AuthPage';
 import { BlogPost } from '../types/blog';
 import { useAuth } from '../hooks/useAuth';
 import { useBlogPosts } from '../hooks/useBlogPosts';
+import { useCompanySettings } from '../hooks/useCompanySettings';
 
 const Index = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const { posts, loading: postsLoading, createPost, updatePost, deletePost } = useBlogPosts();
+  const { settings, isLoading: settingsLoading } = useCompanySettings();
+  const logoUrl = settings?.logo_url?.trim();
+  const [logoLoadFailed, setLogoLoadFailed] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
+
+  useEffect(() => {
+    setLogoLoadFailed(false);
+  }, [logoUrl]);
 
   // Show loading state while checking auth
   if (authLoading) {
@@ -80,11 +88,18 @@ const Index = () => {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center">
-              <img 
-                src="https://rareminds.in/RareMinds.webp" 
-                alt="RareMinds" 
-                className="h-10 w-auto object-contain" 
-              />
+              {logoUrl && !logoLoadFailed ? (
+                <img
+                  src={logoUrl}
+                  alt="RareMinds"
+                  className="h-10 w-auto object-contain"
+                  onError={() => setLogoLoadFailed(true)}
+                />
+              ) : (
+                <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                  {settingsLoading ? 'Loading...' : logoLoadFailed ? 'Logo could not be loaded' : 'Logo not configured'}
+                </span>
+              )}
             </div>
 
             {/* Navigation */}

@@ -2,8 +2,10 @@ import React, { useState, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Plus, Trash2, Upload, X, Link2, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Upload, X, Link2, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { Label } from '../ui/label';
+import { useR2Upload } from '@/hooks/useR2Upload';
+import { useToast } from '@/hooks/use-toast';
 
 interface EventGalleryManagerProps {
   images: string[];
@@ -23,6 +25,8 @@ export const EventGalleryManager: React.FC<EventGalleryManagerProps> = ({
   const [newImageUrl, setNewImageUrl] = useState('');
   const [isAddingUrl, setIsAddingUrl] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { upload, isUploading, progress } = useR2Upload();
+  const { toast } = useToast();
 
   const handleAddImageUrl = () => {
     const trimmedUrl = newImageUrl.trim();
@@ -33,34 +37,36 @@ export const EventGalleryManager: React.FC<EventGalleryManagerProps> = ({
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || images.length >= maxImages) return;
 
-    const fileReaders: Promise<string>[] = [];
     const remainingSlots = maxImages - images.length;
-    const filesToProcess = Array.from(files).slice(0, remainingSlots);
+    const uploadedUrls: string[] = [];
+    let failedCount = 0;
 
-    filesToProcess.forEach((file) => {
-      if (file.type.startsWith('image/')) {
-        fileReaders.push(
-          new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target?.result as string);
-            reader.readAsDataURL(file);
-          })
-        );
+    // ponytail: Sequential upload to avoid parallel R2 limits, reuse single hook
+    for (const file of Array.from(files).slice(0, remainingSlots)) {
+      if (!file.type.startsWith('image/')) continue;
+      const result = await upload(file, { folder: 'events' });
+      if (result.success && result.url) {
+        uploadedUrls.push(result.url);
+      } else {
+        failedCount++;
       }
-    });
+    }
 
-    Promise.all(fileReaders).then((base64Images) => {
-      const newImages = base64Images.filter(img => !images.includes(img));
-      if (newImages.length > 0) {
-        onChange([...images, ...newImages]);
-      }
-    });
-
-    // Reset the file input
+    if (uploadedUrls.length > 0) onChange([...images, ...uploadedUrls]);
+    
+    // ponytail: Single summary toast instead of toast-per-failure spam
+    if (failedCount > 0) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Some uploads failed', 
+        description: `${uploadedUrls.length} succeeded, ${failedCount} failed` 
+      });
+    }
+    
     event.target.value = '';
   };
 
@@ -74,7 +80,6 @@ export const EventGalleryManager: React.FC<EventGalleryManagerProps> = ({
     setIsAddingUrl(false);
   };
 
-  const canAddMore = images.length < maxImages;
   const hasMinimumImages = images.length >= minImages;
 
   return (
@@ -185,11 +190,11 @@ export const EventGalleryManager: React.FC<EventGalleryManagerProps> = ({
                     type="button"
                     variant="outline"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={disabled}
+                    disabled={disabled || isUploading}
                     className="flex items-center gap-2"
                   >
-                    <Upload className="h-4 w-4" />
-                    Upload Images
+                    {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    {isUploading ? `Uploading ${progress}%` : 'Upload Images'}
                   </Button>
                   <Button
                     type="button"

@@ -22,6 +22,7 @@ const EventsListPage = lazy(() => import('./pages/Events/EventsList/EventsListPa
 const FormsListPage = lazy(() => import('./pages/FormBuilder/FormsListPage'));
 const FormBuilderPage = lazy(() => import('./pages/FormBuilder/FormBuilderPage'));
 const FormPreviewPage = lazy(() => import('./pages/FormBuilder/FormPreviewPage'));
+const CompanySettingsPage = lazy(() => import('./pages/CompanySettings/CompanySettingsPage'));
 const NanmaduvalanPage = lazy(() => import('./pages/NanmaduvalanPage'));
 const AuthPageWrapper = lazy(() => import('./pages/AuthPageWrapper'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -228,6 +229,18 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<RouteLoading />}>
             <NanmaduvalanPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'settings',
+        element: <Navigate to="/settings/company" replace />,
+      },
+      {
+        path: 'settings/company',
+        element: (
+          <Suspense fallback={<RouteLoading />}>
+            <CompanySettingsPage />
           </Suspense>
         ),
       },

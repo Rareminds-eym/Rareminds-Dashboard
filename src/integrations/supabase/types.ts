@@ -120,6 +120,50 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          id: string
+          office_address: string
+          city: string
+          state: string
+          pincode: string
+          logo_url: string | null
+          created_at: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          office_address: string
+          city: string
+          state: string
+          pincode: string
+          logo_url?: string | null
+          created_at?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          office_address?: string
+          city?: string
+          state?: string
+          pincode?: string
+          logo_url?: string | null
+          created_at?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       entity_sections: {
         Row: {
           id: string
