@@ -1,3 +1,8 @@
 name = "rareminds-dashboard"
 pages_build_output_dir = "dist"
 compatibility_date = "2024-01-01"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "rareminds-media"
+preview_bucket_name = "rareminds-media"

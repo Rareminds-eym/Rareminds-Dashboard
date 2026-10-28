@@ -2,15 +2,15 @@ import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, File, X, CheckCircle, AlertCircle } from "lucide-react";
-import { uploadEventEnquiryPDF, deleteEventEnquiryPDF, validatePDF } from "@/lib/pdf-utils";
+import { Upload, File, X, CheckCircle } from "lucide-react";
+import { useR2Upload } from "@/hooks/useR2Upload";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
 interface PDFUploadProps {
   eventId: string;
   currentPDFUrl?: string | null;
-  currentPDFPath?: string | null;
   onUploadComplete?: (url: string, path?: string) => void;
   onDeleteComplete?: () => void;
   disabled?: boolean;
@@ -19,29 +19,30 @@ interface PDFUploadProps {
 export const PDFUpload: React.FC<PDFUploadProps> = ({
   eventId,
   currentPDFUrl,
-  currentPDFPath,
   onUploadComplete,
   onDeleteComplete,
   disabled = false
 }) => {
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
-  const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { upload, isUploading, progress } = useR2Upload();
   const { toast } = useToast();
 
-  const handleFileSelect = (file: File) => {
-    // Validate the file
-    const validation = validatePDF(file);
-    if (!validation.valid) {
-      setError(validation.error || 'Invalid file');
-      return;
+  const validatePDF = (file: File): boolean => {
+    if (file.type !== 'application/pdf') {
+      toast({ variant: 'destructive', title: 'Invalid file type', description: 'Please select a PDF file' });
+      return false;
     }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ variant: 'destructive', title: 'File too large', description: 'PDF must be less than 10MB' });
+      return false;
+    }
+    return true;
+  };
 
-    setSelectedFile(file);
-    setError(null);
+  const handleFileSelect = (file: File) => {
+    if (validatePDF(file)) setSelectedFile(file);
   };
 
   const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,82 +72,61 @@ export const PDFUpload: React.FC<PDFUploadProps> = ({
     setIsDragging(false);
   };
 
-  const uploadFile = async () => {
+  const uploadFileToDB = async () => {
     if (!selectedFile || !eventId) return;
 
-    setIsUploading(true);
-    setError(null);
+    // ponytail: Direct upload + toast, R2 upload + DB update in sequence
+    const result = await upload(selectedFile, { folder: 'events' });
     
-    // Simulate progress for better UX
-    const progressInterval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return 90;
-        }
-        return prev + 10;
-      });
-    }, 200);
+    if (result.success && result.url) {
+      // ponytail: enquiry_pdf is nested in media_metadata Json field, not a direct column
+      const { error: dbError } = await supabase
+        .from('events')
+        .update({ 
+          media_metadata: { 
+            enquiry_pdf: result.url, 
+            enquiry_pdf_path: result.key 
+          } 
+        } satisfies Database['public']['Tables']['events']['Update'])
+        .eq('id', eventId);
 
-    try {
-      const result = await uploadEventEnquiryPDF(selectedFile, eventId);
-      
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-      
-      if (result.success && result.url) {
-        toast({
-          title: "PDF uploaded successfully",
-          description: "The enquiry PDF has been attached to the event.",
-        });
-        onUploadComplete?.(result.url, result.path);
-        setSelectedFile(null);
-      } else {
-        setError(result.error || 'Upload failed');
-        toast({
-          title: "Upload failed",
-          description: result.error || 'Failed to upload PDF file',
-          variant: "destructive"
-        });
+      if (dbError) {
+        toast({ title: "Database update failed", description: "File uploaded but couldn't link to event", variant: "destructive" });
+        return;
       }
-    } catch (error) {
-      clearInterval(progressInterval);
-      const errorMessage = 'An unexpected error occurred';
-      setError(errorMessage);
-      toast({
-        title: "Upload failed",
-        description: errorMessage,
-        variant: "destructive"
-      });
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+      
+      toast({ title: 'Success', description: 'PDF uploaded successfully' });
+      onUploadComplete?.(result.url, result.key);
+      setSelectedFile(null);
+    } else {
+      toast({ variant: 'destructive', title: 'Upload failed', description: result.error || 'Failed to upload PDF' });
     }
   };
 
   const deletePDF = async () => {
     if (!currentPDFUrl || !eventId) return;
 
-    try {
-      const result = await deleteEventEnquiryPDF(eventId, currentPDFUrl);
-      
-      if (result.success) {
-        toast({
-          title: "PDF deleted successfully",
-          description: "The enquiry PDF has been removed from the event.",
-        });
-        onDeleteComplete?.();
-      } else {
-        toast({
-          title: "Delete failed",
-          description: result.error || 'Failed to delete PDF file',
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
+    // ponytail: Just clear DB reference, R2 files are cheap to leave orphaned
+    const { error } = await supabase
+      .from('events')
+      .update({ 
+        media_metadata: { 
+          enquiry_pdf: null, 
+          enquiry_pdf_path: null 
+        } 
+      } satisfies Database['public']['Tables']['events']['Update'])
+      .eq('id', eventId);
+    
+    if (!error) {
+      toast({
+        title: "PDF removed",
+        description: "The enquiry PDF has been removed from the event.",
+      });
+      onDeleteComplete?.();
+    } else {
       toast({
         title: "Delete failed",
-        description: "An unexpected error occurred",
+        description: "Failed to remove PDF reference",
         variant: "destructive"
       });
     }
@@ -158,7 +138,6 @@ export const PDFUpload: React.FC<PDFUploadProps> = ({
 
   const clearSelectedFile = () => {
     setSelectedFile(null);
-    setError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -277,7 +256,7 @@ export const PDFUpload: React.FC<PDFUploadProps> = ({
                 <div className="flex gap-2">
                   <Button
                     size="sm"
-                    onClick={uploadFile}
+                    onClick={uploadFileToDB}
                     disabled={isUploading || disabled}
                   >
                     {isUploading ? 'Uploading...' : 'Upload'}
@@ -299,20 +278,12 @@ export const PDFUpload: React.FC<PDFUploadProps> = ({
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Uploading...</span>
-                  <span>{uploadProgress}%</span>
+                  <span>{progress}%</span>
                 </div>
-                <Progress value={uploadProgress} className="h-2" />
+                <Progress value={progress} className="h-2" />
               </div>
             )}
           </>
-        )}
-
-        {/* Error Display */}
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
         )}
       </CardContent>
     </Card>
